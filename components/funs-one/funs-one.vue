@@ -29,6 +29,7 @@
 			width: 70rpx;
 			height: 70rpx;
 			background-color: yellow;
+			display: block;//加了这个图片和文字之间就没有空袭了，当成块元素 
 		}
 		.txt{
 			height: 60rpx;
