@@ -568,7 +568,8 @@
 /* 顶部导航栏 */
 .navbar {
   position: absolute;
-  top: 0;
+  top: var(--status-bar-height, 0);
+  /* 适配状态栏高度 */
   left: 0;
   width: 100%;
   z-index: 100;

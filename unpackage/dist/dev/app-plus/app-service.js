@@ -31,16 +31,6 @@ if (uni.restoreGlobal) {
 }
 (function(vue) {
   "use strict";
-  function formatAppLog(type, filename, ...args) {
-    if (uni.__log__) {
-      uni.__log__(type, filename, ...args);
-    } else {
-      console[type].apply(console, [...args, filename]);
-    }
-  }
-  function resolveEasycom(component, easycom) {
-    return typeof component === "string" ? easycom : component;
-  }
   const fontData = [
     {
       "font_class": "arrow-down",
@@ -768,6 +758,16 @@ if (uni.restoreGlobal) {
     );
   }
   const __easycom_0$3 = /* @__PURE__ */ _export_sfc(_sfc_main$9, [["render", _sfc_render$8], ["__scopeId", "data-v-d31e1c47"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
+  function formatAppLog(type, filename, ...args) {
+    if (uni.__log__) {
+      uni.__log__(type, filename, ...args);
+    } else {
+      console[type].apply(console, [...args, filename]);
+    }
+  }
+  function resolveEasycom(component, easycom) {
+    return typeof component === "string" ? easycom : component;
+  }
   const _sfc_main$8 = {
     __name: "index",
     setup(__props, { expose: __expose }) {
@@ -776,6 +776,15 @@ if (uni.restoreGlobal) {
       const dragStartY = vue.ref(0);
       const startOffset = vue.ref(0);
       const isDragging = vue.ref(false);
+      const screenHeight = vue.ref(0);
+      vue.onMounted(() => {
+        uni.getSystemInfo({
+          success: (res) => {
+            screenHeight.value = res.windowHeight;
+            panelOffset.value = screenHeight.value * 0.3;
+          }
+        });
+      });
       const startDrag = (e) => {
         isDragging.value = true;
         dragStartY.value = e.touches[0].clientY;
@@ -785,23 +794,27 @@ if (uni.restoreGlobal) {
         if (!isDragging.value)
           return;
         const currentY = e.touches[0].clientY;
-        formatAppLog("log", "at pages/index/index.vue:133", currentY);
         const deltaY = currentY - dragStartY.value;
         let newOffset = startOffset.value + deltaY;
-        if (newOffset > 0)
-          newOffset = 0;
-        if (newOffset < -400)
-          newOffset = -400;
+        const maxOffset = screenHeight.value * 0.7;
+        const minOffset = -screenHeight.value * 0.3;
+        if (newOffset > maxOffset)
+          newOffset = maxOffset;
+        if (newOffset < minOffset)
+          newOffset = minOffset;
         panelOffset.value = newOffset;
       };
       const endDrag = () => {
         if (!isDragging.value)
           return;
         isDragging.value = false;
-        if (panelOffset.value > -200) {
-          panelOffset.value = 0;
+        screenHeight.value * 0.15;
+        if (panelOffset.value > screenHeight.value * 0.5) {
+          panelOffset.value = screenHeight.value * 0.7;
+        } else if (panelOffset.value < screenHeight.value * 0.2) {
+          panelOffset.value = -screenHeight.value * 0.3;
         } else {
-          panelOffset.value = -400;
+          panelOffset.value = screenHeight.value * 0.3;
         }
       };
       const actions = vue.ref([
@@ -838,7 +851,7 @@ if (uni.restoreGlobal) {
         }
       ]);
       const activeNav = vue.ref(0);
-      const __returned__ = { panelOffset, dragStartY, startOffset, isDragging, startDrag, onDrag, endDrag, actions, recommends, activeNav, ref: vue.ref };
+      const __returned__ = { panelOffset, dragStartY, startOffset, isDragging, screenHeight, startDrag, onDrag, endDrag, actions, recommends, activeNav, ref: vue.ref, onMounted: vue.onMounted };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
     }
@@ -1079,8 +1092,7 @@ if (uni.restoreGlobal) {
         ],
         36
         /* STYLE, NEED_HYDRATION */
-      ),
-      vue.createCommentVNode(" 底部导航 ")
+      )
     ]);
   }
   const PagesIndexIndex = /* @__PURE__ */ _export_sfc(_sfc_main$8, [["render", _sfc_render$7], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/index/index.vue"]]);

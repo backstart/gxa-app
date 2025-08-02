@@ -104,19 +104,30 @@
 			</view>
 		</view>
 		
-		<!-- 底部导航 -->
 	
 	</view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 	
 // 面板拖拽相关状态
 const panelOffset = ref(0);
 const dragStartY = ref(0);
 const startOffset = ref(0);
 const isDragging = ref(false);
+const screenHeight = ref(0);
+
+onMounted(() => {
+  // 获取屏幕高度
+  uni.getSystemInfo({
+    success: (res) => {
+      screenHeight.value = res.windowHeight;
+      // 初始状态设置为部分显示
+      panelOffset.value = screenHeight.value * 0.3;
+    }
+  });
+});
 	
 // 开始拖拽
 const startDrag = (e) => {
@@ -130,15 +141,17 @@ const onDrag = (e) => {
 	if (!isDragging.value) return;
 	
 	const currentY = e.touches[0].clientY;
-	console.log(currentY);
 	const deltaY = currentY - dragStartY.value;
 	
-	// 只允许向上拖动（负值）和向下拖动（正值），但限制向下拖动不超过0
+	// 计算新的偏移量
 	let newOffset = startOffset.value + deltaY;
 	
 	// 限制拖动范围
-	if (newOffset > 0) newOffset = 0; // 不能向下超过初始位置
-	if (newOffset < -400) newOffset = -400; // 向上拖动最大距离
+	const maxOffset = screenHeight.value * 0.7; // 最大向下拖动距离
+	const minOffset = -screenHeight.value * 0.3; // 最大向上拖动距离
+	
+	if (newOffset > maxOffset) newOffset = maxOffset;
+	if (newOffset < minOffset) newOffset = minOffset;
 	
 	panelOffset.value = newOffset;
 };
@@ -150,12 +163,17 @@ const endDrag = () => {
 	isDragging.value = false;
 	
 	// 根据当前位置决定面板最终状态
-	if (panelOffset.value > -200) {
-		// 如果面板在中间位置以上，则回到初始位置
-		panelOffset.value = 0;
+	const threshold = screenHeight.value * 0.15;
+	
+	if (panelOffset.value > screenHeight.value * 0.5) {
+		// 向下拖动超过屏幕一半，关闭面板
+		panelOffset.value = screenHeight.value * 0.7;
+	} else if (panelOffset.value < screenHeight.value * 0.2) {
+		// 向上拖动超过屏幕20%，完全展开
+		panelOffset.value = -screenHeight.value * 0.3;
 	} else {
-		// 如果面板在中间位置以下，则完全展开
-		panelOffset.value = -400;
+		// 否则回到初始状态
+		panelOffset.value = screenHeight.value * 0.3;
 	}
 };
 
@@ -196,7 +214,6 @@ const recommends = ref([
 	}
 ]);
 
-// 底部导航数据
 
 
 const activeNav = ref(0);
@@ -216,7 +233,7 @@ const activeNav = ref(0);
 /* 顶部导航栏 */
 .navbar {
 	position: absolute;
-	top: 0;
+	top: var(--status-bar-height, 0); /* 适配状态栏高度 */
 	left: 0;
 	width: 100%;
 	z-index: 100;
