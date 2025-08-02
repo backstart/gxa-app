@@ -1,0 +1,272 @@
+<template>
+	<view 
+		ref="gridRef"
+		class="l-grid-item" 
+		@click="onClick"
+		:class="[classes, lClass]" 
+		:hover-stay-time="200"
+		:hover-class="hover ? 'l-grid-item--hover': ''"
+		:style="[styles, lStyle]">
+		<slot>
+			<l-badge
+				v-if="(dot || badge != null) && (icon != null || image != null || $slots['icon'] != null)" 
+				:content="badge"
+				:dot="dot">
+				<slot name="icon">
+					<view 
+						class="l-grid-item__icon" 
+						:class="imageClasses" 
+						v-if="icon != null" >
+						<l-icon
+							:l-class="lClassIcon"
+							:prefix="prefix"
+							:name="icon" 
+							:color="iconColor" 
+							:size="iconSize">
+						</l-icon>
+					</view>
+					<image
+						class="l-grid-item__image"
+						:class="imageClasses"
+						:style="[imageStyle, innerImageStyle]"
+						v-else-if="image != null"
+						:src="image" 
+						mode="aspectFill">
+					</image>
+				</slot>
+			</l-badge>
+			<slot name="icon"  v-else-if="icon != null || image != null || $slots['icon'] != null">
+				<view class="l-grid-item__icon" 
+					:class="imageClasses" 
+					v-if="icon != null" >
+					<l-icon
+						:l-class="lClassIcon"
+						:prefix="prefix"
+						:name="icon" 
+						:color="iconColor" 
+						:size="iconSize">
+					</l-icon>
+				</view>
+				<image
+					class="l-grid-item__image"
+					:class="imageClasses" 
+					:style="[imageStyle, innerImageStyle]"
+					v-else-if="image != null"
+					:src="image" 
+					mode="aspectFill">
+				</image>
+			</slot>
+			
+			<view class="l-grid-item__content">
+				<slot name="text">
+					<text class="l-grid-item__title" :style="[lTitleStyle]" :class="titleClasses" >{{text}}</text>
+				</slot>
+				<slot name="description">
+					<text class="l-grid-item__description" :style="[lDescriptionStyle]">{{description}}</text>
+				</slot>
+			</view>
+		</slot>
+		<slot name="extra"></slot>
+	</view>
+</template>
+<script lang="uts" setup>
+	/**
+	 * GridItem 网格项组件
+	 * @description 用于构建功能入口或导航项的布局元素
+	 * <br> 插件类型：LGridItemComponentPublicInstance 
+	 * @tutorial https://ext.dcloud.net.cn/plugin?name=lime-grid
+	 * 
+	 * @property {string} text 主文本内容（支持插槽自定义）
+	 * @property {string} description 辅助描述文本（支持插槽自定义）
+	 * @property {string} url 点击跳转链接
+	 * @property {'switchTab'|'reLaunch'|'redirectTo'|'navigateTo'} openType 跳转方式
+	 * @value navigateTo
+	 * @value switchTab 切换Tab页
+	 * @value reLaunch 重新加载页面
+	 * @value redirectTo 页面重定向
+	 * @value navigateTo 保留当前页跳转
+	 * @property {string} icon 图标名称/图片地址（支持base64）
+	 * @property {string} prefix 图标类名前缀（默认'lime-icon'）
+	 * @property {string} image 图片地址（优先级高于icon）
+	 * @property {string} imageWidth 图片宽度（支持CSS单位）
+	 * @property {string} imageHeight 图片高度（支持CSS单位）
+	 * @property {string} bgColor 背景颜色（支持十六进制/rgba）
+	 * @property {string} padding 内边距（CSS简写格式）
+	 * @property {'vertical'|'horizontal'} layout 内容排列方向
+	 * @value vertical
+	 * @value horizontal
+	 * @property {boolean} dot 是否显示右上角小红点
+	 * @property {string} borderColor 边框颜色（需设置父级border）
+	 * @property {string|object} lStyle 自定义根节点样式
+	 * @property {string|object} lImageStyle 自定义图片节点样式
+	 * @property {string|object} lTitleStyle 自定义标题节点样式
+	 * @property {string|object} lDescriptionStyle 自定义简介节点样式
+	 * @property {string} lClass 自定义根节点类名
+	 * 
+	 * @event {Function} click 点击事件
+	 */
+	import { GridItemProps } from './type';
+	import { GridProvide } from '../l-grid/type';
+	
+	const emits = defineEmits(['click'])
+	const props = withDefaults(defineProps<GridItemProps>(), {
+		openType: 'navigateTo',
+		layout: 'vertical',
+		dot: false,
+		// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+		iconColor: 'rgba(0,0,0,0.88)',
+		iconSize: '48rpx',
+		// #endif
+	})
+	const name = 'l-grid-item';
+	const parent = inject<GridProvide|null>('limeGrid', null)
+	const instance = getCurrentInstance();
+	const index = computed(():number => parent?.children.value.indexOf(instance!.uid) ?? -1);
+	const column = computed(():number => parent?.props.column ?? 0)
+	const gutter = computed(():number => parent?.props.gutter ?? 0)
+	const width = computed(():number => parent?.width.value ?? 0)
+	// const gridWidth = computed(():string|null => parent?.props.gridWidth)
+	const hover = computed(():boolean => parent?.props.hover ?? false)
+	const classes = computed(():Map<string, any>=>{
+		const cls = new Map<string, any>()
+		cls.set(`${name}--${props.layout}`, true);
+		cls.set(`${name}--${parent?.props.align ?? 'center'}`, true);
+		cls.set(`${name}--bordered`, parent?.props.border ?? false);
+		
+		return cls
+	})
+	
+	const size = computed(():string=>{
+		if (column.value > 4 || column.value == 0) return 'small';
+		return column.value < 4 ? 'large' : 'middle';
+	})
+	
+	const imageClasses = computed(():Map<string, any>=>{
+		const cls = new Map<string, any>()
+		cls.set(`${name}__image--${size.value}`, true);
+		
+		return cls
+	})
+	const titleClasses = computed(():Map<string, any>=>{
+		const cls = new Map<string, any>()
+		cls.set(`${name}__title--${size.value}`, true);
+		
+		return cls
+	})
+	
+	const innerImageStyle = ref<string|UTSJSONObject>('')
+	
+	const styles = computed(():Map<string, any>=>{
+		const style = new Map<string, any>();
+		const gridWidth = parent?.props.gridWidth
+		// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+		if(gridWidth != null || width.value > 0 && column.value > 0) {
+			const _width = (width.value - (column.value - 1) * gutter.value) / column.value;
+			style.set(`width`, gridWidth ?? `${_width}px`);
+			// style.set(`width`, `auto`);
+		}
+		// #endif
+		// #ifndef APP-ANDROID || APP-IOS || APP-HARMONY
+		const percent = `calc((100% - ${(column.value - 1) * gutter.value}px) / ${column.value})` //`calc(${100 / column.value}% - ${gutter.value}px)`;
+		style.set(`flex-basis`, percent);
+		
+		if(props.imageWidth) {
+			if(size.value == 'large') {
+				style.set(`--l-grid-item-image-width`, props.imageWidth);
+			} else {
+				style.set(`--l-grid-item-image-${size.value}-width`, props.imageWidth);
+			}
+		}
+		if(props.imageHeight) {
+			if(size.value == 'large') {
+				style.set(`--l-grid-item-image-height`, props.imageHeight);
+			} else {
+				style.set(`--l-grid-item-image-${size.value}-height`, props.imageHeight);
+			}
+		}
+		
+		style.set(`--l-grid-item-image-height`, percent);
+		// #endif
+		if(index.value % (column.value) != column.value - 1) {
+			style.set('margin-right', `${gutter.value}px`)
+		}
+
+		if (index.value >= column.value) {
+			style.set(`margin-top`, `${gutter.value}px`);
+		}
+		
+		if(props.borderColor != null) {
+			// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+			style.set('border-color', props.borderColor!)
+			// #endif
+			// #ifndef APP-ANDROID || APP-IOS || APP-HARMONY
+			style.set('--l-grid-item-border-color', props.borderColor!)
+			// #endif
+		}
+		const bgColor = props.bgColor ?? parent?.props.bgColor
+		if(bgColor != null) {
+			style.set('background', bgColor)
+		}
+		const padding = props.padding ?? parent?.props.padding
+		if(padding != null) {
+			style.set('padding', padding)
+		}
+		
+		return style
+	})
+	
+	
+	const imageStyle = computed(():Map<string, any>=>{
+		const style = new Map<string, any>();
+		// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+		if(props.imageWidth != null) {
+			style.set(`width`, props.imageWidth!);
+		}
+		if(props.imageHeight != null) {
+			style.set(`height`, props.imageHeight!);
+		}
+		// #endif
+		
+		return style
+	})
+	
+	
+	const onClick = (e: UniPointerEvent) => {
+		emits('click', e)
+		if(props.url == null) return
+		switch(props.openType) {
+			case 'switchTab':
+				uni.switchTab({url: props.url!})
+				break;
+			case 'reLaunch':
+				uni.reLaunch({url: props.url!})
+				break;
+			case 'redirectTo':
+				uni.redirectTo({url: props.url!})
+				break;
+			default:
+				uni.navigateTo({url: props.url!})
+				break;
+		}
+	}
+	// 安卓如果默认设置了圆角，再设置不会被覆盖，要延时一下
+	watchEffect(()=>{
+		nextTick(()=>{
+			innerImageStyle.value = props.lImageStyle??''
+		})
+	})
+	
+	onBeforeMount(() => {
+		if(instance != null && parent != null) {
+			parent.children.value.push(instance.uid)
+		}
+	})
+	onUnmounted(() => {
+		if(instance != null && parent != null) {
+			parent.children.value = parent.children.value.filter((it):boolean => it != instance.uid)
+		}
+	})
+</script>
+<style lang="scss">
+	@import './index';
+</style>

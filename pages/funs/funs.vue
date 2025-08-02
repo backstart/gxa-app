@@ -1,6 +1,6 @@
 <template>
 	<view class="">
-		
+		<you-touchbox></you-touchbox>
 	</view>
 </template>
 

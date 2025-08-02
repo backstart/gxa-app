@@ -1,0 +1,81 @@
+<template>
+	<view class="l-grid" ref="resizeRef" :class="clsses">
+		<slot></slot>
+	</view>
+</template>
+<script lang="uts" setup>
+	/**
+	 * Grid 栅格布局组件
+	 * @description 用于实现瀑布流、等分等网格布局场景
+	 * <br> 插件类型：LGridComponentPublicInstance 
+	 * @tutorial https://ext.dcloud.net.cn/plugin?name=lime-grid
+	 * 
+	 * @property {'left'|'center'} align 内容对齐方式
+	 * @value left 左对齐
+	 * @value center 居中对齐
+	 * @property {boolean} border 是否显示边框
+	 * @property {number} column 列数（0表示使用固定尺寸布局）
+	 * @property {number} gutter 网格间隔（单位px/rpx）
+	 * @property {boolean} hover 是否启用点击反馈效果
+	 * @property {boolean} inset 卡片式圆角风格
+	 * @property {string} [gridWidth] 固定尺寸布局时的网格宽度（支持CSS单位）
+	 * @property {string} [padding] 内边距（支持CSS简写格式）
+	 * @property {string} [bgColor] 背景颜色（卡片式布局生效）
+	 * @property {boolean} wrap 超出是否换行
+	 */
+	import { GridProps , GridProvide} from './type';
+	
+	const props = withDefaults(defineProps<GridProps>(), {
+		align: 'center',
+		border: false,
+		column: 4,
+		gutter: 0,
+		hover: false,
+		inset: false,
+		wrap: true,
+		// gridWidth: null
+	})
+	
+	const clsses = computed(():Map<string, any>=>{
+		const cls = new Map<string, any>();
+		
+		cls.set(`l-grid--wrap`, props.wrap)
+		cls.set(`l-grid--inset`, props.inset)
+		cls.set(`l-grid--bordered`, props.border && props.gutter == 0)
+		
+		return cls
+	})
+	const resizeRef = ref<UniElement|null>(null)
+	const width = ref<number>(0)
+	const children = ref<number[]>([])
+	// #ifdef APP-ANDROID || APP-IOS || APP-HARMONY
+	const resizeObserver = new UniResizeObserver((entries : Array<UniResizeObserverEntry>) => {
+		const rect = entries[0].target.getBoundingClientRect();
+		width.value = rect.width;
+	}) 
+	
+	const stopWatch = watch(():UniElement|null => resizeRef.value, (el:UniElement|null) => {
+		if(el== null) return
+		resizeObserver.observe(el)
+		// #ifdef APP-IOS
+		setTimeout(()=>{
+			const rect = el.getBoundingClientRect();
+			width.value = rect.width;
+		},50)
+		// #endif
+	})
+	
+	onUnmounted(()=>{
+		stopWatch()
+		resizeObserver.disconnect()
+	})
+	// #endif
+	provide('limeGrid', {
+		children,
+		props,
+		width
+	} as GridProvide)
+</script>
+<style lang="scss">
+	@import './index';
+</style>

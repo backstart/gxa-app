@@ -1,0 +1,144 @@
+@import '~@/uni_modules/lime-style/index.scss';
+@import '~@/uni_modules/lime-style/mixins/hairline.scss';
+// $prefix: l !default;
+$grid-item: #{$prefix}-grid-item;
+
+// $grid-item-icon-font-size: 24px;
+
+$grid-item-padding-y: create-var(grid-item-padding-y, $spacer 0 $spacer-sm);
+$grid-item-padding-x: create-var(grid-item-padding-x, $spacer 0);
+$grid-item-bg-color: create-var(grid-item-bg-color, $bg-color-container);
+$grid-item-image-bg-color: create-var(grid-item-image-bg-color, $fill-4);
+$grid-item-image-border-radius: create-var(grid-item-image-border-radius, $border-radius);
+$grid-item-image-width: create-var(grid-item-image-width, 96rpx);
+$grid-item-image-small-width: create-var(grid-item-image-small-width, 32px);
+$grid-item-image-middle-width: create-var(grid-item-image-middle-width, 80rpx);
+$grid-item-text-color: create-var(grid-item-text-color, $text-color-1);
+$grid-item-text-font-size: create-var(grid-item-text-font-size, $font-size);
+$grid-item-text-small-font-size: create-var(grid-item-text-font-size, $font-size-sm);
+$grid-item-text-line-height: create-var(grid-item-text-line-height, 44rpx);
+$grid-item-text-padding-top: create-var(grid-item-text-padding-top, $spacer-xs);
+$grid-item-description-font-size: create-var(grid-item-description-font-size, $font-size-sm);
+$grid-item-description-line-height: create-var(grid-item-description-line-height, 40rpx);
+$grid-item-description-color: create-var(grid-item-description-color, $text-color-3);
+$grid-item-description-padding-top: create-var(grid-item-description-padding-top, $spacer-tn);
+$grid-item-hover-bg-color: create-var(grid-item-hover-bg-color, $fill-4);
+$grid-item-horizontal-text-padding-left: create-var(grid-item-horizontal-text-padding-left, $spacer-sm);
+$grid-item-horizontal-text-description-top: create-var(grid-item-horizontal-text-description-top, 4rpx);
+$grid-item-border-color: create-var(grid-item-border-color, $border-color-1);
+$grid-item-icon-size: create-var(grid-item-icon-size, 48rpx);
+
+
+
+/* #ifdef MP */
+:host {
+	// flex-basis: 25%;
+}
+/* #endif */
+
+.#{$grid-item} {
+	/* #ifndef UNI-APP-X */
+	display: flex;
+	/* #endif */
+	align-items: center;
+	padding: $grid-item-padding-y;
+	flex-direction: column;
+	background: $grid-item-bg-color;
+	// flex-basis: 168rpx;
+	// flex-basis: 0.25;
+	width: 25%;
+	// flex-shrink: 0;
+	overflow: visible;
+	
+	&--bordered {
+		/* #ifndef APP-ANDROID || APP-IOS  || APP-HARMONY */
+		position: relative;
+		&:before {
+			@include hairline($grid-item-border-color)
+		}
+		/* #endif */
+		/* #ifdef APP-ANDROID || APP-IOS  || APP-HARMONY */
+		border: 0.5rpx solid $grid-item-border-color;
+		/* #endif */
+	}
+	
+	
+	&--horizontal {
+	    padding: $grid-item-padding-x;
+	    flex-direction: row;
+	    justify-content: center;
+		
+		.#{$grid-item} {
+			&__content {
+				margin-top: 0;
+				margin-left: $spacer-sm;
+				// text-align: left;
+			}
+		}
+	}
+	
+	&--hover {
+	    background-color: $grid-item-hover-bg-color;
+	}
+	
+	&--center {
+		.#{$grid-item} {
+			&__title,&__description {
+				text-align: center;
+			}
+		}
+	}
+	
+	&__content {
+		// overflow: hidden;
+		position: relative;
+		margin-top: $grid-item-text-padding-top;
+	}
+	&__icon {
+		align-items: center;
+		justify-content: center;
+		/* #ifndef APP-ANDROID || APP-IOS  || APP-HARMONY */
+		font-size: $grid-item-icon-size;
+		text {
+			font-size: $grid-item-icon-size;
+		}
+		/* #endif */
+	}
+	&__image,&__icon {
+		/* #ifndef UNI-APP-X */
+		display: flex;
+		/* #endif */
+		background: $grid-item-image-bg-color;
+		border-radius: $grid-item-image-border-radius;
+		
+		width: $grid-item-image-width;
+		height: $grid-item-image-width;
+		
+		&--small {
+		    width: $grid-item-image-small-width;
+		    height: $grid-item-image-small-width;
+		}
+		
+		&--middle {
+		    width: $grid-item-image-middle-width;
+		    height: $grid-item-image-middle-width;
+		}
+	}
+	
+	&__title {
+		color: $grid-item-text-color;
+		font-size: $grid-item-text-font-size;
+		line-height: $grid-item-text-line-height;
+		
+		&--small,
+		&--middle {
+		    font-size: $grid-item-text-small-font-size;
+		}
+	}
+	
+	&__description {
+	    color: $grid-item-description-color;
+	    font-size: $grid-item-description-font-size;
+	    line-height: $grid-item-description-line-height;
+	}
+}

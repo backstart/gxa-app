@@ -1,0 +1,2 @@
+const SYSTEM_INFO=uni.getSystemInfoSync();
+export const getStatusBarHeight=()=>SYSTEM_INFO.statusBarHeight;

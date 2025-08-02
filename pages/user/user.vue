@@ -1,5 +1,6 @@
 <template>
 	<view class="userLayout pageBg">
+		<view class="statuBar" :style="{barheight}+'px'"></view>
 		<view class="userInfo">
 			<view class="avator">
 				<image src="/static/logo.png" mode="aspectFill"></image>
@@ -13,14 +14,29 @@
 				</view>
 			</view>
 		</view>
-		<view class="userfuns">
+		<!-- <view class="userfuns">
 		 <funs-one v-for="item in 7"></funs-one>
-		</view>
+		</view> -->
+		
+		<!-- <lime-grid /> -->
+		
+		<l-grid>
+		    <l-grid-item text="会议" :dot="true" image="/static/userFuns/meet.png" />
+		    <l-grid-item text="OA" badge="5" image="/static/userFuns/oa.png" />
+		    <l-grid-item text="休假" badge="15" image="/static/userFuns/leave.png" />
+		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" />
+		</l-grid>
+
 	</view>
 </template>
 
 <script setup>
-	 
+import { ref } from 'vue';
+import {getStatusBarHeight} from "@/utils/system.js";
+
+	  
+	 const barheight=ref(getStatusBarHeight());
+	  
 </script>
 
 <style lang="scss">
