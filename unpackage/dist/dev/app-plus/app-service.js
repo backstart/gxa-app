@@ -31,6 +31,662 @@ if (uni.restoreGlobal) {
 }
 (function(vue) {
   "use strict";
+  function formatAppLog(type, filename, ...args) {
+    if (uni.__log__) {
+      uni.__log__(type, filename, ...args);
+    } else {
+      console[type].apply(console, [...args, filename]);
+    }
+  }
+  function resolveEasycom(component, easycom) {
+    return typeof component === "string" ? easycom : component;
+  }
+  const fontData = [
+    {
+      "font_class": "arrow-down",
+      "unicode": ""
+    },
+    {
+      "font_class": "arrow-left",
+      "unicode": ""
+    },
+    {
+      "font_class": "arrow-right",
+      "unicode": ""
+    },
+    {
+      "font_class": "arrow-up",
+      "unicode": ""
+    },
+    {
+      "font_class": "auth",
+      "unicode": ""
+    },
+    {
+      "font_class": "auth-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "back",
+      "unicode": ""
+    },
+    {
+      "font_class": "bars",
+      "unicode": ""
+    },
+    {
+      "font_class": "calendar",
+      "unicode": ""
+    },
+    {
+      "font_class": "calendar-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "camera",
+      "unicode": ""
+    },
+    {
+      "font_class": "camera-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "cart",
+      "unicode": ""
+    },
+    {
+      "font_class": "cart-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "chat",
+      "unicode": ""
+    },
+    {
+      "font_class": "chat-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "chatboxes",
+      "unicode": ""
+    },
+    {
+      "font_class": "chatboxes-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "chatbubble",
+      "unicode": ""
+    },
+    {
+      "font_class": "chatbubble-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "checkbox",
+      "unicode": ""
+    },
+    {
+      "font_class": "checkbox-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "checkmarkempty",
+      "unicode": ""
+    },
+    {
+      "font_class": "circle",
+      "unicode": ""
+    },
+    {
+      "font_class": "circle-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "clear",
+      "unicode": ""
+    },
+    {
+      "font_class": "close",
+      "unicode": ""
+    },
+    {
+      "font_class": "closeempty",
+      "unicode": ""
+    },
+    {
+      "font_class": "cloud-download",
+      "unicode": ""
+    },
+    {
+      "font_class": "cloud-download-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "cloud-upload",
+      "unicode": ""
+    },
+    {
+      "font_class": "cloud-upload-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "color",
+      "unicode": ""
+    },
+    {
+      "font_class": "color-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "compose",
+      "unicode": ""
+    },
+    {
+      "font_class": "contact",
+      "unicode": ""
+    },
+    {
+      "font_class": "contact-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "down",
+      "unicode": ""
+    },
+    {
+      "font_class": "bottom",
+      "unicode": ""
+    },
+    {
+      "font_class": "download",
+      "unicode": ""
+    },
+    {
+      "font_class": "download-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "email",
+      "unicode": ""
+    },
+    {
+      "font_class": "email-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "eye",
+      "unicode": ""
+    },
+    {
+      "font_class": "eye-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "eye-slash",
+      "unicode": ""
+    },
+    {
+      "font_class": "eye-slash-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "fire",
+      "unicode": ""
+    },
+    {
+      "font_class": "fire-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "flag",
+      "unicode": ""
+    },
+    {
+      "font_class": "flag-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "folder-add",
+      "unicode": ""
+    },
+    {
+      "font_class": "folder-add-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "font",
+      "unicode": ""
+    },
+    {
+      "font_class": "forward",
+      "unicode": ""
+    },
+    {
+      "font_class": "gear",
+      "unicode": ""
+    },
+    {
+      "font_class": "gear-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "gift",
+      "unicode": ""
+    },
+    {
+      "font_class": "gift-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "hand-down",
+      "unicode": ""
+    },
+    {
+      "font_class": "hand-down-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "hand-up",
+      "unicode": ""
+    },
+    {
+      "font_class": "hand-up-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "headphones",
+      "unicode": ""
+    },
+    {
+      "font_class": "heart",
+      "unicode": ""
+    },
+    {
+      "font_class": "heart-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "help",
+      "unicode": ""
+    },
+    {
+      "font_class": "help-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "home",
+      "unicode": ""
+    },
+    {
+      "font_class": "home-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "image",
+      "unicode": ""
+    },
+    {
+      "font_class": "image-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "images",
+      "unicode": ""
+    },
+    {
+      "font_class": "images-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "info",
+      "unicode": ""
+    },
+    {
+      "font_class": "info-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "left",
+      "unicode": ""
+    },
+    {
+      "font_class": "link",
+      "unicode": ""
+    },
+    {
+      "font_class": "list",
+      "unicode": ""
+    },
+    {
+      "font_class": "location",
+      "unicode": ""
+    },
+    {
+      "font_class": "location-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "locked",
+      "unicode": ""
+    },
+    {
+      "font_class": "locked-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "loop",
+      "unicode": ""
+    },
+    {
+      "font_class": "mail-open",
+      "unicode": ""
+    },
+    {
+      "font_class": "mail-open-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "map",
+      "unicode": ""
+    },
+    {
+      "font_class": "map-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "map-pin",
+      "unicode": ""
+    },
+    {
+      "font_class": "map-pin-ellipse",
+      "unicode": ""
+    },
+    {
+      "font_class": "medal",
+      "unicode": ""
+    },
+    {
+      "font_class": "medal-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "mic",
+      "unicode": ""
+    },
+    {
+      "font_class": "mic-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "micoff",
+      "unicode": ""
+    },
+    {
+      "font_class": "micoff-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "minus",
+      "unicode": ""
+    },
+    {
+      "font_class": "minus-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "more",
+      "unicode": ""
+    },
+    {
+      "font_class": "more-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "navigate",
+      "unicode": ""
+    },
+    {
+      "font_class": "navigate-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "notification",
+      "unicode": ""
+    },
+    {
+      "font_class": "notification-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "paperclip",
+      "unicode": ""
+    },
+    {
+      "font_class": "paperplane",
+      "unicode": ""
+    },
+    {
+      "font_class": "paperplane-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "person",
+      "unicode": ""
+    },
+    {
+      "font_class": "person-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "personadd",
+      "unicode": ""
+    },
+    {
+      "font_class": "personadd-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "personadd-filled-copy",
+      "unicode": ""
+    },
+    {
+      "font_class": "phone",
+      "unicode": ""
+    },
+    {
+      "font_class": "phone-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "plus",
+      "unicode": ""
+    },
+    {
+      "font_class": "plus-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "plusempty",
+      "unicode": ""
+    },
+    {
+      "font_class": "pulldown",
+      "unicode": ""
+    },
+    {
+      "font_class": "pyq",
+      "unicode": ""
+    },
+    {
+      "font_class": "qq",
+      "unicode": ""
+    },
+    {
+      "font_class": "redo",
+      "unicode": ""
+    },
+    {
+      "font_class": "redo-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "refresh",
+      "unicode": ""
+    },
+    {
+      "font_class": "refresh-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "refreshempty",
+      "unicode": ""
+    },
+    {
+      "font_class": "reload",
+      "unicode": ""
+    },
+    {
+      "font_class": "right",
+      "unicode": ""
+    },
+    {
+      "font_class": "scan",
+      "unicode": ""
+    },
+    {
+      "font_class": "search",
+      "unicode": ""
+    },
+    {
+      "font_class": "settings",
+      "unicode": ""
+    },
+    {
+      "font_class": "settings-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "shop",
+      "unicode": ""
+    },
+    {
+      "font_class": "shop-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "smallcircle",
+      "unicode": ""
+    },
+    {
+      "font_class": "smallcircle-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "sound",
+      "unicode": ""
+    },
+    {
+      "font_class": "sound-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "spinner-cycle",
+      "unicode": ""
+    },
+    {
+      "font_class": "staff",
+      "unicode": ""
+    },
+    {
+      "font_class": "staff-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "star",
+      "unicode": ""
+    },
+    {
+      "font_class": "star-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "starhalf",
+      "unicode": ""
+    },
+    {
+      "font_class": "trash",
+      "unicode": ""
+    },
+    {
+      "font_class": "trash-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "tune",
+      "unicode": ""
+    },
+    {
+      "font_class": "tune-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "undo",
+      "unicode": ""
+    },
+    {
+      "font_class": "undo-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "up",
+      "unicode": ""
+    },
+    {
+      "font_class": "top",
+      "unicode": ""
+    },
+    {
+      "font_class": "upload",
+      "unicode": ""
+    },
+    {
+      "font_class": "upload-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "videocam",
+      "unicode": ""
+    },
+    {
+      "font_class": "videocam-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "vip",
+      "unicode": ""
+    },
+    {
+      "font_class": "vip-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "wallet",
+      "unicode": ""
+    },
+    {
+      "font_class": "wallet-filled",
+      "unicode": ""
+    },
+    {
+      "font_class": "weibo",
+      "unicode": ""
+    },
+    {
+      "font_class": "weixin",
+      "unicode": ""
+    }
+  ];
   const _export_sfc = (sfc, props) => {
     const target = sfc.__vccOpts || sfc;
     for (const [key2, val] of props) {
@@ -38,9 +694,394 @@ if (uni.restoreGlobal) {
     }
     return target;
   };
-  const _sfc_main$8 = {};
-  function _sfc_render$7(_ctx, _cache) {
-    return vue.openBlock(), vue.createElementBlock("view", { class: "content" });
+  const getVal = (val) => {
+    const reg = /^[0-9]*$/g;
+    return typeof val === "number" || reg.test(val) ? val + "px" : val;
+  };
+  const _sfc_main$9 = {
+    name: "UniIcons",
+    emits: ["click"],
+    props: {
+      type: {
+        type: String,
+        default: ""
+      },
+      color: {
+        type: String,
+        default: "#333333"
+      },
+      size: {
+        type: [Number, String],
+        default: 16
+      },
+      customPrefix: {
+        type: String,
+        default: ""
+      },
+      fontFamily: {
+        type: String,
+        default: ""
+      }
+    },
+    data() {
+      return {
+        icons: fontData
+      };
+    },
+    computed: {
+      unicode() {
+        let code2 = this.icons.find((v) => v.font_class === this.type);
+        if (code2) {
+          return code2.unicode;
+        }
+        return "";
+      },
+      iconSize() {
+        return getVal(this.size);
+      },
+      styleObj() {
+        if (this.fontFamily !== "") {
+          return `color: ${this.color}; font-size: ${this.iconSize}; font-family: ${this.fontFamily};`;
+        }
+        return `color: ${this.color}; font-size: ${this.iconSize};`;
+      }
+    },
+    methods: {
+      _onClick() {
+        this.$emit("click");
+      }
+    }
+  };
+  function _sfc_render$8(_ctx, _cache, $props, $setup, $data, $options) {
+    return vue.openBlock(), vue.createElementBlock(
+      "text",
+      {
+        style: vue.normalizeStyle($options.styleObj),
+        class: vue.normalizeClass(["uni-icons", ["uniui-" + $props.type, $props.customPrefix, $props.customPrefix ? $props.type : ""]]),
+        onClick: _cache[0] || (_cache[0] = (...args) => $options._onClick && $options._onClick(...args))
+      },
+      [
+        vue.renderSlot(_ctx.$slots, "default", {}, void 0, true)
+      ],
+      6
+      /* CLASS, STYLE */
+    );
+  }
+  const __easycom_0$3 = /* @__PURE__ */ _export_sfc(_sfc_main$9, [["render", _sfc_render$8], ["__scopeId", "data-v-d31e1c47"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
+  const _sfc_main$8 = {
+    __name: "index",
+    setup(__props, { expose: __expose }) {
+      __expose();
+      const panelOffset = vue.ref(0);
+      const dragStartY = vue.ref(0);
+      const startOffset = vue.ref(0);
+      const isDragging = vue.ref(false);
+      const startDrag = (e) => {
+        isDragging.value = true;
+        dragStartY.value = e.touches[0].clientY;
+        startOffset.value = panelOffset.value;
+      };
+      const onDrag = (e) => {
+        if (!isDragging.value)
+          return;
+        const currentY = e.touches[0].clientY;
+        formatAppLog("log", "at pages/index/index.vue:133", currentY);
+        const deltaY = currentY - dragStartY.value;
+        let newOffset = startOffset.value + deltaY;
+        if (newOffset > 0)
+          newOffset = 0;
+        if (newOffset < -400)
+          newOffset = -400;
+        panelOffset.value = newOffset;
+      };
+      const endDrag = () => {
+        if (!isDragging.value)
+          return;
+        isDragging.value = false;
+        if (panelOffset.value > -200) {
+          panelOffset.value = 0;
+        } else {
+          panelOffset.value = -400;
+        }
+      };
+      const actions = vue.ref([
+        { icon: "bus", text: "公交", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "subway", text: "地铁", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "bicycle", text: "骑行", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "car", text: "打车", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "map-pin", text: "导航", bgColor: "#e6f4ff", color: "#0089ff" }
+      ]);
+      const recommends = vue.ref([
+        {
+          title: "广州塔",
+          desc: "城市地标，昵称小蛮腰",
+          rating: "4.8",
+          distance: "3.5km",
+          tag: "热门",
+          bg: "linear-gradient(120deg, #ff9a9e, #fad0c4)"
+        },
+        {
+          title: "沙面岛",
+          desc: "欧陆风情建筑群",
+          rating: "4.7",
+          distance: "2.1km",
+          tag: "必游",
+          bg: "linear-gradient(120deg, #a1c4fd, #c2e9fb)"
+        },
+        {
+          title: "点都德茶楼",
+          desc: "地道广式早茶",
+          rating: "4.6",
+          distance: "800m",
+          tag: "美食",
+          bg: "linear-gradient(120deg, #ffecd2, #fcb69f)"
+        }
+      ]);
+      const activeNav = vue.ref(0);
+      const __returned__ = { panelOffset, dragStartY, startOffset, isDragging, startDrag, onDrag, endDrag, actions, recommends, activeNav, ref: vue.ref };
+      Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
+      return __returned__;
+    }
+  };
+  function _sfc_render$7(_ctx, _cache, $props, $setup, $data, $options) {
+    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$3);
+    return vue.openBlock(), vue.createElementBlock("view", { class: "container" }, [
+      vue.createCommentVNode(" 顶部导航栏 "),
+      vue.createElementVNode("view", { class: "navbar" }, [
+        vue.createElementVNode("view", { class: "location" }, [
+          vue.createVNode(_component_uni_icons, {
+            type: "location-filled",
+            size: "20",
+            color: "#0089ff"
+          }),
+          vue.createElementVNode("text", { class: "location-text" }, "北京路步行街")
+        ]),
+        vue.createElementVNode("view", { class: "navbar-actions" }, [
+          vue.createElementVNode("view", { class: "nav-btn" }, [
+            vue.createVNode(_component_uni_icons, {
+              type: "person",
+              size: "20"
+            })
+          ]),
+          vue.createElementVNode("view", { class: "nav-btn" }, [
+            vue.createVNode(_component_uni_icons, {
+              type: "chat",
+              size: "20"
+            })
+          ])
+        ])
+      ]),
+      vue.createCommentVNode(" 地图区域 "),
+      vue.createElementVNode("view", { class: "map-container" }, [
+        vue.createCommentVNode(" 实际项目中替换为map组件 "),
+        vue.createElementVNode("view", { class: "map-content" }, [
+          vue.createElementVNode("text", null, "地图区域 (实际项目中嵌入map组件)")
+        ]),
+        vue.createCommentVNode(" 地图上的控件 "),
+        vue.createElementVNode("view", { class: "map-overlay" }, [
+          vue.createElementVNode("view", { class: "map-controls" }, [
+            vue.createElementVNode("view", { class: "map-btn" }, [
+              vue.createVNode(_component_uni_icons, {
+                type: "plus",
+                size: "20",
+                color: "#0089ff"
+              })
+            ]),
+            vue.createElementVNode("view", { class: "map-btn" }, [
+              vue.createVNode(_component_uni_icons, {
+                type: "minus",
+                size: "20",
+                color: "#0089ff"
+              })
+            ]),
+            vue.createElementVNode("view", { class: "map-btn primary" }, [
+              vue.createVNode(_component_uni_icons, {
+                type: "location-filled",
+                size: "20",
+                color: "#fff"
+              })
+            ]),
+            vue.createElementVNode("view", { class: "map-btn" }, [
+              vue.createVNode(_component_uni_icons, {
+                type: "list",
+                size: "20",
+                color: "#0089ff"
+              })
+            ])
+          ]),
+          vue.createElementVNode("view", { class: "current-location" }, [
+            vue.createVNode(_component_uni_icons, {
+              type: "location-filled",
+              size: "20",
+              color: "#0089ff"
+            }),
+            vue.createElementVNode("view", { class: "location-info" }, [
+              vue.createElementVNode("text", { class: "location-title" }, "当前位置"),
+              vue.createElementVNode("text", { class: "location-desc" }, "广州市越秀区北京路")
+            ])
+          ])
+        ])
+      ]),
+      vue.createCommentVNode(" 可拖拽面板 "),
+      vue.createElementVNode(
+        "view",
+        {
+          class: "panel-container",
+          style: vue.normalizeStyle({ transform: `translateY(${$setup.panelOffset}px)` }),
+          onTouchstart: $setup.startDrag,
+          onTouchmove: $setup.onDrag,
+          onTouchend: $setup.endDrag
+        },
+        [
+          vue.createElementVNode("view", { class: "panel-drag-handle" }, [
+            vue.createElementVNode("view", { class: "drag-indicator" })
+          ]),
+          vue.createElementVNode("view", { class: "panel-header" }, [
+            vue.createElementVNode("text", { class: "panel-title" }, "探索周边"),
+            vue.createElementVNode("view", { class: "nav-btn" }, [
+              vue.createVNode(_component_uni_icons, {
+                type: "scan",
+                size: "20"
+              })
+            ])
+          ]),
+          vue.createElementVNode("view", { class: "search-box" }, [
+            vue.createVNode(_component_uni_icons, {
+              type: "search",
+              size: "18",
+              color: "#999"
+            }),
+            vue.createElementVNode("input", {
+              class: "search-input",
+              type: "text",
+              placeholder: "搜索地点、公交、地铁"
+            })
+          ]),
+          vue.createElementVNode("view", { class: "quick-actions" }, [
+            (vue.openBlock(true), vue.createElementBlock(
+              vue.Fragment,
+              null,
+              vue.renderList($setup.actions, (action, index) => {
+                return vue.openBlock(), vue.createElementBlock("view", {
+                  class: "action-item",
+                  key: index
+                }, [
+                  vue.createElementVNode(
+                    "view",
+                    {
+                      class: "action-icon",
+                      style: vue.normalizeStyle({ backgroundColor: action.bgColor })
+                    },
+                    [
+                      vue.createVNode(_component_uni_icons, {
+                        type: action.icon,
+                        size: "24",
+                        color: action.color
+                      }, null, 8, ["type", "color"])
+                    ],
+                    4
+                    /* STYLE */
+                  ),
+                  vue.createElementVNode(
+                    "text",
+                    { class: "action-text" },
+                    vue.toDisplayString(action.text),
+                    1
+                    /* TEXT */
+                  )
+                ]);
+              }),
+              128
+              /* KEYED_FRAGMENT */
+            ))
+          ]),
+          vue.createElementVNode("view", { class: "recommend-section" }, [
+            vue.createElementVNode("view", { class: "section-title" }, [
+              vue.createElementVNode("text", null, "附近推荐"),
+              vue.createElementVNode("text", { class: "see-all" }, "查看全部")
+            ]),
+            vue.createElementVNode("scroll-view", {
+              class: "recommend-list",
+              "scroll-x": "true"
+            }, [
+              (vue.openBlock(true), vue.createElementBlock(
+                vue.Fragment,
+                null,
+                vue.renderList($setup.recommends, (item, index) => {
+                  return vue.openBlock(), vue.createElementBlock("view", {
+                    class: "recommend-card",
+                    key: index
+                  }, [
+                    vue.createElementVNode(
+                      "view",
+                      {
+                        class: "card-image",
+                        style: vue.normalizeStyle({ background: item.bg })
+                      },
+                      [
+                        vue.createElementVNode(
+                          "view",
+                          { class: "card-tag" },
+                          vue.toDisplayString(item.tag),
+                          1
+                          /* TEXT */
+                        )
+                      ],
+                      4
+                      /* STYLE */
+                    ),
+                    vue.createElementVNode("view", { class: "card-content" }, [
+                      vue.createElementVNode(
+                        "text",
+                        { class: "card-title" },
+                        vue.toDisplayString(item.title),
+                        1
+                        /* TEXT */
+                      ),
+                      vue.createElementVNode(
+                        "text",
+                        { class: "card-desc" },
+                        vue.toDisplayString(item.desc),
+                        1
+                        /* TEXT */
+                      ),
+                      vue.createElementVNode("view", { class: "card-footer" }, [
+                        vue.createElementVNode("view", { class: "rating" }, [
+                          vue.createVNode(_component_uni_icons, {
+                            type: "star-filled",
+                            size: "14",
+                            color: "#ffc53d"
+                          }),
+                          vue.createElementVNode(
+                            "text",
+                            null,
+                            vue.toDisplayString(item.rating),
+                            1
+                            /* TEXT */
+                          )
+                        ]),
+                        vue.createElementVNode(
+                          "text",
+                          { class: "distance" },
+                          vue.toDisplayString(item.distance),
+                          1
+                          /* TEXT */
+                        )
+                      ])
+                    ])
+                  ]);
+                }),
+                128
+                /* KEYED_FRAGMENT */
+              ))
+            ])
+          ])
+        ],
+        36
+        /* STYLE, NEED_HYDRATION */
+      ),
+      vue.createCommentVNode(" 底部导航 ")
+    ]);
   }
   const PagesIndexIndex = /* @__PURE__ */ _export_sfc(_sfc_main$8, [["render", _sfc_render$7], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/index/index.vue"]]);
   const svpProps = {
@@ -144,16 +1185,6 @@ if (uni.restoreGlobal) {
     );
   }
   const __easycom_0$2 = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["render", _sfc_render$6], ["__scopeId", "data-v-82df574c"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-svg/components/l-svg/l-svg.vue"]]);
-  function formatAppLog(type, filename, ...args) {
-    if (uni.__log__) {
-      uni.__log__(type, filename, ...args);
-    } else {
-      console[type].apply(console, [...args, filename]);
-    }
-  }
-  function resolveEasycom(component, easycom) {
-    return typeof component === "string" ? easycom : component;
-  }
   const accessibility = "";
   const activity = "";
   const add = "";
