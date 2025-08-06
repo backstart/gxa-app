@@ -1,0 +1,74 @@
+<template>
+	<view class="">
+		<map  class="mao" :show-location="true" :latitude="latitude" :longitude="longitude"></map>
+		<you-touchbox ref="myMap"  :minTop="mintop" :auto="false" @get-end-detail="movedital">
+			<view class="search-box">
+				<uni-icons type="search" size="18" color="#999"></uni-icons>
+				<input class="search-input" type="text" placeholder="搜索警情、人员、场所" />
+			</view>
+		</you-touchbox>
+	</view>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+const myMap=ref();
+const mintop=ref(200);
+
+	 const latitude=ref(0);
+	  const longitude=ref(0);
+	 function getLocal(){
+		 uni.getLocation({
+		   type: 'gcj02',
+		   isHighAccuracy: true, //高精度
+		   geocode: true, //将位置解析成地址
+		   success: (res) => {
+			   console.log(res);
+		     latitude.value = res.latitude
+		     longitude.value = res.longitude
+			 console.log(latitude.value);
+		   }
+		 })
+	 }
+	 function movedital(e){
+		 // 获取滑动结束时top信息对象
+		 // maxTop：最大高度top minTop：最小高度top curTop：当前高度top
+		 console.log(e.curTop);
+		 if(e.curTop<400){
+			 mintop.value=100;
+			 // setBottom(100);
+			 myMap.value.setBottom(200);
+		 }
+		  
+	 }
+	 getLocal();
+</script>
+
+<style lang="scss">
+
+.mao{
+	height: 1500rpx;
+	width: 700rpx;
+	display: flex;
+}
+
+.search-box {
+	background: #f5f5f5;
+	border-radius: 30px;
+	padding: 12px 20px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	margin: 0 20px 20px;
+	// height: 100rpx;
+}
+.search-input {
+	flex: 1;
+	border: none;
+	background: transparent;
+	font-size: 16px;
+	outline: none;
+	margin-left: 10px;
+}
+</style>

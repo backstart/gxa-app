@@ -688,7 +688,7 @@ if (uni.restoreGlobal) {
     const reg = /^[0-9]*$/g;
     return typeof val === "number" || reg.test(val) ? val + "px" : val;
   };
-  const _sfc_main$9 = {
+  const _sfc_main$8 = {
     name: "UniIcons",
     emits: ["click"],
     props: {
@@ -742,7 +742,7 @@ if (uni.restoreGlobal) {
       }
     }
   };
-  function _sfc_render$8(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$7(_ctx, _cache, $props, $setup, $data, $options) {
     return vue.openBlock(), vue.createElementBlock(
       "text",
       {
@@ -757,7 +757,7 @@ if (uni.restoreGlobal) {
       /* CLASS, STYLE */
     );
   }
-  const __easycom_0$3 = /* @__PURE__ */ _export_sfc(_sfc_main$9, [["render", _sfc_render$8], ["__scopeId", "data-v-d31e1c47"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
+  const __easycom_0$3 = /* @__PURE__ */ _export_sfc(_sfc_main$8, [["render", _sfc_render$7], ["__scopeId", "data-v-d31e1c47"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
   function formatAppLog(type, filename, ...args) {
     if (uni.__log__) {
       uni.__log__(type, filename, ...args);
@@ -768,7 +768,7 @@ if (uni.restoreGlobal) {
   function resolveEasycom(component, easycom) {
     return typeof component === "string" ? easycom : component;
   }
-  const _sfc_main$8 = {
+  const _sfc_main$7 = {
     __name: "index",
     setup(__props, { expose: __expose }) {
       __expose();
@@ -856,7 +856,7 @@ if (uni.restoreGlobal) {
       return __returned__;
     }
   };
-  function _sfc_render$7(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$6(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$3);
     return vue.openBlock(), vue.createElementBlock("view", { class: "container" }, [
       vue.createCommentVNode(" 顶部导航栏 "),
@@ -1095,7 +1095,7 @@ if (uni.restoreGlobal) {
       )
     ]);
   }
-  const PagesIndexIndex = /* @__PURE__ */ _export_sfc(_sfc_main$8, [["render", _sfc_render$7], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/index/index.vue"]]);
+  const PagesIndexIndex = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["render", _sfc_render$6], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/index/index.vue"]]);
   const svpProps = {
     src: {
       type: String,
@@ -1118,7 +1118,7 @@ if (uni.restoreGlobal) {
     const encodedSvg = encodeURIComponent(svgString).replace(/\+/g, "%20");
     return `data:image/svg+xml,${encodedSvg}`;
   }
-  const _sfc_main$7 = vue.defineComponent({
+  const _sfc_main$6 = vue.defineComponent({
     // name: 'l-svg',
     props: svpProps,
     emits: ["load", "error", "click"],
@@ -1176,7 +1176,7 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$6(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$5(_ctx, _cache, $props, $setup, $data, $options) {
     return vue.openBlock(), vue.createElementBlock(
       "view",
       {
@@ -1196,7 +1196,7 @@ if (uni.restoreGlobal) {
       /* CLASS, STYLE */
     );
   }
-  const __easycom_0$2 = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["render", _sfc_render$6], ["__scopeId", "data-v-82df574c"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-svg/components/l-svg/l-svg.vue"]]);
+  const __easycom_0$2 = /* @__PURE__ */ _export_sfc(_sfc_main$6, [["render", _sfc_render$5], ["__scopeId", "data-v-82df574c"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-svg/components/l-svg/l-svg.vue"]]);
   const accessibility = "";
   const activity = "";
   const add = "";
@@ -3747,7 +3747,7 @@ if (uni.restoreGlobal) {
     lStyle: [String, Object, Array]
   };
   const name$1 = "l-icon";
-  const _sfc_main$6 = vue.defineComponent({
+  const _sfc_main$5 = vue.defineComponent({
     name: name$1,
     externalClasses: ["l-class"],
     options: {
@@ -3837,7 +3837,7 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$5(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$4(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_l_svg = resolveEasycom(vue.resolveDynamicComponent("l-svg"), __easycom_0$2);
     return !_ctx.isImage && !_ctx.isIconify && !_ctx.isSVG ? (vue.openBlock(), vue.createElementBlock(
       "text",
@@ -3868,7 +3868,7 @@ if (uni.restoreGlobal) {
       onClick: _cache[2] || (_cache[2] = ($event) => _ctx.$emit("click"))
     }, null, 8, ["class", "style", "web", "color", "src", "onError", "onLoad"]));
   }
-  const __easycom_0$1 = /* @__PURE__ */ _export_sfc(_sfc_main$6, [["render", _sfc_render$5], ["__scopeId", "data-v-6fbe0909"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-icon/components/l-icon/l-icon.vue"]]);
+  const __easycom_0$1 = /* @__PURE__ */ _export_sfc(_sfc_main$5, [["render", _sfc_render$4], ["__scopeId", "data-v-6fbe0909"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-icon/components/l-icon/l-icon.vue"]]);
   const badgeProps = {
     dot: Boolean,
     max: Number,
@@ -3897,7 +3897,7 @@ if (uni.restoreGlobal) {
     return val.startsWith("-") ? val.replace("-", "") : `-${val}`;
   }
   const name = "l-badge";
-  const _sfc_main$5 = vue.defineComponent({
+  const _sfc_main$4 = vue.defineComponent({
     name,
     props: badgeProps,
     setup(props) {
@@ -3960,7 +3960,7 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$4(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$3(_ctx, _cache, $props, $setup, $data, $options) {
     return _ctx.$slots.default ? (vue.openBlock(), vue.createElementBlock("view", {
       key: 0,
       class: "l-badge__wrapper"
@@ -4017,7 +4017,7 @@ if (uni.restoreGlobal) {
       /* CLASS, STYLE */
     )) : vue.createCommentVNode("v-if", true);
   }
-  const __easycom_1$1 = /* @__PURE__ */ _export_sfc(_sfc_main$5, [["render", _sfc_render$4], ["__scopeId", "data-v-87f477b0"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-badge/components/l-badge/l-badge.vue"]]);
+  const __easycom_1$1 = /* @__PURE__ */ _export_sfc(_sfc_main$4, [["render", _sfc_render$3], ["__scopeId", "data-v-87f477b0"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-badge/components/l-badge/l-badge.vue"]]);
   const gridItemProps = {
     /**
      * 文本，可以通过 Props 传入文本，也可以自定义标题节点
@@ -4114,7 +4114,7 @@ if (uni.restoreGlobal) {
       type: [String, Object, Array]
     }
   };
-  const _sfc_main$4 = vue.defineComponent({
+  const _sfc_main$3 = vue.defineComponent({
     name: "l-grid-item",
     props: gridItemProps,
     options: {
@@ -4191,7 +4191,7 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$3(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_l_icon = resolveEasycom(vue.resolveDynamicComponent("l-icon"), __easycom_0$1);
     const _component_l_badge = resolveEasycom(vue.resolveDynamicComponent("l-badge"), __easycom_1$1);
     return vue.openBlock(), vue.createElementBlock("view", {
@@ -4298,7 +4298,7 @@ if (uni.restoreGlobal) {
       vue.renderSlot(_ctx.$slots, "extra", {}, void 0, true)
     ], 14, ["hover-class"]);
   }
-  const __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$4, [["render", _sfc_render$3], ["__scopeId", "data-v-d1ffdc22"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid-item/l-grid-item.vue"]]);
+  const __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["render", _sfc_render$2], ["__scopeId", "data-v-d1ffdc22"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid-item/l-grid-item.vue"]]);
   const gridProps = {
     /** 内容对齐方式 */
     align: {
@@ -4343,7 +4343,7 @@ if (uni.restoreGlobal) {
       default: null
     }
   };
-  const _sfc_main$3 = vue.defineComponent({
+  const _sfc_main$2 = vue.defineComponent({
     name: "l-grid",
     props: gridProps,
     setup(props) {
@@ -4357,7 +4357,7 @@ if (uni.restoreGlobal) {
       });
     }
   });
-  function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$1(_ctx, _cache, $props, $setup, $data, $options) {
     return vue.openBlock(), vue.createElementBlock(
       "view",
       {
@@ -4375,11 +4375,11 @@ if (uni.restoreGlobal) {
       /* CLASS */
     );
   }
-  const __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["render", _sfc_render$2], ["__scopeId", "data-v-1acc5755"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid/l-grid.vue"]]);
+  const __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$1], ["__scopeId", "data-v-1acc5755"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid/l-grid.vue"]]);
   const SYSTEM_INFO = uni.getSystemInfoSync();
   const getStatusBarHeight = () => SYSTEM_INFO.statusBarHeight;
   const _imports_0 = "/static/logo.png";
-  const _sfc_main$2 = {
+  const _sfc_main$1 = {
     __name: "user",
     setup(__props, { expose: __expose }) {
       __expose();
@@ -4391,7 +4391,7 @@ if (uni.restoreGlobal) {
       return __returned__;
     }
   };
-  function _sfc_render$1(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_l_grid_item = resolveEasycom(vue.resolveDynamicComponent("l-grid-item"), __easycom_0);
     const _component_l_grid = resolveEasycom(vue.resolveDynamicComponent("l-grid"), __easycom_1);
     return vue.openBlock(), vue.createElementBlock("view", { class: "userLayout pageBg" }, [
@@ -4447,18 +4447,9 @@ if (uni.restoreGlobal) {
       })
     ]);
   }
-  const PagesUserUser = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$1], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/user/user.vue"]]);
-  const _sfc_main$1 = {};
-  function _sfc_render(_ctx, _cache) {
-    const _component_you_touchbox = vue.resolveComponent("you-touchbox");
-    return vue.openBlock(), vue.createElementBlock("view", { class: "" }, [
-      vue.createVNode(_component_you_touchbox)
-    ]);
-  }
-  const PagesFunsFuns = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/funs/funs.vue"]]);
+  const PagesUserUser = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/user/user.vue"]]);
   __definePage("pages/index/index", PagesIndexIndex);
   __definePage("pages/user/user", PagesUserUser);
-  __definePage("pages/funs/funs", PagesFunsFuns);
   const _sfc_main = {
     onLaunch: function() {
       formatAppLog("log", "at App.vue:4", "App Launch");
