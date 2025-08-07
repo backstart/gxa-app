@@ -1,7 +1,9 @@
 <template>
 	<view class="">
 		<map  class="mao" :show-location="true" :latitude="latitude" :longitude="longitude"></map>
-		<you-touchbox ref="myMap"  :minTop="mintop" :auto="false" @get-end-detail="movedital">
+		<you-touchbox ref="myMap"  :minTop="mintop" :auto="false" @get-end-detail="movedital"
+		customStyle="border-top-left-radius:50rpx;border-top-right-radius:50rpx"
+		>
 			<view class="search-box">
 				<uni-icons type="search" size="18" color="#999"></uni-icons>
 				<input class="search-input" type="text" placeholder="搜索警情、人员、场所" />

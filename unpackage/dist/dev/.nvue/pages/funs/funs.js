@@ -972,15 +972,15 @@ const _sfc_main = {
         geocode: true,
         //将位置解析成地址
         success: (res) => {
-          formatAppLog("log", "at pages/funs/funs.nvue:45", res);
+          formatAppLog("log", "at pages/funs/funs.nvue:47", res);
           latitude.value = res.latitude;
           longitude.value = res.longitude;
-          formatAppLog("log", "at pages/funs/funs.nvue:48", latitude.value);
+          formatAppLog("log", "at pages/funs/funs.nvue:50", latitude.value);
         }
       });
     }
     function movedital(e) {
-      formatAppLog("log", "at pages/funs/funs.nvue:55", e.curTop);
+      formatAppLog("log", "at pages/funs/funs.nvue:57", e.curTop);
       if (e.curTop < 300)
         ;
     }
@@ -1011,7 +1011,8 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         ref: "myMap",
         minTop: $setup.mintop,
         auto: false,
-        onGetEndDetail: $setup.movedital
+        onGetEndDetail: $setup.movedital,
+        customStyle: "border-top-left-radius:50rpx;border-top-right-radius:50rpx"
       }, {
         default: withCtx(() => [
           createElementVNode("view", { class: "search-box" }, [
