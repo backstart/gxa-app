@@ -1,4 +1,4 @@
-import { openBlock, createElementBlock, normalizeStyle, toDisplayString, normalizeClass, withModifiers, createElementVNode, renderSlot, ref, resolveDynamicComponent, createVNode, withCtx, Fragment, renderList } from "vue";
+import { openBlock, createElementBlock, normalizeStyle, toDisplayString, Fragment, renderList, createElementVNode, createCommentVNode, normalizeClass, withModifiers, renderSlot, ref, resolveDynamicComponent, createVNode, withCtx } from "vue";
 function formatAppLog(type, filename, ...args) {
   if (uni.__log__) {
     uni.__log__(type, filename, ...args);
@@ -656,7 +656,7 @@ const fontData = [
   }
 ];
 const iconUrl = "/assets/uniicons.32e978a5.ttf";
-const _style_0$2 = { "uni-icons": { "": { "fontFamily": "uniicons", "textDecoration": "none", "textAlign": "center" } } };
+const _style_0$4 = { "uni-icons": { "": { "fontFamily": "uniicons", "textDecoration": "none", "textAlign": "center" } } };
 const _export_sfc = (sfc, props) => {
   const target = sfc.__vccOpts || sfc;
   for (const [key, val] of props) {
@@ -673,7 +673,7 @@ domModule.addRule("fontFace", {
   "fontFamily": "uniicons",
   "src": "url('" + iconUrl + "')"
 });
-const _sfc_main$2 = {
+const _sfc_main$4 = {
   name: "UniIcons",
   emits: ["click"],
   props: {
@@ -727,7 +727,7 @@ const _sfc_main$2 = {
     }
   }
 };
-function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
+function _sfc_render$4(_ctx, _cache, $props, $setup, $data, $options) {
   return openBlock(), createElementBlock(
     "u-text",
     {
@@ -740,7 +740,167 @@ function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
     /* TEXT, STYLE */
   );
 }
-const __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$2], ["styles", [_style_0$2]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
+const __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$4, [["render", _sfc_render$4], ["styles", [_style_0$4]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
+const _style_0$3 = { "uni-list-cell": { "": { "flexDirection": "column", "marginTop": 10, "backgroundColor": "#FFFFFF", "paddingTop": 6, "paddingRight": 12, "paddingBottom": 6, "paddingLeft": 12 } }, "topTitleV": { "": { "height": 26, "lineHeight": 26, "color": "#333333", "fontFamily": "PingFangSC-Semibold, PingFang SC", "fontWeight": "500", "fontSize": 14, "overflow": "hidden", "textOverflow": "ellipsis", "whiteSpace": "nowrap" } }, "unitV": { "": { "color": "#555555", "fontSize": 12, "marginTop": 0, "fontFamily": "PingFangSC-Regular, PingFang SC" } }, "cellView": { "": { "marginTop": 8, "marginLeft": 8, "height": 22, "lineHeight": 22, "textAlign": "center", "borderRadius": 2, "!paddingTop": 0, "!paddingRight": 4, "!paddingBottom": 0, "!paddingLeft": 4, "fontSize": 12, "color": "#4272FF", "backgroundColor": "#F3F4F6" } } };
+const _sfc_main$3 = {
+  props: {
+    productList: {
+      type: Array,
+      default() {
+        return [];
+      }
+    }
+  },
+  data() {
+    return {};
+  },
+  methods: {
+    goProDetail(item) {
+      this.$emit("click", item);
+    },
+    bindTag(item) {
+      return [item.area, item.proType, item.stage];
+    },
+    bindColor(index) {
+      let colorArr = ["#4473FF", "#FFA01B", "#41D380"];
+      return colorArr[index % 3];
+    },
+    bindBgColor(index) {
+      let bgColorArr = ["#F1F4FA", "#FFF5E8", "#ECFAF2"];
+      return bgColorArr[index % 3];
+    }
+  }
+};
+function _sfc_render$3(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("view", { renderWhole: true }, [
+    (openBlock(true), createElementBlock(
+      Fragment,
+      null,
+      renderList($props.productList, (item, index) => {
+        return openBlock(), createElementBlock("view", {
+          class: "uni-list-cell",
+          hoverClass: "uni-list-cell-hover",
+          key: item.id,
+          onClick: ($event) => $options.goProDetail(item)
+        }, [
+          createElementVNode("view", { class: "topTitleV" }, [
+            createElementVNode(
+              "u-text",
+              null,
+              toDisplayString(item.proName),
+              1
+              /* TEXT */
+            )
+          ]),
+          createElementVNode("view", { class: "topTitleV unitV" }, [
+            createElementVNode(
+              "u-text",
+              null,
+              toDisplayString(item.proUnit),
+              1
+              /* TEXT */
+            )
+          ]),
+          createElementVNode("view", { style: { "display": "flex", "flex": "1", "flex-wrap": "wrap", "margin-top": "0px", "margin-left": "-8px", "height": "38px", "width": "calc(100vw-62px)" } }, [
+            createCommentVNode(" 自定义了一个data-id的属性,可以通过js获取到它的值!  hover-class 指定按下去的样式类"),
+            (openBlock(true), createElementBlock(
+              Fragment,
+              null,
+              renderList($options.bindTag(item), (tagItem, index2) => {
+                return openBlock(), createElementBlock(
+                  "view",
+                  {
+                    class: "cellView",
+                    style: normalizeStyle({ color: $options.bindColor(index2), backgroundColor: $options.bindBgColor(index2) }),
+                    key: index2
+                  },
+                  [
+                    createElementVNode(
+                      "u-text",
+                      null,
+                      toDisplayString(tagItem),
+                      1
+                      /* TEXT */
+                    )
+                  ],
+                  4
+                  /* STYLE */
+                );
+              }),
+              128
+              /* KEYED_FRAGMENT */
+            ))
+          ])
+        ], 8, ["onClick"]);
+      }),
+      128
+      /* KEYED_FRAGMENT */
+    ))
+  ]);
+}
+const __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["render", _sfc_render$3], ["styles", [_style_0$3]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/cc-listView/components/cc-listView/cc-listView.vue"]]);
+const _style_0$2 = { "pageUpBtn": { "": { "marginLeft": 0, "backgroundColor": "#FFFFFF", "borderRadius": 4, "borderWidth": 1, "borderColor": "#999999", "paddingTop": 4, "paddingRight": 6, "paddingBottom": 4, "paddingLeft": 6, "color": "#333333", "fontSize": 15 } } };
+const _sfc_main$2 = {
+  props: {
+    //  分页数量
+    pageCount: {
+      type: [Number, String],
+      default: 10
+    },
+    totalNum: {
+      type: [Number, String],
+      default: 0
+    },
+    curPageNum: {
+      type: [Number, String],
+      default: 1
+    }
+  },
+  data() {
+    return {};
+  },
+  methods: {
+    pageChangeClick(tag) {
+      this.$emit("pageClick", tag);
+    }
+  }
+};
+function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
+  return openBlock(), createElementBlock("view", { renderWhole: true }, [
+    $props.totalNum > $props.pageCount ? (openBlock(), createElementBlock("view", {
+      key: 0,
+      style: { "display": "flex", "margin-top": "20px", "justify-content": "center" }
+    }, [
+      createElementVNode("view", {
+        class: "pageUpBtn",
+        onClick: _cache[0] || (_cache[0] = ($event) => $options.pageChangeClick(0))
+      }, [
+        createElementVNode("u-text", null, " 上一页")
+      ]),
+      $props.totalNum !== "0" ? (openBlock(), createElementBlock("view", {
+        key: 0,
+        style: { "font-size": "13px", "margin-left": "0px", "width": "180px", "margin-top": "6px", "text-align": "center" }
+      }, [
+        createElementVNode(
+          "u-text",
+          null,
+          toDisplayString("第 " + $props.curPageNum + " / " + Math.ceil($props.totalNum / $props.pageCount) + " 页    共 " + $props.totalNum + " 条数据"),
+          1
+          /* TEXT */
+        )
+      ])) : createCommentVNode("v-if", true),
+      createElementVNode("view", {
+        class: "pageUpBtn",
+        onClick: _cache[1] || (_cache[1] = ($event) => $options.pageChangeClick(1)),
+        style: { "margin-left": "0px" }
+      }, [
+        createElementVNode("u-text", null, " 下一页")
+      ])
+    ])) : createCommentVNode("v-if", true),
+    createElementVNode("view", { style: { "height": "80px" } })
+  ]);
+}
+const __easycom_2 = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$2], ["styles", [_style_0$2]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/cc-listPageView/components/cc-listPageView/cc-listPageView.vue"]]);
 const _style_0$1 = { "you-touchbox": { "": { "position": "fixed", "left": 0, "right": 0 } }, "touchend": { "": { "transitionProperty": "top", "transitionDuration": 1e3 } }, "you-touchbox-content": { "": { "flex": 1, "backgroundColor": "#ffffff" } }, "touch-line-box": { "": { "paddingTop": 5, "paddingRight": 0, "paddingBottom": 10, "paddingLeft": 0, "alignItems": "center" } }, "touch-line": { "": { "width": 45, "height": 5, "borderRadius": 25, "backgroundColor": "rgba(51,51,51,0.2)" } }, "@TRANSITION": { "touchend": { "property": "top", "duration": 1e3 } } };
 const _sfc_main$1 = {
   name: "you-touchbox",
@@ -947,8 +1107,8 @@ function _sfc_render$1(_ctx, _cache, $props, $setup, $data, $options) {
     /* CLASS, STYLE, NEED_HYDRATION */
   );
 }
-const __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render$1], ["styles", [_style_0$1]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/you-touchbox/components/you-touchbox/you-touchbox.vue"]]);
-const _style_0 = { "mao": { "": { "height": "1500rpx", "width": "700rpx", "display": "flex" } }, "search-box": { "": { "backgroundColor": "#f5f5f5", "borderRadius": 30, "paddingTop": 12, "paddingRight": 20, "paddingBottom": 12, "paddingLeft": 20, "display": "flex", "flexDirection": "row", "alignItems": "center", "marginTop": 0, "marginRight": 20, "marginBottom": 20, "marginLeft": 20 } }, "search-input": { "": { "flex": 1, "borderWidth": 0, "borderColor": "#000000", "backgroundColor": "rgba(0,0,0,0)", "fontSize": 16, "outline": "none", "marginLeft": 10 } }, "quick-actions": { "": { "display": "flex", "flexDirection": "row", "justifyContent": "space-around", "paddingTop": 15, "paddingRight": 20, "paddingBottom": 15, "paddingLeft": 20, "borderBottomWidth": 1, "borderBottomStyle": "solid", "borderBottomColor": "#f0f0f0" } }, "action-item": { "": { "display": "flex", "flexDirection": "column", "alignItems": "center" } }, "action-icon": { "": { "width": 60, "height": 60, "borderRadius": 20, "display": "flex", "alignItems": "center", "justifyContent": "center", "marginBottom": 8 } }, "action-text": { "": { "fontSize": 13, "color": "#555555" } } };
+const __easycom_3 = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render$1], ["styles", [_style_0$1]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/you-touchbox/components/you-touchbox/you-touchbox.vue"]]);
+const _style_0 = { "mao": { "": { "height": "1500rpx", "width": "700rpx", "display": "flex" } }, "search-box": { "": { "backgroundColor": "#f5f5f5", "borderRadius": 30, "paddingTop": 12, "paddingRight": 20, "paddingBottom": 12, "paddingLeft": 20, "display": "flex", "flexDirection": "row", "alignItems": "center", "marginTop": 0, "marginRight": 20, "marginBottom": 20, "marginLeft": 20 } }, "search-input": { "": { "flex": 1, "borderWidth": 0, "borderColor": "#000000", "backgroundColor": "rgba(0,0,0,0)", "fontSize": 16, "outline": "none", "marginLeft": 10 } }, "quick-actions": { "": { "display": "flex", "flexDirection": "row", "justifyContent": "space-around", "paddingTop": 15, "paddingRight": 20, "paddingBottom": 15, "paddingLeft": 20, "borderBottomWidth": 1, "borderBottomStyle": "solid", "borderBottomColor": "#f0f0f0" } }, "action-item": { "": { "display": "flex", "flexDirection": "column", "alignItems": "center" } }, "action-icon": { "": { "width": 60, "height": 60, "borderRadius": 20, "display": "flex", "alignItems": "center", "justifyContent": "center", "marginBottom": 8 } }, "action-text": { "": { "fontSize": 13, "color": "#555555" } }, "listcontent": { "": { "display": "flex", "flexDirection": "column" } }, "mui-content-padded": { "": { "marginTop": 0, "marginRight": 14, "marginBottom": 0, "marginLeft": 14 } } };
 const _sfc_main = {
   __name: "funs",
   setup(__props, { expose: __expose }) {
@@ -956,14 +1116,42 @@ const _sfc_main = {
     const myMap = ref();
     const mintop = ref(100);
     const actions = ref([
-      { icon: "map", text: "警情", bgColor: "#e6f4ff", color: "#0089ff" },
-      { icon: "home", text: "场所", bgColor: "#e6f4ff", color: "#0089ff" },
-      { icon: "person", text: "人员", bgColor: "#e6f4ff", color: "#0089ff" },
-      { icon: "fire", text: "化矛", bgColor: "#e6f4ff", color: "#0089ff" },
-      { icon: "map-pin", text: "待定", bgColor: "#e6f4ff", color: "#0089ff" }
+      {
+        icon: "map",
+        text: "警情",
+        bgColor: "#e6f4ff",
+        color: "#0089ff"
+      },
+      {
+        icon: "home",
+        text: "场所",
+        bgColor: "#e6f4ff",
+        color: "#0089ff"
+      },
+      {
+        icon: "person",
+        text: "人员",
+        bgColor: "#e6f4ff",
+        color: "#0089ff"
+      },
+      {
+        icon: "fire",
+        text: "化矛",
+        bgColor: "#e6f4ff",
+        color: "#0089ff"
+      },
+      {
+        icon: "map-pin",
+        text: "待定",
+        bgColor: "#e6f4ff",
+        color: "#0089ff"
+      }
     ]);
     const latitude = ref(0);
+    const projectList = ref({});
     const longitude = ref(0);
+    const totalNum = ref(0);
+    const curPageNum = ref(1);
     function getLocal() {
       uni.getLocation({
         type: "gcj02",
@@ -972,27 +1160,60 @@ const _sfc_main = {
         geocode: true,
         //将位置解析成地址
         success: (res) => {
-          formatAppLog("log", "at pages/funs/funs.nvue:47", res);
+          formatAppLog("log", "at pages/funs/funs.nvue:91", res);
           latitude.value = res.latitude;
           longitude.value = res.longitude;
-          formatAppLog("log", "at pages/funs/funs.nvue:50", latitude.value);
+          formatAppLog("log", "at pages/funs/funs.nvue:94", latitude.value);
         }
       });
     }
     function movedital(e) {
-      formatAppLog("log", "at pages/funs/funs.nvue:57", e.curTop);
+      formatAppLog("log", "at pages/funs/funs.nvue:102", e.curTop);
       if (e.curTop < 300)
         ;
     }
+    function goProDetail(e) {
+      formatAppLog("log", "at pages/funs/funs.nvue:112", e);
+    }
+    function pageClick(tag) {
+      if (tag === 0) {
+        if (curPageNum.value > 1) {
+          curPageNum.value--;
+          requestData();
+        }
+      } else {
+        if (totalNum.value > curPageNum.value * 10) {
+          curPageNum.value++;
+          requestData();
+        }
+      }
+    }
+    function getDate() {
+      projectList.value = [];
+      totalNum.value = 15;
+      for (let i = 0; i < 20; i++) {
+        projectList.value.push({
+          "proName": "项目名称" + i,
+          "proUnit": "公司名称" + i,
+          "area": "广州",
+          "proType": "省级项目",
+          "stage": "已开工",
+          "id": i + ""
+        });
+      }
+    }
     getLocal();
-    const __returned__ = { myMap, mintop, actions, latitude, longitude, getLocal, movedital, ref };
+    getDate();
+    const __returned__ = { myMap, mintop, actions, latitude, projectList, longitude, totalNum, curPageNum, getLocal, movedital, goProDetail, pageClick, getDate, ref };
     Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
     return __returned__;
   }
 };
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   const _component_uni_icons = resolveEasycom(resolveDynamicComponent("uni-icons"), __easycom_0);
-  const _component_you_touchbox = resolveEasycom(resolveDynamicComponent("you-touchbox"), __easycom_1);
+  const _component_cc_listView = resolveEasycom(resolveDynamicComponent("cc-listView"), __easycom_1);
+  const _component_cc_listPageView = resolveEasycom(resolveDynamicComponent("cc-listPageView"), __easycom_2);
+  const _component_you_touchbox = resolveEasycom(resolveDynamicComponent("you-touchbox"), __easycom_3);
   return openBlock(), createElementBlock("scroll-view", {
     scrollY: true,
     showScrollbar: true,
@@ -1064,6 +1285,22 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
               128
               /* KEYED_FRAGMENT */
             ))
+          ]),
+          createElementVNode("view", { class: "listcontent" }, [
+            createElementVNode("view", { class: "mui-content-padded" }, [
+              createCommentVNode(" 列表组件 "),
+              createVNode(_component_cc_listView, {
+                productList: $setup.projectList,
+                onClick: $setup.goProDetail
+              }, null, 8, ["productList"])
+            ]),
+            createCommentVNode("  totalNum: 条目总数量  pageCount:设置分页数量  curPageNum:设置当前页"),
+            createVNode(_component_cc_listPageView, {
+              totalNum: $setup.totalNum,
+              pageCount: "10",
+              curPageNum: $setup.curPageNum,
+              onPageClick: $setup.pageClick
+            }, null, 8, ["totalNum", "curPageNum"])
           ])
         ]),
         _: 1
