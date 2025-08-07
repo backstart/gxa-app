@@ -1114,7 +1114,9 @@ const _sfc_main = {
   setup(__props, { expose: __expose }) {
     __expose();
     const myMap = ref();
-    const mintop = ref(100);
+    const mintop = ref(500);
+    const isTouchDisable = ref(true);
+    const hasLaunch = ref(true);
     const actions = ref([
       {
         icon: "map",
@@ -1136,13 +1138,13 @@ const _sfc_main = {
       },
       {
         icon: "fire",
-        text: "化矛",
+        text: "处警",
         bgColor: "#e6f4ff",
         color: "#0089ff"
       },
       {
         icon: "map-pin",
-        text: "待定",
+        text: "巡防",
         bgColor: "#e6f4ff",
         color: "#0089ff"
       }
@@ -1152,6 +1154,7 @@ const _sfc_main = {
     const longitude = ref(0);
     const totalNum = ref(0);
     const curPageNum = ref(1);
+    let boxstatus = false;
     function getLocal() {
       uni.getLocation({
         type: "gcj02",
@@ -1160,20 +1163,27 @@ const _sfc_main = {
         geocode: true,
         //将位置解析成地址
         success: (res) => {
-          formatAppLog("log", "at pages/funs/funs.nvue:91", res);
+          formatAppLog("log", "at pages/funs/funs.nvue:95", res);
           latitude.value = res.latitude;
           longitude.value = res.longitude;
-          formatAppLog("log", "at pages/funs/funs.nvue:94", latitude.value);
+          formatAppLog("log", "at pages/funs/funs.nvue:98", latitude.value);
         }
       });
     }
+    function changbox() {
+      if (boxstatus) {
+        myMap.value.setBottom(0.4);
+      } else {
+        myMap.value.setBottom(0.8);
+      }
+      boxstatus = !boxstatus;
+    }
     function movedital(e) {
-      formatAppLog("log", "at pages/funs/funs.nvue:102", e.curTop);
+      formatAppLog("log", "at pages/funs/funs.nvue:117", e.curTop);
       if (e.curTop < 300)
         ;
     }
     function goProDetail(e) {
-      formatAppLog("log", "at pages/funs/funs.nvue:112", e);
     }
     function pageClick(tag) {
       if (tag === 0) {
@@ -1204,7 +1214,11 @@ const _sfc_main = {
     }
     getLocal();
     getDate();
-    const __returned__ = { myMap, mintop, actions, latitude, projectList, longitude, totalNum, curPageNum, getLocal, movedital, goProDetail, pageClick, getDate, ref };
+    const __returned__ = { myMap, mintop, isTouchDisable, hasLaunch, actions, latitude, projectList, longitude, totalNum, curPageNum, get boxstatus() {
+      return boxstatus;
+    }, set boxstatus(v) {
+      boxstatus = v;
+    }, getLocal, changbox, movedital, goProDetail, pageClick, getDate, ref };
     Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
     return __returned__;
   }
@@ -1230,8 +1244,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       }, null, 8, ["latitude", "longitude"]),
       createVNode(_component_you_touchbox, {
         ref: "myMap",
+        disable: $setup.isTouchDisable,
         minTop: $setup.mintop,
-        auto: false,
+        auto: true,
         onGetEndDetail: $setup.movedital,
         customStyle: "border-top-left-radius:50rpx;border-top-right-radius:50rpx"
       }, {
@@ -1248,7 +1263,10 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
               placeholder: "搜索警情、人员、场所"
             })
           ]),
-          createElementVNode("view", { class: "quick-actions" }, [
+          createElementVNode("view", {
+            class: "quick-actions",
+            onClick: $setup.changbox
+          }, [
             (openBlock(true), createElementBlock(
               Fragment,
               null,
@@ -1305,7 +1323,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         ]),
         _: 1
         /* STABLE */
-      }, 8, ["minTop"])
+      }, 8, ["disable", "minTop"])
     ])
   ]);
 }

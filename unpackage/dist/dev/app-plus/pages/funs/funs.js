@@ -1180,7 +1180,9 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
     setup(__props, { expose: __expose }) {
       __expose();
       const myMap = (0, import_vue.ref)();
-      const mintop = (0, import_vue.ref)(100);
+      const mintop = (0, import_vue.ref)(500);
+      const isTouchDisable = (0, import_vue.ref)(true);
+      const hasLaunch = (0, import_vue.ref)(true);
       const actions = (0, import_vue.ref)([
         {
           icon: "map",
@@ -1202,13 +1204,13 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
         },
         {
           icon: "fire",
-          text: "\u5316\u77DB",
+          text: "\u5904\u8B66",
           bgColor: "#e6f4ff",
           color: "#0089ff"
         },
         {
           icon: "map-pin",
-          text: "\u5F85\u5B9A",
+          text: "\u5DE1\u9632",
           bgColor: "#e6f4ff",
           color: "#0089ff"
         }
@@ -1218,6 +1220,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
       const longitude = (0, import_vue.ref)(0);
       const totalNum = (0, import_vue.ref)(0);
       const curPageNum = (0, import_vue.ref)(1);
+      let boxstatus = false;
       function getLocal() {
         uni.getLocation({
           type: "gcj02",
@@ -1226,20 +1229,27 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
           geocode: true,
           //将位置解析成地址
           success: (res) => {
-            formatAppLog("log", "at pages/funs/funs.nvue:91", res);
+            formatAppLog("log", "at pages/funs/funs.nvue:95", res);
             latitude.value = res.latitude;
             longitude.value = res.longitude;
-            formatAppLog("log", "at pages/funs/funs.nvue:94", latitude.value);
+            formatAppLog("log", "at pages/funs/funs.nvue:98", latitude.value);
           }
         });
       }
+      function changbox() {
+        if (boxstatus) {
+          myMap.value.setBottom(0.4);
+        } else {
+          myMap.value.setBottom(0.8);
+        }
+        boxstatus = !boxstatus;
+      }
       function movedital(e) {
-        formatAppLog("log", "at pages/funs/funs.nvue:102", e.curTop);
+        formatAppLog("log", "at pages/funs/funs.nvue:117", e.curTop);
         if (e.curTop < 300)
           ;
       }
       function goProDetail(e) {
-        formatAppLog("log", "at pages/funs/funs.nvue:112", e);
       }
       function pageClick(tag) {
         if (tag === 0) {
@@ -1270,7 +1280,11 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
       }
       getLocal();
       getDate();
-      const __returned__ = { myMap, mintop, actions, latitude, projectList, longitude, totalNum, curPageNum, getLocal, movedital, goProDetail, pageClick, getDate, ref: import_vue.ref };
+      const __returned__ = { myMap, mintop, isTouchDisable, hasLaunch, actions, latitude, projectList, longitude, totalNum, curPageNum, get boxstatus() {
+        return boxstatus;
+      }, set boxstatus(v) {
+        boxstatus = v;
+      }, getLocal, changbox, movedital, goProDetail, pageClick, getDate, ref: import_vue.ref };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
     }
@@ -1296,8 +1310,9 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
         }, null, 8, ["latitude", "longitude"]),
         (0, import_vue.createVNode)(_component_you_touchbox, {
           ref: "myMap",
+          disable: $setup.isTouchDisable,
           minTop: $setup.mintop,
-          auto: false,
+          auto: true,
           onGetEndDetail: $setup.movedital,
           customStyle: "border-top-left-radius:50rpx;border-top-right-radius:50rpx"
         }, {
@@ -1314,7 +1329,10 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
                 placeholder: "\u641C\u7D22\u8B66\u60C5\u3001\u4EBA\u5458\u3001\u573A\u6240"
               })
             ]),
-            (0, import_vue.createElementVNode)("view", { class: "quick-actions" }, [
+            (0, import_vue.createElementVNode)("view", {
+              class: "quick-actions",
+              onClick: $setup.changbox
+            }, [
               ((0, import_vue.openBlock)(true), (0, import_vue.createElementBlock)(
                 import_vue.Fragment,
                 null,
@@ -1371,7 +1389,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
           ]),
           _: 1
           /* STABLE */
-        }, 8, ["minTop"])
+        }, 8, ["disable", "minTop"])
       ])
     ]);
   }
