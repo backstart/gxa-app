@@ -6,6 +6,16 @@
 				<uni-icons type="search" size="18" color="#999"></uni-icons>
 				<input class="search-input" type="text" placeholder="搜索警情、人员、场所" />
 			</view>
+			
+			<view class="quick-actions">
+				<view class="action-item" v-for="(action, index) in actions" :key="index">
+					<view class="action-icon" :style="{ backgroundColor: action.bgColor }">
+						<uni-icons :type="action.icon" size="24" :color="action.color"></uni-icons>
+					</view>
+					<text class="action-text">{{ action.text }}</text>
+				</view>
+			</view>
+			
 		</you-touchbox>
 	</view>
 </template>
@@ -14,7 +24,15 @@
 import { ref } from 'vue';
 
 const myMap=ref();
-const mintop=ref(200);
+const mintop=ref(100);
+// 快捷操作数据
+const actions = ref([
+	{ icon: 'map', text: '警情', bgColor: '#e6f4ff', color: '#0089ff' },
+	{ icon: 'home', text: '场所', bgColor: '#e6f4ff', color: '#0089ff' },
+	{ icon: 'person', text: '人员', bgColor: '#e6f4ff', color: '#0089ff' },
+	{ icon: 'fire', text: '化矛', bgColor: '#e6f4ff', color: '#0089ff' },
+	{ icon: 'map-pin', text: '待定', bgColor: '#e6f4ff', color: '#0089ff' }
+]);
 
 	 const latitude=ref(0);
 	  const longitude=ref(0);
@@ -35,10 +53,10 @@ const mintop=ref(200);
 		 // 获取滑动结束时top信息对象
 		 // maxTop：最大高度top minTop：最小高度top curTop：当前高度top
 		 console.log(e.curTop);
-		 if(e.curTop<400){
-			 mintop.value=100;
+		 if(e.curTop<300){
+			 // mintop.value=100;
 			 // setBottom(100);
-			 myMap.value.setBottom(200);
+			 // myMap.value.setBottom(100);
 		 }
 		  
 	 }
@@ -70,5 +88,32 @@ const mintop=ref(200);
 	font-size: 16px;
 	outline: none;
 	margin-left: 10px;
+}
+.quick-actions {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+	padding: 15px 20px;
+	border-bottom: 1px solid #f0f0f0;
+}
+.action-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+	
+.action-icon {
+	width: 60px;
+	height: 60px;
+	border-radius: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-bottom: 8px;
+}
+	
+.action-text {
+	font-size: 13px;
+	color: #555;
 }
 </style>

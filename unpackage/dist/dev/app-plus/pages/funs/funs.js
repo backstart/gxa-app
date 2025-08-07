@@ -807,7 +807,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
     );
   }
   var __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$2], ["styles", [_style_0$2]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
-  var _style_0$1 = { "you-touchbox": { "": { "position": "fixed", "left": 0, "right": 0 } }, "touchend": { "": { "transitionProperty": "top", "transitionDuration": 600 } }, "you-touchbox-content": { "": { "flex": 1, "backgroundColor": "#ffffff" } }, "touch-line-box": { "": { "paddingTop": 5, "paddingRight": 0, "paddingBottom": 10, "paddingLeft": 0, "alignItems": "center" } }, "touch-line": { "": { "width": 45, "height": 5, "borderRadius": 25, "backgroundColor": "rgba(51,51,51,0.2)" } }, "@TRANSITION": { "touchend": { "property": "top", "duration": 600 } } };
+  var _style_0$1 = { "you-touchbox": { "": { "position": "fixed", "left": 0, "right": 0 } }, "touchend": { "": { "transitionProperty": "top", "transitionDuration": 1e3 } }, "you-touchbox-content": { "": { "flex": 1, "backgroundColor": "#ffffff" } }, "touch-line-box": { "": { "paddingTop": 5, "paddingRight": 0, "paddingBottom": 10, "paddingLeft": 0, "alignItems": "center" } }, "touch-line": { "": { "width": 45, "height": 5, "borderRadius": 25, "backgroundColor": "rgba(51,51,51,0.2)" } }, "@TRANSITION": { "touchend": { "property": "top", "duration": 1e3 } } };
   var _sfc_main$1 = {
     name: "you-touchbox",
     props: {
@@ -1014,13 +1014,20 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
     );
   }
   var __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render$1], ["styles", [_style_0$1]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/you-touchbox/components/you-touchbox/you-touchbox.vue"]]);
-  var _style_0 = { "mao": { "": { "height": "1500rpx", "width": "700rpx", "display": "flex" } }, "search-box": { "": { "backgroundColor": "#f5f5f5", "borderRadius": 30, "paddingTop": 12, "paddingRight": 20, "paddingBottom": 12, "paddingLeft": 20, "display": "flex", "flexDirection": "row", "alignItems": "center", "marginTop": 0, "marginRight": 20, "marginBottom": 20, "marginLeft": 20 } }, "search-input": { "": { "flex": 1, "borderWidth": 0, "borderColor": "#000000", "backgroundColor": "rgba(0,0,0,0)", "fontSize": 16, "outline": "none", "marginLeft": 10 } } };
+  var _style_0 = { "mao": { "": { "height": "1500rpx", "width": "700rpx", "display": "flex" } }, "search-box": { "": { "backgroundColor": "#f5f5f5", "borderRadius": 30, "paddingTop": 12, "paddingRight": 20, "paddingBottom": 12, "paddingLeft": 20, "display": "flex", "flexDirection": "row", "alignItems": "center", "marginTop": 0, "marginRight": 20, "marginBottom": 20, "marginLeft": 20 } }, "search-input": { "": { "flex": 1, "borderWidth": 0, "borderColor": "#000000", "backgroundColor": "rgba(0,0,0,0)", "fontSize": 16, "outline": "none", "marginLeft": 10 } }, "quick-actions": { "": { "display": "flex", "flexDirection": "row", "justifyContent": "space-around", "paddingTop": 15, "paddingRight": 20, "paddingBottom": 15, "paddingLeft": 20, "borderBottomWidth": 1, "borderBottomStyle": "solid", "borderBottomColor": "#f0f0f0" } }, "action-item": { "": { "display": "flex", "flexDirection": "column", "alignItems": "center" } }, "action-icon": { "": { "width": 60, "height": 60, "borderRadius": 20, "display": "flex", "alignItems": "center", "justifyContent": "center", "marginBottom": 8 } }, "action-text": { "": { "fontSize": 13, "color": "#555555" } } };
   var _sfc_main = {
     __name: "funs",
     setup(__props, { expose: __expose }) {
       __expose();
       const myMap = (0, import_vue.ref)();
-      const mintop = (0, import_vue.ref)(200);
+      const mintop = (0, import_vue.ref)(100);
+      const actions = (0, import_vue.ref)([
+        { icon: "map", text: "\u8B66\u60C5", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "home", text: "\u573A\u6240", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "person", text: "\u4EBA\u5458", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "fire", text: "\u5316\u77DB", bgColor: "#e6f4ff", color: "#0089ff" },
+        { icon: "map-pin", text: "\u5F85\u5B9A", bgColor: "#e6f4ff", color: "#0089ff" }
+      ]);
       const latitude = (0, import_vue.ref)(0);
       const longitude = (0, import_vue.ref)(0);
       function getLocal() {
@@ -1031,22 +1038,20 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
           geocode: true,
           //将位置解析成地址
           success: (res) => {
-            formatAppLog("log", "at pages/funs/funs.nvue:27", res);
+            formatAppLog("log", "at pages/funs/funs.nvue:45", res);
             latitude.value = res.latitude;
             longitude.value = res.longitude;
-            formatAppLog("log", "at pages/funs/funs.nvue:30", latitude.value);
+            formatAppLog("log", "at pages/funs/funs.nvue:48", latitude.value);
           }
         });
       }
       function movedital(e) {
-        formatAppLog("log", "at pages/funs/funs.nvue:37", e.curTop);
-        if (e.curTop < 400) {
-          mintop.value = 100;
-          myMap.value.setBottom(200);
-        }
+        formatAppLog("log", "at pages/funs/funs.nvue:55", e.curTop);
+        if (e.curTop < 300)
+          ;
       }
       getLocal();
-      const __returned__ = { myMap, mintop, latitude, longitude, getLocal, movedital, ref: import_vue.ref };
+      const __returned__ = { myMap, mintop, actions, latitude, longitude, getLocal, movedital, ref: import_vue.ref };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
     }
@@ -1086,6 +1091,44 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
                 type: "text",
                 placeholder: "\u641C\u7D22\u8B66\u60C5\u3001\u4EBA\u5458\u3001\u573A\u6240"
               })
+            ]),
+            (0, import_vue.createElementVNode)("view", { class: "quick-actions" }, [
+              ((0, import_vue.openBlock)(true), (0, import_vue.createElementBlock)(
+                import_vue.Fragment,
+                null,
+                (0, import_vue.renderList)($setup.actions, (action, index) => {
+                  return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", {
+                    class: "action-item",
+                    key: index
+                  }, [
+                    (0, import_vue.createElementVNode)(
+                      "view",
+                      {
+                        class: "action-icon",
+                        style: (0, import_vue.normalizeStyle)({ backgroundColor: action.bgColor })
+                      },
+                      [
+                        (0, import_vue.createVNode)(_component_uni_icons, {
+                          type: action.icon,
+                          size: "24",
+                          color: action.color
+                        }, null, 8, ["type", "color"])
+                      ],
+                      4
+                      /* STYLE */
+                    ),
+                    (0, import_vue.createElementVNode)(
+                      "u-text",
+                      { class: "action-text" },
+                      (0, import_vue.toDisplayString)(action.text),
+                      1
+                      /* TEXT */
+                    )
+                  ]);
+                }),
+                128
+                /* KEYED_FRAGMENT */
+              ))
             ])
           ]),
           _: 1

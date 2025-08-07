@@ -212,7 +212,7 @@
 
   .touchend {
     transition-property: top;
-    transition-duration: .6s;
+    transition-duration: 1s;
   }
 
   .you-touchbox-content {
