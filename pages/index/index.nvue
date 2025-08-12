@@ -51,7 +51,11 @@
 		</you-touchbox>
 
 		<view class="btnview" @click="btnviewClick">
-			{{btnviewtxt}}
+			<!-- {{btnviewtxt}} -->
+			<uni-icons :type="btnviewicon" 
+			:style="{ color: '#80deea'   }"
+			size="28"></uni-icons>
+
 		</view>
 
 	</view>
@@ -69,6 +73,8 @@
 	const hasLaunch = ref(true);
 	const btnviewtxt = ref("展开");
 	let btnviewbool = false;
+	
+	const btnviewicon=ref("up");
 
 	const title = ref('uni-fab');
 	const directionStr = ref('垂直');
@@ -110,10 +116,12 @@
 
 		if (boxstatus) {
 			btnviewtxt.value = "展开";
+			btnviewicon.value ="up";
 			myMap.value.setBottom(.4);
 		} else {
 			btnviewtxt.value = "折叠";
 			myMap.value.setBottom(.8);
+			btnviewicon.value ="down";
 		}
 		boxstatus = !boxstatus;
 
@@ -410,6 +418,7 @@
 		position: fixed;
 		bottom: 50px;
 		right: 15px;
+		 
 		z-index: inherit;
 		height: 50px;
 		width: 50px;
@@ -418,6 +427,7 @@
 		align-items: center;
 		border-radius: 50px;
 		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+		background-color: #F3F4F6;
 
 
 	}
