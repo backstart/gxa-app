@@ -722,7 +722,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
     }
   ];
   var iconUrl = "/assets/uniicons.32e978a5.ttf";
-  var _style_0$4 = { "uni-icons": { "": { "fontFamily": "uniicons", "textDecoration": "none", "textAlign": "center" } } };
+  var _style_0$2 = { "uni-icons": { "": { "fontFamily": "uniicons", "textDecoration": "none", "textAlign": "center" } } };
   var _export_sfc = (sfc, props) => {
     const target = sfc.__vccOpts || sfc;
     for (const [key, val] of props) {
@@ -739,7 +739,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
     "fontFamily": "uniicons",
     "src": "url('" + iconUrl + "')"
   });
-  var _sfc_main$4 = {
+  var _sfc_main$2 = {
     name: "UniIcons",
     emits: ["click"],
     props: {
@@ -793,7 +793,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
       }
     }
   };
-  function _sfc_render$4(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
     return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)(
       "u-text",
       {
@@ -806,167 +806,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
       /* TEXT, STYLE */
     );
   }
-  var __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$4, [["render", _sfc_render$4], ["styles", [_style_0$4]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
-  var _style_0$3 = { "uni-list-cell": { "": { "flexDirection": "column", "marginTop": 10, "backgroundColor": "#FFFFFF", "paddingTop": 6, "paddingRight": 12, "paddingBottom": 6, "paddingLeft": 12 } }, "topTitleV": { "": { "height": 26, "lineHeight": 26, "color": "#333333", "fontFamily": "PingFangSC-Semibold, PingFang SC", "fontWeight": "500", "fontSize": 14, "overflow": "hidden", "textOverflow": "ellipsis", "whiteSpace": "nowrap" } }, "unitV": { "": { "color": "#555555", "fontSize": 12, "marginTop": 0, "fontFamily": "PingFangSC-Regular, PingFang SC" } }, "cellView": { "": { "marginTop": 8, "marginLeft": 8, "height": 22, "lineHeight": 22, "textAlign": "center", "borderRadius": 2, "!paddingTop": 0, "!paddingRight": 4, "!paddingBottom": 0, "!paddingLeft": 4, "fontSize": 12, "color": "#4272FF", "backgroundColor": "#F3F4F6" } } };
-  var _sfc_main$3 = {
-    props: {
-      productList: {
-        type: Array,
-        default() {
-          return [];
-        }
-      }
-    },
-    data() {
-      return {};
-    },
-    methods: {
-      goProDetail(item) {
-        this.$emit("click", item);
-      },
-      bindTag(item) {
-        return [item.area, item.proType, item.stage];
-      },
-      bindColor(index) {
-        let colorArr = ["#4473FF", "#FFA01B", "#41D380"];
-        return colorArr[index % 3];
-      },
-      bindBgColor(index) {
-        let bgColorArr = ["#F1F4FA", "#FFF5E8", "#ECFAF2"];
-        return bgColorArr[index % 3];
-      }
-    }
-  };
-  function _sfc_render$3(_ctx, _cache, $props, $setup, $data, $options) {
-    return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", { renderWhole: true }, [
-      ((0, import_vue.openBlock)(true), (0, import_vue.createElementBlock)(
-        import_vue.Fragment,
-        null,
-        (0, import_vue.renderList)($props.productList, (item, index) => {
-          return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", {
-            class: "uni-list-cell",
-            hoverClass: "uni-list-cell-hover",
-            key: item.id,
-            onClick: ($event) => $options.goProDetail(item)
-          }, [
-            (0, import_vue.createElementVNode)("view", { class: "topTitleV" }, [
-              (0, import_vue.createElementVNode)(
-                "u-text",
-                null,
-                (0, import_vue.toDisplayString)(item.proName),
-                1
-                /* TEXT */
-              )
-            ]),
-            (0, import_vue.createElementVNode)("view", { class: "topTitleV unitV" }, [
-              (0, import_vue.createElementVNode)(
-                "u-text",
-                null,
-                (0, import_vue.toDisplayString)(item.proUnit),
-                1
-                /* TEXT */
-              )
-            ]),
-            (0, import_vue.createElementVNode)("view", { style: { "display": "flex", "flex": "1", "flex-wrap": "wrap", "margin-top": "0px", "margin-left": "-8px", "height": "38px", "width": "calc(100vw-62px)" } }, [
-              (0, import_vue.createCommentVNode)(" \u81EA\u5B9A\u4E49\u4E86\u4E00\u4E2Adata-id\u7684\u5C5E\u6027,\u53EF\u4EE5\u901A\u8FC7js\u83B7\u53D6\u5230\u5B83\u7684\u503C!  hover-class \u6307\u5B9A\u6309\u4E0B\u53BB\u7684\u6837\u5F0F\u7C7B"),
-              ((0, import_vue.openBlock)(true), (0, import_vue.createElementBlock)(
-                import_vue.Fragment,
-                null,
-                (0, import_vue.renderList)($options.bindTag(item), (tagItem, index2) => {
-                  return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)(
-                    "view",
-                    {
-                      class: "cellView",
-                      style: (0, import_vue.normalizeStyle)({ color: $options.bindColor(index2), backgroundColor: $options.bindBgColor(index2) }),
-                      key: index2
-                    },
-                    [
-                      (0, import_vue.createElementVNode)(
-                        "u-text",
-                        null,
-                        (0, import_vue.toDisplayString)(tagItem),
-                        1
-                        /* TEXT */
-                      )
-                    ],
-                    4
-                    /* STYLE */
-                  );
-                }),
-                128
-                /* KEYED_FRAGMENT */
-              ))
-            ])
-          ], 8, ["onClick"]);
-        }),
-        128
-        /* KEYED_FRAGMENT */
-      ))
-    ]);
-  }
-  var __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["render", _sfc_render$3], ["styles", [_style_0$3]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/cc-listView/components/cc-listView/cc-listView.vue"]]);
-  var _style_0$2 = { "pageUpBtn": { "": { "marginLeft": 0, "backgroundColor": "#FFFFFF", "borderRadius": 4, "borderWidth": 1, "borderColor": "#999999", "paddingTop": 4, "paddingRight": 6, "paddingBottom": 4, "paddingLeft": 6, "color": "#333333", "fontSize": 15 } } };
-  var _sfc_main$2 = {
-    props: {
-      //  分页数量
-      pageCount: {
-        type: [Number, String],
-        default: 10
-      },
-      totalNum: {
-        type: [Number, String],
-        default: 0
-      },
-      curPageNum: {
-        type: [Number, String],
-        default: 1
-      }
-    },
-    data() {
-      return {};
-    },
-    methods: {
-      pageChangeClick(tag) {
-        this.$emit("pageClick", tag);
-      }
-    }
-  };
-  function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
-    return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", { renderWhole: true }, [
-      $props.totalNum > $props.pageCount ? ((0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", {
-        key: 0,
-        style: { "display": "flex", "margin-top": "20px", "justify-content": "center" }
-      }, [
-        (0, import_vue.createElementVNode)("view", {
-          class: "pageUpBtn",
-          onClick: _cache[0] || (_cache[0] = ($event) => $options.pageChangeClick(0))
-        }, [
-          (0, import_vue.createElementVNode)("u-text", null, " \u4E0A\u4E00\u9875")
-        ]),
-        $props.totalNum !== "0" ? ((0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", {
-          key: 0,
-          style: { "font-size": "13px", "margin-left": "0px", "width": "180px", "margin-top": "6px", "text-align": "center" }
-        }, [
-          (0, import_vue.createElementVNode)(
-            "u-text",
-            null,
-            (0, import_vue.toDisplayString)("\u7B2C " + $props.curPageNum + " / " + Math.ceil($props.totalNum / $props.pageCount) + " \u9875\xA0\xA0  \u5171 " + $props.totalNum + " \u6761\u6570\u636E"),
-            1
-            /* TEXT */
-          )
-        ])) : (0, import_vue.createCommentVNode)("v-if", true),
-        (0, import_vue.createElementVNode)("view", {
-          class: "pageUpBtn",
-          onClick: _cache[1] || (_cache[1] = ($event) => $options.pageChangeClick(1)),
-          style: { "margin-left": "0px" }
-        }, [
-          (0, import_vue.createElementVNode)("u-text", null, " \u4E0B\u4E00\u9875")
-        ])
-      ])) : (0, import_vue.createCommentVNode)("v-if", true),
-      (0, import_vue.createElementVNode)("view", { style: { "height": "80px" } })
-    ]);
-  }
-  var __easycom_2 = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$2], ["styles", [_style_0$2]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/cc-listPageView/components/cc-listPageView/cc-listPageView.vue"]]);
+  var __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$2], ["styles", [_style_0$2]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
   var _style_0$1 = { "you-touchbox": { "": { "position": "fixed", "left": 0, "right": 0 } }, "touchend": { "": { "transitionProperty": "top", "transitionDuration": 1e3 } }, "you-touchbox-content": { "": { "flex": 1, "backgroundColor": "#ffffff" } }, "touch-line-box": { "": { "paddingTop": 5, "paddingRight": 0, "paddingBottom": 10, "paddingLeft": 0, "alignItems": "center" } }, "touch-line": { "": { "width": 45, "height": 5, "borderRadius": 25, "backgroundColor": "rgba(51,51,51,0.2)" } }, "@TRANSITION": { "touchend": { "property": "top", "duration": 1e3 } } };
   var _sfc_main$1 = {
     name: "you-touchbox",
@@ -1173,16 +1013,96 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
       /* CLASS, STYLE, NEED_HYDRATION */
     );
   }
-  var __easycom_3 = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render$1], ["styles", [_style_0$1]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/you-touchbox/components/you-touchbox/you-touchbox.vue"]]);
-  var _style_0 = { "mao": { "": { "height": "1500rpx", "width": "700rpx", "display": "flex" } }, "search-box": { "": { "backgroundColor": "#f5f5f5", "borderRadius": 30, "paddingTop": 12, "paddingRight": 20, "paddingBottom": 12, "paddingLeft": 20, "display": "flex", "flexDirection": "row", "alignItems": "center", "marginTop": 0, "marginRight": 20, "marginBottom": 20, "marginLeft": 20 } }, "search-input": { "": { "flex": 1, "borderWidth": 0, "borderColor": "#000000", "backgroundColor": "rgba(0,0,0,0)", "fontSize": 16, "outline": "none", "marginLeft": 10 } }, "quick-actions": { "": { "display": "flex", "flexDirection": "row", "justifyContent": "space-around", "paddingTop": 15, "paddingRight": 20, "paddingBottom": 15, "paddingLeft": 20, "borderBottomWidth": 1, "borderBottomStyle": "solid", "borderBottomColor": "#f0f0f0" } }, "action-item": { "": { "display": "flex", "flexDirection": "column", "alignItems": "center" } }, "action-icon": { "": { "width": 60, "height": 60, "borderRadius": 20, "display": "flex", "alignItems": "center", "justifyContent": "center", "marginBottom": 8 } }, "action-text": { "": { "fontSize": 13, "color": "#555555" } }, "listcontent": { "": { "display": "flex", "flexDirection": "column" } }, "mui-content-padded": { "": { "marginTop": 0, "marginRight": 14, "marginBottom": 0, "marginLeft": 14 } } };
+  var __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render$1], ["styles", [_style_0$1]], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/you-touchbox/components/you-touchbox/you-touchbox.vue"]]);
+  var _style_0 = { "mao": { "": { "height": "1500rpx", "width": "700rpx", "display": "flex" } }, "search-box": { "": { "backgroundColor": "#f5f5f5", "borderRadius": 30, "paddingTop": 12, "paddingRight": 20, "paddingBottom": 12, "paddingLeft": 20, "display": "flex", "flexDirection": "row", "alignItems": "center", "marginTop": 0, "marginRight": 20, "marginBottom": 20, "marginLeft": 20 } }, "search-input": { "": { "flex": 1, "borderWidth": 0, "borderColor": "#000000", "backgroundColor": "rgba(0,0,0,0)", "fontSize": 16, "outline": "none", "marginLeft": 10 } }, "quick-actions": { "": { "display": "flex", "flexDirection": "row", "justifyContent": "space-around", "paddingTop": 15, "paddingRight": 20, "paddingBottom": 15, "paddingLeft": 20, "borderBottomWidth": 1, "borderBottomStyle": "solid", "borderBottomColor": "#f0f0f0" } }, "action-item": { "": { "display": "flex", "flexDirection": "column", "alignItems": "center" } }, "action-icon": { "": { "width": 60, "height": 60, "borderRadius": 20, "display": "flex", "alignItems": "center", "justifyContent": "center", "marginBottom": 8 } }, "action-text": { "": { "fontSize": 13, "color": "#555555" } }, "listcontent": { "": { "display": "flex", "flexDirection": "column" } }, "mui-content-padded": { "": { "marginTop": 0, "marginRight": 14, "marginBottom": 0, "marginLeft": 14 } }, "btnview": { "": { "position": "fixed", "bottom": 50, "right": 15, "height": 50, "width": 50, "backgroundColor": "#F5F5F5", "justifyContent": "center", "alignItems": "center", "borderRadius": 50, "boxShadow": "0 2px 10px rgba(0, 0, 0, 0.2)" } }, "uni-list-cell": { "": { "flexDirection": "column", "marginTop": 10, "backgroundColor": "#FFFFFF", "paddingTop": 6, "paddingRight": 12, "paddingBottom": 6, "paddingLeft": 12 } }, "topTitleV": { "": { "height": 26, "lineHeight": 26, "color": "#333333", "fontFamily": "PingFangSC-Semibold, PingFang SC", "fontWeight": "500", "fontSize": 14, "overflow": "hidden", "textOverflow": "ellipsis", "whiteSpace": "nowrap" } }, "unitV": { "": { "color": "#555555", "fontSize": 12, "marginTop": 0, "fontFamily": "PingFangSC-Regular, PingFang SC" } }, "cellView": { "": { "marginTop": 8, "marginLeft": 8, "height": 22, "lineHeight": 22, "textAlign": "center", "borderRadius": 2, "!paddingTop": 0, "!paddingRight": 4, "!paddingBottom": 0, "!paddingLeft": 4, "fontSize": 15, "color": "#4272FF", "backgroundColor": "#F3F4F6" } } };
   var _sfc_main = {
     __name: "funs",
     setup(__props, { expose: __expose }) {
       __expose();
       const myMap = (0, import_vue.ref)();
-      const mintop = (0, import_vue.ref)(500);
+      const mintop = (0, import_vue.ref)(300);
       const isTouchDisable = (0, import_vue.ref)(true);
       const hasLaunch = (0, import_vue.ref)(true);
+      const btnviewtxt = (0, import_vue.ref)("\u5C55\u5F00");
+      let btnviewbool = false;
+      const title = (0, import_vue.ref)("uni-fab");
+      const directionStr = (0, import_vue.ref)("\u5782\u76F4");
+      const horizontal = (0, import_vue.ref)("right");
+      const vertical = (0, import_vue.ref)("bottom");
+      const direction = (0, import_vue.ref)("horizontal");
+      const pattern = (0, import_vue.ref)({
+        color: "#7A7E83",
+        backgroundColor: "#fff",
+        selectedColor: "#007AFF",
+        buttonColor: "#007AFF",
+        iconColor: "#fff"
+      });
+      const is_color_type = (0, import_vue.ref)(false);
+      const content = (0, import_vue.ref)([
+        {
+          iconPath: "https://www.pixsector.com/cache/517d8be6/av5c8336583e291842624.png",
+          selectedIconPath: "https://www.pixsector.com/cache/517d8be6/av5c8336583e291842624.png",
+          text: "\u70ED\u529B\u56FE",
+          active: false
+        },
+        {
+          iconPath: "/static/home.png",
+          selectedIconPath: "/static/home-active.png",
+          text: "\u9996\u9875",
+          active: false
+        },
+        {
+          iconPath: "/static/star.png",
+          selectedIconPath: "/static/star-active.png",
+          text: "\u6536\u85CF",
+          active: false
+        }
+      ]);
+      function btnviewClick() {
+        if (boxstatus) {
+          btnviewtxt.value = "\u5C55\u5F00";
+          myMap.value.setBottom(0.4);
+        } else {
+          btnviewtxt.value = "\u6298\u53E0";
+          myMap.value.setBottom(0.8);
+        }
+        boxstatus = !boxstatus;
+      }
+      function trigger(e) {
+        formatAppLog("log", "at pages/funs/funs.nvue:121", e);
+        content.value[e.index].active = !e.item.active;
+        uni.showModal({
+          title: "\u63D0\u793A",
+          content: `\u60A8${content.value[e.index].active ? "\u9009\u4E2D\u4E86" : "\u53D6\u6D88\u4E86"}${e.item.text}`,
+          success: function(res) {
+            if (res.confirm) {
+              formatAppLog("log", "at pages/funs/funs.nvue:128", "\u7528\u6237\u70B9\u51FB\u786E\u5B9A");
+            } else if (res.cancel) {
+              formatAppLog("log", "at pages/funs/funs.nvue:130", "\u7528\u6237\u70B9\u51FB\u53D6\u6D88");
+            }
+          }
+        });
+      }
+      function fabClick() {
+        uni.showToast({
+          title: "\u70B9\u51FB\u4E86\u60AC\u6D6E\u6309\u94AE",
+          icon: "none"
+        });
+      }
+      function goProDetail(item) {
+        formatAppLog("log", "at pages/funs/funs.nvue:145", item);
+      }
+      function bindTag(item) {
+        return [item.area, item.proType, item.stage];
+      }
+      function bindColor(index) {
+        let colorArr = ["#4473FF", "#FFA01B", "#41D380"];
+        return colorArr[index % 3];
+      }
+      function bindBgColor(index) {
+        let bgColorArr = ["#F1F4FA", "#FFF5E8", "#ECFAF2"];
+        return bgColorArr[index % 3];
+      }
       const actions = (0, import_vue.ref)([
         {
           icon: "map",
@@ -1229,27 +1149,19 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
           geocode: true,
           //将位置解析成地址
           success: (res) => {
-            formatAppLog("log", "at pages/funs/funs.nvue:95", res);
+            formatAppLog("log", "at pages/funs/funs.nvue:209", res);
             latitude.value = res.latitude;
             longitude.value = res.longitude;
-            formatAppLog("log", "at pages/funs/funs.nvue:98", latitude.value);
           }
         });
       }
-      function changbox() {
-        if (boxstatus) {
-          myMap.value.setBottom(0.4);
-        } else {
-          myMap.value.setBottom(0.8);
-        }
-        boxstatus = !boxstatus;
+      function changbox(e) {
+        getDate(e);
       }
       function movedital(e) {
-        formatAppLog("log", "at pages/funs/funs.nvue:117", e.curTop);
+        formatAppLog("log", "at pages/funs/funs.nvue:225", e.curTop);
         if (e.curTop < 300)
           ;
-      }
-      function goProDetail(e) {
       }
       function pageClick(tag) {
         if (tag === 0) {
@@ -1264,36 +1176,76 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
           }
         }
       }
-      function getDate() {
+      function getDate(index) {
         projectList.value = [];
         totalNum.value = 15;
-        for (let i = 0; i < 20; i++) {
-          projectList.value.push({
-            "proName": "\u9879\u76EE\u540D\u79F0" + i,
-            "proUnit": "\u516C\u53F8\u540D\u79F0" + i,
-            "area": "\u5E7F\u5DDE",
-            "proType": "\u7701\u7EA7\u9879\u76EE",
-            "stage": "\u5DF2\u5F00\u5DE5",
-            "id": i + ""
-          });
+        for (let i = 1; i < 2; i++) {
+          if (index === 0) {
+            projectList.value.push({
+              "proName": "\u8B66\u60C5\u4E00",
+              "proUnit": "\u957F\u547D\u6C34\u5E02\u573A\u4E70\u83DC\u7EA0\u7EB7",
+              "area": "\u7EA0\u7EB7\u7C7B",
+              "proType": "\u672A\u6307\u6D3E",
+              "stage": "\u672A\u53CD\u9988",
+              "id": i + ""
+            });
+          } else if (index === 1) {
+            projectList.value.push({
+              "proName": "\u9F99\u4E95\u574AKTV",
+              "proUnit": "\u957F\u547D\u6C34\u5927\u88573\u53F7",
+              "area": "\u5A31\u4E50\u573A\u6240",
+              "proType": "\u9AD8\u98CE\u9669",
+              "stage": "\u672A\u68C0\u67E5",
+              "id": i + ""
+            });
+          } else if (index === 2) {
+            projectList.value.push({
+              "proName": "\u5F20\u4E09",
+              "proUnit": "\u4F4F\u5740\uFF1A\u9F99\u77F3\u5927\u5C71\u811A45\u53F7",
+              "area": "\u5438\u6BD2",
+              "proType": "\u672A\u8D70\u8BBF",
+              "stage": "\u9AD8\u98CE\u9669",
+              "id": i + ""
+            });
+          } else if (index === 3) {
+            projectList.value.push({
+              "proName": "\u8B66\u60C5\u4E00",
+              "proUnit": "\u957F\u547D\u6C34\u5E02\u573A\u4E70\u83DC\u7EA0\u7EB7  \u5904\u8B66\u4EBA\uFF1A\u5F20\u4E09",
+              "area": "\u7EA0\u7EB7\u7C7B",
+              "proType": "\u5DF2\u6307\u6D3E",
+              "stage": "\u672A\u53CD\u9988",
+              "id": i + ""
+            });
+          } else if (index === 4) {
+            projectList.value.push({
+              "proName": "\u957F\u5751\u6C34\u5E93",
+              "proUnit": "\u6842\u5357\u5DE1\u533A\u5230\u957F\u5751\u6C34\u5E93\u8FDB\u884C\u5B89\u5168\u68C0\u67E5",
+              "area": "\u6842\u5357",
+              "proType": "\u5B89\u5168\u68C0\u67E5",
+              "stage": "\u65E5\u5E38",
+              "id": i + ""
+            });
+          }
         }
       }
       getLocal();
-      getDate();
-      const __returned__ = { myMap, mintop, isTouchDisable, hasLaunch, actions, latitude, projectList, longitude, totalNum, curPageNum, get boxstatus() {
+      getDate(0);
+      const __returned__ = { myMap, mintop, isTouchDisable, hasLaunch, btnviewtxt, get btnviewbool() {
+        return btnviewbool;
+      }, set btnviewbool(v) {
+        btnviewbool = v;
+      }, title, directionStr, horizontal, vertical, direction, pattern, is_color_type, content, btnviewClick, trigger, fabClick, goProDetail, bindTag, bindColor, bindBgColor, actions, latitude, projectList, longitude, totalNum, curPageNum, get boxstatus() {
         return boxstatus;
       }, set boxstatus(v) {
         boxstatus = v;
-      }, getLocal, changbox, movedital, goProDetail, pageClick, getDate, ref: import_vue.ref };
+      }, getLocal, changbox, movedital, pageClick, getDate, ref: import_vue.ref };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
     }
   };
   function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_uni_icons = resolveEasycom((0, import_vue.resolveDynamicComponent)("uni-icons"), __easycom_0);
-    const _component_cc_listView = resolveEasycom((0, import_vue.resolveDynamicComponent)("cc-listView"), __easycom_1);
-    const _component_cc_listPageView = resolveEasycom((0, import_vue.resolveDynamicComponent)("cc-listPageView"), __easycom_2);
-    const _component_you_touchbox = resolveEasycom((0, import_vue.resolveDynamicComponent)("you-touchbox"), __easycom_3);
+    const _component_you_touchbox = resolveEasycom((0, import_vue.resolveDynamicComponent)("you-touchbox"), __easycom_1);
     return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("scroll-view", {
       scrollY: true,
       showScrollbar: true,
@@ -1301,7 +1253,7 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
       bubble: "true",
       style: { flexDirection: "column" }
     }, [
-      (0, import_vue.createElementVNode)("view", { class: "" }, [
+      (0, import_vue.createElementVNode)("view", { class: "con" }, [
         (0, import_vue.createElementVNode)("map", {
           class: "mao",
           showLocation: true,
@@ -1329,17 +1281,15 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
                 placeholder: "\u641C\u7D22\u8B66\u60C5\u3001\u4EBA\u5458\u3001\u573A\u6240"
               })
             ]),
-            (0, import_vue.createElementVNode)("view", {
-              class: "quick-actions",
-              onClick: $setup.changbox
-            }, [
+            (0, import_vue.createElementVNode)("view", { class: "quick-actions" }, [
               ((0, import_vue.openBlock)(true), (0, import_vue.createElementBlock)(
                 import_vue.Fragment,
                 null,
                 (0, import_vue.renderList)($setup.actions, (action, index) => {
                   return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", {
                     class: "action-item",
-                    key: index
+                    key: index,
+                    onClick: ($event) => $setup.changbox(index)
                   }, [
                     (0, import_vue.createElementVNode)(
                       "view",
@@ -1364,32 +1314,84 @@ if (typeof uni !== 'undefined' && uni && uni.requireGlobal) {
                       1
                       /* TEXT */
                     )
-                  ]);
+                  ], 8, ["onClick"]);
                 }),
                 128
                 /* KEYED_FRAGMENT */
               ))
             ]),
-            (0, import_vue.createElementVNode)("view", { class: "listcontent" }, [
-              (0, import_vue.createElementVNode)("view", { class: "mui-content-padded" }, [
-                (0, import_vue.createCommentVNode)(" \u5217\u8868\u7EC4\u4EF6 "),
-                (0, import_vue.createVNode)(_component_cc_listView, {
-                  productList: $setup.projectList,
-                  onClick: $setup.goProDetail
-                }, null, 8, ["productList"])
-              ]),
-              (0, import_vue.createCommentVNode)("  totalNum: \u6761\u76EE\u603B\u6570\u91CF  pageCount:\u8BBE\u7F6E\u5206\u9875\u6570\u91CF  curPageNum:\u8BBE\u7F6E\u5F53\u524D\u9875"),
-              (0, import_vue.createVNode)(_component_cc_listPageView, {
-                totalNum: $setup.totalNum,
-                pageCount: "10",
-                curPageNum: $setup.curPageNum,
-                onPageClick: $setup.pageClick
-              }, null, 8, ["totalNum", "curPageNum"])
+            (0, import_vue.createElementVNode)("scroll-view", {
+              scrollY: "true",
+              class: "listcontent"
+            }, [
+              ((0, import_vue.openBlock)(true), (0, import_vue.createElementBlock)(
+                import_vue.Fragment,
+                null,
+                (0, import_vue.renderList)($setup.projectList, (item, index) => {
+                  return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)("view", {
+                    class: "uni-list-cell",
+                    hoverClass: "uni-list-cell-hover",
+                    key: item.id,
+                    onClick: ($event) => $setup.goProDetail(item)
+                  }, [
+                    (0, import_vue.createElementVNode)(
+                      "u-text",
+                      { class: "topTitleV" },
+                      (0, import_vue.toDisplayString)(item.proName),
+                      1
+                      /* TEXT */
+                    ),
+                    (0, import_vue.createElementVNode)(
+                      "u-text",
+                      { class: "topTitleV unitV" },
+                      (0, import_vue.toDisplayString)(item.proUnit),
+                      1
+                      /* TEXT */
+                    ),
+                    (0, import_vue.createElementVNode)("view", { style: { "display": "flex", "flex": "1", "flex-wrap": "wrap", "margin-top": "0px", "margin-left": "-8px", "height": "38px", "width": "calc(100vw-62px)" } }, [
+                      (0, import_vue.createCommentVNode)(" \u81EA\u5B9A\u4E49\u4E86\u4E00\u4E2Adata-id\u7684\u5C5E\u6027,\u53EF\u4EE5\u901A\u8FC7js\u83B7\u53D6\u5230\u5B83\u7684\u503C!  hover-class \u6307\u5B9A\u6309\u4E0B\u53BB\u7684\u6837\u5F0F\u7C7B"),
+                      ((0, import_vue.openBlock)(true), (0, import_vue.createElementBlock)(
+                        import_vue.Fragment,
+                        null,
+                        (0, import_vue.renderList)($setup.bindTag(item), (tagItem, index2) => {
+                          return (0, import_vue.openBlock)(), (0, import_vue.createElementBlock)(
+                            "u-text",
+                            {
+                              class: "cellView",
+                              style: (0, import_vue.normalizeStyle)({ color: $setup.bindColor(index2), backgroundColor: $setup.bindBgColor(index2) }),
+                              key: index2
+                            },
+                            (0, import_vue.toDisplayString)(tagItem),
+                            5
+                            /* TEXT, STYLE */
+                          );
+                        }),
+                        128
+                        /* KEYED_FRAGMENT */
+                      ))
+                    ])
+                  ], 8, ["onClick"]);
+                }),
+                128
+                /* KEYED_FRAGMENT */
+              ))
             ])
           ]),
           _: 1
           /* STABLE */
-        }, 8, ["disable", "minTop"])
+        }, 8, ["disable", "minTop"]),
+        (0, import_vue.createElementVNode)("view", {
+          class: "btnview",
+          onClick: $setup.btnviewClick
+        }, [
+          (0, import_vue.createElementVNode)(
+            "u-text",
+            null,
+            (0, import_vue.toDisplayString)($setup.btnviewtxt),
+            1
+            /* TEXT */
+          )
+        ])
       ])
     ]);
   }
