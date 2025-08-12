@@ -1,6 +1,6 @@
 <template>
 	<view class="con">
-		<map class="mao" :show-location="true" :latitude="latitude" :longitude="longitude"></map>
+		<map class="mao" :show-location="true" :latitude="latitude" :longitude="longitude" :markers="covers"></map>
 
 		<you-touchbox ref="myMap" :disable="isTouchDisable" :minTop="mintop" :auto="true" @get-end-detail="movedital"
 			customStyle="border-top-left-radius:50rpx;border-top-right-radius:50rpx">
@@ -75,6 +75,8 @@
 	const horizontal = ref('right');
 	const vertical = ref('bottom');
 	const direction = ref('horizontal');
+	
+	const covers=ref([]);
 	const pattern = ref({
 		color: '#7A7E83',
 		backgroundColor: '#fff',
@@ -265,6 +267,7 @@
 					'stage': '未反馈',
 					'id': i + ''
 				});
+				 setMapPoint("警情一",0.001,0.001);
 			} else if (index === 1) {
 				projectList.value.push({
 					'proName': '龙井坊KTV' ,
@@ -274,6 +277,7 @@
 					'stage': '未检查',
 					'id': i + ''
 				});
+				 setMapPoint("龙井坊KTV",0.004,0.001);
 			} else if (index === 2) {
 				projectList.value.push({
 					'proName': '张三' ,
@@ -281,8 +285,9 @@
 					'area': '吸毒',
 					'proType': '未走访',
 					'stage': '高风险',
-					'id': i + ''
+					'id': i + '',
 				});
+				setMapPoint("张三",0.002,0.002);
 			} else if (index === 3) {
 				projectList.value.push({
 					'proName': '警情一',
@@ -292,6 +297,7 @@
 					'stage': '未反馈',
 					'id': i + ''
 				});
+				setMapPoint("警情一",0.003,0.005);
 			} else if (index === 4) {
 				projectList.value.push({
 					'proName': '长坑水库',
@@ -301,9 +307,34 @@
 					'stage': '日常',
 					'id': i + ''
 				});
+				setMapPoint("长坑水库",0.001,0.001);
 			}
 		}
+		 
 	}
+	
+	//地图标点
+	function setMapPoint(txt,x,y){
+		covers.value=[{
+			latitude:  (latitude.value + x) ,
+			longitude: (longitude.value + y),
+			iconPath:"/common/img/地图标点.png",
+			width:'80rpx',
+			height:'80rpx',
+			callout:{
+				content:txt,
+				display:'ALWAYS',
+				fontSize:'16',
+				padding:'10',
+				bgColor:'#4cb0e0',
+				borderRadius:'10'
+			},
+			/* label:{
+				content:'警情一'
+			} */
+		}];
+	}
+	
 	getLocal();
 	getDate(0);
 </script>
@@ -406,8 +437,9 @@
 		line-height: 26px;
 		color: #333333;
 		font-family: PingFangSC-Semibold, PingFang SC;
-		font-weight: 500;
-		font-size: 14px;
+		font-weight: 600;
+		font-size: 16px;
+		
 
 		overflow: hidden;
 		text-overflow: ellipsis;

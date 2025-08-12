@@ -1,6 +1,7 @@
 <template>
 	<view class="userLayout pageBg">
-		<view class="statuBar" :style="{barheight}+'px'"></view>
+		
+		<view class="statuBar" :style="{height: barheight+'px'}"></view>
 		<view class="userInfo">
 			<view class="avator">
 				<image src="/static/logo.png" mode="aspectFill"></image>
@@ -35,12 +36,19 @@ import { ref } from 'vue';
 import {getStatusBarHeight} from "@/utils/system.js";
 
 	  
-	 const barheight=ref(getStatusBarHeight());
-	  
+	 const barheight=ref(getStatusBarHeight()) ;
+	 
+	 function status(){
+		 console.log(barheight.value);
+	
+	 }
+	 
+	  status();
 </script>
 
 <style lang="scss">
 .userLayout{
+	
 	
 	.userInfo{
 		display: flex;

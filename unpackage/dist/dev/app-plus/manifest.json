@@ -35,7 +35,10 @@
     "popGesture": "close",
     "launchwebview": {
       "id": "1",
-      "kernel": "WKWebview"
+      "kernel": "WKWebview",
+      "uniNView": {
+        "path": "pages/index/index.js"
+      }
     },
     "usingComponents": true,
     "nvueStyleCompiler": "uni-app",
@@ -150,6 +153,5 @@
         "offset": "auto"
       }
     }
-  },
-  "launch_path": "__uniappview.html"
+  }
 }

@@ -31,733 +31,6 @@ if (uni.restoreGlobal) {
 }
 (function(vue) {
   "use strict";
-  const fontData = [
-    {
-      "font_class": "arrow-down",
-      "unicode": ""
-    },
-    {
-      "font_class": "arrow-left",
-      "unicode": ""
-    },
-    {
-      "font_class": "arrow-right",
-      "unicode": ""
-    },
-    {
-      "font_class": "arrow-up",
-      "unicode": ""
-    },
-    {
-      "font_class": "auth",
-      "unicode": ""
-    },
-    {
-      "font_class": "auth-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "back",
-      "unicode": ""
-    },
-    {
-      "font_class": "bars",
-      "unicode": ""
-    },
-    {
-      "font_class": "calendar",
-      "unicode": ""
-    },
-    {
-      "font_class": "calendar-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "camera",
-      "unicode": ""
-    },
-    {
-      "font_class": "camera-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "cart",
-      "unicode": ""
-    },
-    {
-      "font_class": "cart-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "chat",
-      "unicode": ""
-    },
-    {
-      "font_class": "chat-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "chatboxes",
-      "unicode": ""
-    },
-    {
-      "font_class": "chatboxes-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "chatbubble",
-      "unicode": ""
-    },
-    {
-      "font_class": "chatbubble-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "checkbox",
-      "unicode": ""
-    },
-    {
-      "font_class": "checkbox-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "checkmarkempty",
-      "unicode": ""
-    },
-    {
-      "font_class": "circle",
-      "unicode": ""
-    },
-    {
-      "font_class": "circle-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "clear",
-      "unicode": ""
-    },
-    {
-      "font_class": "close",
-      "unicode": ""
-    },
-    {
-      "font_class": "closeempty",
-      "unicode": ""
-    },
-    {
-      "font_class": "cloud-download",
-      "unicode": ""
-    },
-    {
-      "font_class": "cloud-download-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "cloud-upload",
-      "unicode": ""
-    },
-    {
-      "font_class": "cloud-upload-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "color",
-      "unicode": ""
-    },
-    {
-      "font_class": "color-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "compose",
-      "unicode": ""
-    },
-    {
-      "font_class": "contact",
-      "unicode": ""
-    },
-    {
-      "font_class": "contact-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "down",
-      "unicode": ""
-    },
-    {
-      "font_class": "bottom",
-      "unicode": ""
-    },
-    {
-      "font_class": "download",
-      "unicode": ""
-    },
-    {
-      "font_class": "download-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "email",
-      "unicode": ""
-    },
-    {
-      "font_class": "email-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "eye",
-      "unicode": ""
-    },
-    {
-      "font_class": "eye-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "eye-slash",
-      "unicode": ""
-    },
-    {
-      "font_class": "eye-slash-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "fire",
-      "unicode": ""
-    },
-    {
-      "font_class": "fire-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "flag",
-      "unicode": ""
-    },
-    {
-      "font_class": "flag-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "folder-add",
-      "unicode": ""
-    },
-    {
-      "font_class": "folder-add-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "font",
-      "unicode": ""
-    },
-    {
-      "font_class": "forward",
-      "unicode": ""
-    },
-    {
-      "font_class": "gear",
-      "unicode": ""
-    },
-    {
-      "font_class": "gear-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "gift",
-      "unicode": ""
-    },
-    {
-      "font_class": "gift-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "hand-down",
-      "unicode": ""
-    },
-    {
-      "font_class": "hand-down-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "hand-up",
-      "unicode": ""
-    },
-    {
-      "font_class": "hand-up-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "headphones",
-      "unicode": ""
-    },
-    {
-      "font_class": "heart",
-      "unicode": ""
-    },
-    {
-      "font_class": "heart-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "help",
-      "unicode": ""
-    },
-    {
-      "font_class": "help-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "home",
-      "unicode": ""
-    },
-    {
-      "font_class": "home-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "image",
-      "unicode": ""
-    },
-    {
-      "font_class": "image-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "images",
-      "unicode": ""
-    },
-    {
-      "font_class": "images-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "info",
-      "unicode": ""
-    },
-    {
-      "font_class": "info-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "left",
-      "unicode": ""
-    },
-    {
-      "font_class": "link",
-      "unicode": ""
-    },
-    {
-      "font_class": "list",
-      "unicode": ""
-    },
-    {
-      "font_class": "location",
-      "unicode": ""
-    },
-    {
-      "font_class": "location-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "locked",
-      "unicode": ""
-    },
-    {
-      "font_class": "locked-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "loop",
-      "unicode": ""
-    },
-    {
-      "font_class": "mail-open",
-      "unicode": ""
-    },
-    {
-      "font_class": "mail-open-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "map",
-      "unicode": ""
-    },
-    {
-      "font_class": "map-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "map-pin",
-      "unicode": ""
-    },
-    {
-      "font_class": "map-pin-ellipse",
-      "unicode": ""
-    },
-    {
-      "font_class": "medal",
-      "unicode": ""
-    },
-    {
-      "font_class": "medal-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "mic",
-      "unicode": ""
-    },
-    {
-      "font_class": "mic-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "micoff",
-      "unicode": ""
-    },
-    {
-      "font_class": "micoff-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "minus",
-      "unicode": ""
-    },
-    {
-      "font_class": "minus-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "more",
-      "unicode": ""
-    },
-    {
-      "font_class": "more-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "navigate",
-      "unicode": ""
-    },
-    {
-      "font_class": "navigate-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "notification",
-      "unicode": ""
-    },
-    {
-      "font_class": "notification-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "paperclip",
-      "unicode": ""
-    },
-    {
-      "font_class": "paperplane",
-      "unicode": ""
-    },
-    {
-      "font_class": "paperplane-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "person",
-      "unicode": ""
-    },
-    {
-      "font_class": "person-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "personadd",
-      "unicode": ""
-    },
-    {
-      "font_class": "personadd-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "personadd-filled-copy",
-      "unicode": ""
-    },
-    {
-      "font_class": "phone",
-      "unicode": ""
-    },
-    {
-      "font_class": "phone-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "plus",
-      "unicode": ""
-    },
-    {
-      "font_class": "plus-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "plusempty",
-      "unicode": ""
-    },
-    {
-      "font_class": "pulldown",
-      "unicode": ""
-    },
-    {
-      "font_class": "pyq",
-      "unicode": ""
-    },
-    {
-      "font_class": "qq",
-      "unicode": ""
-    },
-    {
-      "font_class": "redo",
-      "unicode": ""
-    },
-    {
-      "font_class": "redo-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "refresh",
-      "unicode": ""
-    },
-    {
-      "font_class": "refresh-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "refreshempty",
-      "unicode": ""
-    },
-    {
-      "font_class": "reload",
-      "unicode": ""
-    },
-    {
-      "font_class": "right",
-      "unicode": ""
-    },
-    {
-      "font_class": "scan",
-      "unicode": ""
-    },
-    {
-      "font_class": "search",
-      "unicode": ""
-    },
-    {
-      "font_class": "settings",
-      "unicode": ""
-    },
-    {
-      "font_class": "settings-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "shop",
-      "unicode": ""
-    },
-    {
-      "font_class": "shop-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "smallcircle",
-      "unicode": ""
-    },
-    {
-      "font_class": "smallcircle-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "sound",
-      "unicode": ""
-    },
-    {
-      "font_class": "sound-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "spinner-cycle",
-      "unicode": ""
-    },
-    {
-      "font_class": "staff",
-      "unicode": ""
-    },
-    {
-      "font_class": "staff-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "star",
-      "unicode": ""
-    },
-    {
-      "font_class": "star-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "starhalf",
-      "unicode": ""
-    },
-    {
-      "font_class": "trash",
-      "unicode": ""
-    },
-    {
-      "font_class": "trash-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "tune",
-      "unicode": ""
-    },
-    {
-      "font_class": "tune-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "undo",
-      "unicode": ""
-    },
-    {
-      "font_class": "undo-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "up",
-      "unicode": ""
-    },
-    {
-      "font_class": "top",
-      "unicode": ""
-    },
-    {
-      "font_class": "upload",
-      "unicode": ""
-    },
-    {
-      "font_class": "upload-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "videocam",
-      "unicode": ""
-    },
-    {
-      "font_class": "videocam-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "vip",
-      "unicode": ""
-    },
-    {
-      "font_class": "vip-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "wallet",
-      "unicode": ""
-    },
-    {
-      "font_class": "wallet-filled",
-      "unicode": ""
-    },
-    {
-      "font_class": "weibo",
-      "unicode": ""
-    },
-    {
-      "font_class": "weixin",
-      "unicode": ""
-    }
-  ];
-  const _export_sfc = (sfc, props) => {
-    const target = sfc.__vccOpts || sfc;
-    for (const [key2, val] of props) {
-      target[key2] = val;
-    }
-    return target;
-  };
-  const getVal = (val) => {
-    const reg = /^[0-9]*$/g;
-    return typeof val === "number" || reg.test(val) ? val + "px" : val;
-  };
-  const _sfc_main$8 = {
-    name: "UniIcons",
-    emits: ["click"],
-    props: {
-      type: {
-        type: String,
-        default: ""
-      },
-      color: {
-        type: String,
-        default: "#333333"
-      },
-      size: {
-        type: [Number, String],
-        default: 16
-      },
-      customPrefix: {
-        type: String,
-        default: ""
-      },
-      fontFamily: {
-        type: String,
-        default: ""
-      }
-    },
-    data() {
-      return {
-        icons: fontData
-      };
-    },
-    computed: {
-      unicode() {
-        let code2 = this.icons.find((v) => v.font_class === this.type);
-        if (code2) {
-          return code2.unicode;
-        }
-        return "";
-      },
-      iconSize() {
-        return getVal(this.size);
-      },
-      styleObj() {
-        if (this.fontFamily !== "") {
-          return `color: ${this.color}; font-size: ${this.iconSize}; font-family: ${this.fontFamily};`;
-        }
-        return `color: ${this.color}; font-size: ${this.iconSize};`;
-      }
-    },
-    methods: {
-      _onClick() {
-        this.$emit("click");
-      }
-    }
-  };
-  function _sfc_render$7(_ctx, _cache, $props, $setup, $data, $options) {
-    return vue.openBlock(), vue.createElementBlock(
-      "text",
-      {
-        style: vue.normalizeStyle($options.styleObj),
-        class: vue.normalizeClass(["uni-icons", ["uniui-" + $props.type, $props.customPrefix, $props.customPrefix ? $props.type : ""]]),
-        onClick: _cache[0] || (_cache[0] = (...args) => $options._onClick && $options._onClick(...args))
-      },
-      [
-        vue.renderSlot(_ctx.$slots, "default", {}, void 0, true)
-      ],
-      6
-      /* CLASS, STYLE */
-    );
-  }
-  const __easycom_0$3 = /* @__PURE__ */ _export_sfc(_sfc_main$8, [["render", _sfc_render$7], ["__scopeId", "data-v-d31e1c47"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/uni-icons/components/uni-icons/uni-icons.vue"]]);
   function formatAppLog(type, filename, ...args) {
     if (uni.__log__) {
       uni.__log__(type, filename, ...args);
@@ -768,334 +41,6 @@ if (uni.restoreGlobal) {
   function resolveEasycom(component, easycom) {
     return typeof component === "string" ? easycom : component;
   }
-  const _sfc_main$7 = {
-    __name: "index",
-    setup(__props, { expose: __expose }) {
-      __expose();
-      const panelOffset = vue.ref(0);
-      const dragStartY = vue.ref(0);
-      const startOffset = vue.ref(0);
-      const isDragging = vue.ref(false);
-      const screenHeight = vue.ref(0);
-      vue.onMounted(() => {
-        uni.getSystemInfo({
-          success: (res) => {
-            screenHeight.value = res.windowHeight;
-            panelOffset.value = screenHeight.value * 0.3;
-          }
-        });
-      });
-      const startDrag = (e) => {
-        isDragging.value = true;
-        dragStartY.value = e.touches[0].clientY;
-        startOffset.value = panelOffset.value;
-      };
-      const onDrag = (e) => {
-        if (!isDragging.value)
-          return;
-        const currentY = e.touches[0].clientY;
-        const deltaY = currentY - dragStartY.value;
-        let newOffset = startOffset.value + deltaY;
-        const maxOffset = screenHeight.value * 0.7;
-        const minOffset = -screenHeight.value * 0.3;
-        if (newOffset > maxOffset)
-          newOffset = maxOffset;
-        if (newOffset < minOffset)
-          newOffset = minOffset;
-        panelOffset.value = newOffset;
-      };
-      const endDrag = () => {
-        if (!isDragging.value)
-          return;
-        isDragging.value = false;
-        screenHeight.value * 0.15;
-        if (panelOffset.value > screenHeight.value * 0.5) {
-          panelOffset.value = screenHeight.value * 0.7;
-        } else if (panelOffset.value < screenHeight.value * 0.2) {
-          panelOffset.value = -screenHeight.value * 0.3;
-        } else {
-          panelOffset.value = screenHeight.value * 0.3;
-        }
-      };
-      const actions = vue.ref([
-        { icon: "bus", text: "公交", bgColor: "#e6f4ff", color: "#0089ff" },
-        { icon: "subway", text: "地铁", bgColor: "#e6f4ff", color: "#0089ff" },
-        { icon: "bicycle", text: "骑行", bgColor: "#e6f4ff", color: "#0089ff" },
-        { icon: "car", text: "打车", bgColor: "#e6f4ff", color: "#0089ff" },
-        { icon: "map-pin", text: "导航", bgColor: "#e6f4ff", color: "#0089ff" }
-      ]);
-      const recommends = vue.ref([
-        {
-          title: "广州塔",
-          desc: "城市地标，昵称小蛮腰",
-          rating: "4.8",
-          distance: "3.5km",
-          tag: "热门",
-          bg: "linear-gradient(120deg, #ff9a9e, #fad0c4)"
-        },
-        {
-          title: "沙面岛",
-          desc: "欧陆风情建筑群",
-          rating: "4.7",
-          distance: "2.1km",
-          tag: "必游",
-          bg: "linear-gradient(120deg, #a1c4fd, #c2e9fb)"
-        },
-        {
-          title: "点都德茶楼",
-          desc: "地道广式早茶",
-          rating: "4.6",
-          distance: "800m",
-          tag: "美食",
-          bg: "linear-gradient(120deg, #ffecd2, #fcb69f)"
-        }
-      ]);
-      const activeNav = vue.ref(0);
-      const __returned__ = { panelOffset, dragStartY, startOffset, isDragging, screenHeight, startDrag, onDrag, endDrag, actions, recommends, activeNav, ref: vue.ref, onMounted: vue.onMounted };
-      Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
-      return __returned__;
-    }
-  };
-  function _sfc_render$6(_ctx, _cache, $props, $setup, $data, $options) {
-    const _component_uni_icons = resolveEasycom(vue.resolveDynamicComponent("uni-icons"), __easycom_0$3);
-    return vue.openBlock(), vue.createElementBlock("view", { class: "container" }, [
-      vue.createCommentVNode(" 顶部导航栏 "),
-      vue.createElementVNode("view", { class: "navbar" }, [
-        vue.createElementVNode("view", { class: "location" }, [
-          vue.createVNode(_component_uni_icons, {
-            type: "location-filled",
-            size: "20",
-            color: "#0089ff"
-          }),
-          vue.createElementVNode("text", { class: "location-text" }, "北京路步行街")
-        ]),
-        vue.createElementVNode("view", { class: "navbar-actions" }, [
-          vue.createElementVNode("view", { class: "nav-btn" }, [
-            vue.createVNode(_component_uni_icons, {
-              type: "person",
-              size: "20"
-            })
-          ]),
-          vue.createElementVNode("view", { class: "nav-btn" }, [
-            vue.createVNode(_component_uni_icons, {
-              type: "chat",
-              size: "20"
-            })
-          ])
-        ])
-      ]),
-      vue.createCommentVNode(" 地图区域 "),
-      vue.createElementVNode("view", { class: "map-container" }, [
-        vue.createCommentVNode(" 实际项目中替换为map组件 "),
-        vue.createElementVNode("view", { class: "map-content" }, [
-          vue.createElementVNode("text", null, "地图区域 (实际项目中嵌入map组件)")
-        ]),
-        vue.createCommentVNode(" 地图上的控件 "),
-        vue.createElementVNode("view", { class: "map-overlay" }, [
-          vue.createElementVNode("view", { class: "map-controls" }, [
-            vue.createElementVNode("view", { class: "map-btn" }, [
-              vue.createVNode(_component_uni_icons, {
-                type: "plus",
-                size: "20",
-                color: "#0089ff"
-              })
-            ]),
-            vue.createElementVNode("view", { class: "map-btn" }, [
-              vue.createVNode(_component_uni_icons, {
-                type: "minus",
-                size: "20",
-                color: "#0089ff"
-              })
-            ]),
-            vue.createElementVNode("view", { class: "map-btn primary" }, [
-              vue.createVNode(_component_uni_icons, {
-                type: "location-filled",
-                size: "20",
-                color: "#fff"
-              })
-            ]),
-            vue.createElementVNode("view", { class: "map-btn" }, [
-              vue.createVNode(_component_uni_icons, {
-                type: "list",
-                size: "20",
-                color: "#0089ff"
-              })
-            ])
-          ]),
-          vue.createElementVNode("view", { class: "current-location" }, [
-            vue.createVNode(_component_uni_icons, {
-              type: "location-filled",
-              size: "20",
-              color: "#0089ff"
-            }),
-            vue.createElementVNode("view", { class: "location-info" }, [
-              vue.createElementVNode("text", { class: "location-title" }, "当前位置"),
-              vue.createElementVNode("text", { class: "location-desc" }, "广州市越秀区北京路")
-            ])
-          ])
-        ])
-      ]),
-      vue.createCommentVNode(" 可拖拽面板 "),
-      vue.createElementVNode(
-        "view",
-        {
-          class: "panel-container",
-          style: vue.normalizeStyle({ transform: `translateY(${$setup.panelOffset}px)` }),
-          onTouchstart: $setup.startDrag,
-          onTouchmove: $setup.onDrag,
-          onTouchend: $setup.endDrag
-        },
-        [
-          vue.createElementVNode("view", { class: "panel-drag-handle" }, [
-            vue.createElementVNode("view", { class: "drag-indicator" })
-          ]),
-          vue.createElementVNode("view", { class: "panel-header" }, [
-            vue.createElementVNode("text", { class: "panel-title" }, "探索周边"),
-            vue.createElementVNode("view", { class: "nav-btn" }, [
-              vue.createVNode(_component_uni_icons, {
-                type: "scan",
-                size: "20"
-              })
-            ])
-          ]),
-          vue.createElementVNode("view", { class: "search-box" }, [
-            vue.createVNode(_component_uni_icons, {
-              type: "search",
-              size: "18",
-              color: "#999"
-            }),
-            vue.createElementVNode("input", {
-              class: "search-input",
-              type: "text",
-              placeholder: "搜索地点、公交、地铁"
-            })
-          ]),
-          vue.createElementVNode("view", { class: "quick-actions" }, [
-            (vue.openBlock(true), vue.createElementBlock(
-              vue.Fragment,
-              null,
-              vue.renderList($setup.actions, (action, index) => {
-                return vue.openBlock(), vue.createElementBlock("view", {
-                  class: "action-item",
-                  key: index
-                }, [
-                  vue.createElementVNode(
-                    "view",
-                    {
-                      class: "action-icon",
-                      style: vue.normalizeStyle({ backgroundColor: action.bgColor })
-                    },
-                    [
-                      vue.createVNode(_component_uni_icons, {
-                        type: action.icon,
-                        size: "24",
-                        color: action.color
-                      }, null, 8, ["type", "color"])
-                    ],
-                    4
-                    /* STYLE */
-                  ),
-                  vue.createElementVNode(
-                    "text",
-                    { class: "action-text" },
-                    vue.toDisplayString(action.text),
-                    1
-                    /* TEXT */
-                  )
-                ]);
-              }),
-              128
-              /* KEYED_FRAGMENT */
-            ))
-          ]),
-          vue.createElementVNode("view", { class: "recommend-section" }, [
-            vue.createElementVNode("view", { class: "section-title" }, [
-              vue.createElementVNode("text", null, "附近推荐"),
-              vue.createElementVNode("text", { class: "see-all" }, "查看全部")
-            ]),
-            vue.createElementVNode("scroll-view", {
-              class: "recommend-list",
-              "scroll-x": "true"
-            }, [
-              (vue.openBlock(true), vue.createElementBlock(
-                vue.Fragment,
-                null,
-                vue.renderList($setup.recommends, (item, index) => {
-                  return vue.openBlock(), vue.createElementBlock("view", {
-                    class: "recommend-card",
-                    key: index
-                  }, [
-                    vue.createElementVNode(
-                      "view",
-                      {
-                        class: "card-image",
-                        style: vue.normalizeStyle({ background: item.bg })
-                      },
-                      [
-                        vue.createElementVNode(
-                          "view",
-                          { class: "card-tag" },
-                          vue.toDisplayString(item.tag),
-                          1
-                          /* TEXT */
-                        )
-                      ],
-                      4
-                      /* STYLE */
-                    ),
-                    vue.createElementVNode("view", { class: "card-content" }, [
-                      vue.createElementVNode(
-                        "text",
-                        { class: "card-title" },
-                        vue.toDisplayString(item.title),
-                        1
-                        /* TEXT */
-                      ),
-                      vue.createElementVNode(
-                        "text",
-                        { class: "card-desc" },
-                        vue.toDisplayString(item.desc),
-                        1
-                        /* TEXT */
-                      ),
-                      vue.createElementVNode("view", { class: "card-footer" }, [
-                        vue.createElementVNode("view", { class: "rating" }, [
-                          vue.createVNode(_component_uni_icons, {
-                            type: "star-filled",
-                            size: "14",
-                            color: "#ffc53d"
-                          }),
-                          vue.createElementVNode(
-                            "text",
-                            null,
-                            vue.toDisplayString(item.rating),
-                            1
-                            /* TEXT */
-                          )
-                        ]),
-                        vue.createElementVNode(
-                          "text",
-                          { class: "distance" },
-                          vue.toDisplayString(item.distance),
-                          1
-                          /* TEXT */
-                        )
-                      ])
-                    ])
-                  ]);
-                }),
-                128
-                /* KEYED_FRAGMENT */
-              ))
-            ])
-          ])
-        ],
-        36
-        /* STYLE, NEED_HYDRATION */
-      )
-    ]);
-  }
-  const PagesIndexIndex = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["render", _sfc_render$6], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/index/index.vue"]]);
   const svpProps = {
     src: {
       type: String,
@@ -1118,7 +63,7 @@ if (uni.restoreGlobal) {
     const encodedSvg = encodeURIComponent(svgString).replace(/\+/g, "%20");
     return `data:image/svg+xml,${encodedSvg}`;
   }
-  const _sfc_main$6 = vue.defineComponent({
+  const _sfc_main$7 = vue.defineComponent({
     // name: 'l-svg',
     props: svpProps,
     emits: ["load", "error", "click"],
@@ -1176,7 +121,14 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$5(_ctx, _cache, $props, $setup, $data, $options) {
+  const _export_sfc = (sfc, props) => {
+    const target = sfc.__vccOpts || sfc;
+    for (const [key2, val] of props) {
+      target[key2] = val;
+    }
+    return target;
+  };
+  function _sfc_render$6(_ctx, _cache, $props, $setup, $data, $options) {
     return vue.openBlock(), vue.createElementBlock(
       "view",
       {
@@ -1196,7 +148,7 @@ if (uni.restoreGlobal) {
       /* CLASS, STYLE */
     );
   }
-  const __easycom_0$2 = /* @__PURE__ */ _export_sfc(_sfc_main$6, [["render", _sfc_render$5], ["__scopeId", "data-v-82df574c"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-svg/components/l-svg/l-svg.vue"]]);
+  const __easycom_0$2 = /* @__PURE__ */ _export_sfc(_sfc_main$7, [["render", _sfc_render$6], ["__scopeId", "data-v-82df574c"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-svg/components/l-svg/l-svg.vue"]]);
   const accessibility = "";
   const activity = "";
   const add = "";
@@ -3747,7 +2699,7 @@ if (uni.restoreGlobal) {
     lStyle: [String, Object, Array]
   };
   const name$1 = "l-icon";
-  const _sfc_main$5 = vue.defineComponent({
+  const _sfc_main$6 = vue.defineComponent({
     name: name$1,
     externalClasses: ["l-class"],
     options: {
@@ -3837,7 +2789,7 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$4(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$5(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_l_svg = resolveEasycom(vue.resolveDynamicComponent("l-svg"), __easycom_0$2);
     return !_ctx.isImage && !_ctx.isIconify && !_ctx.isSVG ? (vue.openBlock(), vue.createElementBlock(
       "text",
@@ -3868,7 +2820,7 @@ if (uni.restoreGlobal) {
       onClick: _cache[2] || (_cache[2] = ($event) => _ctx.$emit("click"))
     }, null, 8, ["class", "style", "web", "color", "src", "onError", "onLoad"]));
   }
-  const __easycom_0$1 = /* @__PURE__ */ _export_sfc(_sfc_main$5, [["render", _sfc_render$4], ["__scopeId", "data-v-6fbe0909"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-icon/components/l-icon/l-icon.vue"]]);
+  const __easycom_0$1 = /* @__PURE__ */ _export_sfc(_sfc_main$6, [["render", _sfc_render$5], ["__scopeId", "data-v-6fbe0909"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-icon/components/l-icon/l-icon.vue"]]);
   const badgeProps = {
     dot: Boolean,
     max: Number,
@@ -3897,7 +2849,7 @@ if (uni.restoreGlobal) {
     return val.startsWith("-") ? val.replace("-", "") : `-${val}`;
   }
   const name = "l-badge";
-  const _sfc_main$4 = vue.defineComponent({
+  const _sfc_main$5 = vue.defineComponent({
     name,
     props: badgeProps,
     setup(props) {
@@ -3960,7 +2912,7 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$3(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$4(_ctx, _cache, $props, $setup, $data, $options) {
     return _ctx.$slots.default ? (vue.openBlock(), vue.createElementBlock("view", {
       key: 0,
       class: "l-badge__wrapper"
@@ -4017,7 +2969,7 @@ if (uni.restoreGlobal) {
       /* CLASS, STYLE */
     )) : vue.createCommentVNode("v-if", true);
   }
-  const __easycom_1$1 = /* @__PURE__ */ _export_sfc(_sfc_main$4, [["render", _sfc_render$3], ["__scopeId", "data-v-87f477b0"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-badge/components/l-badge/l-badge.vue"]]);
+  const __easycom_1$1 = /* @__PURE__ */ _export_sfc(_sfc_main$5, [["render", _sfc_render$4], ["__scopeId", "data-v-87f477b0"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-badge/components/l-badge/l-badge.vue"]]);
   const gridItemProps = {
     /**
      * 文本，可以通过 Props 传入文本，也可以自定义标题节点
@@ -4114,7 +3066,7 @@ if (uni.restoreGlobal) {
       type: [String, Object, Array]
     }
   };
-  const _sfc_main$3 = vue.defineComponent({
+  const _sfc_main$4 = vue.defineComponent({
     name: "l-grid-item",
     props: gridItemProps,
     options: {
@@ -4191,7 +3143,7 @@ if (uni.restoreGlobal) {
       };
     }
   });
-  function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$3(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_l_icon = resolveEasycom(vue.resolveDynamicComponent("l-icon"), __easycom_0$1);
     const _component_l_badge = resolveEasycom(vue.resolveDynamicComponent("l-badge"), __easycom_1$1);
     return vue.openBlock(), vue.createElementBlock("view", {
@@ -4298,7 +3250,7 @@ if (uni.restoreGlobal) {
       vue.renderSlot(_ctx.$slots, "extra", {}, void 0, true)
     ], 14, ["hover-class"]);
   }
-  const __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["render", _sfc_render$2], ["__scopeId", "data-v-d1ffdc22"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid-item/l-grid-item.vue"]]);
+  const __easycom_0 = /* @__PURE__ */ _export_sfc(_sfc_main$4, [["render", _sfc_render$3], ["__scopeId", "data-v-d1ffdc22"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid-item/l-grid-item.vue"]]);
   const gridProps = {
     /** 内容对齐方式 */
     align: {
@@ -4343,7 +3295,7 @@ if (uni.restoreGlobal) {
       default: null
     }
   };
-  const _sfc_main$2 = vue.defineComponent({
+  const _sfc_main$3 = vue.defineComponent({
     name: "l-grid",
     props: gridProps,
     setup(props) {
@@ -4357,7 +3309,7 @@ if (uni.restoreGlobal) {
       });
     }
   });
-  function _sfc_render$1(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$2(_ctx, _cache, $props, $setup, $data, $options) {
     return vue.openBlock(), vue.createElementBlock(
       "view",
       {
@@ -4375,23 +3327,27 @@ if (uni.restoreGlobal) {
       /* CLASS */
     );
   }
-  const __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$1], ["__scopeId", "data-v-1acc5755"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid/l-grid.vue"]]);
+  const __easycom_1 = /* @__PURE__ */ _export_sfc(_sfc_main$3, [["render", _sfc_render$2], ["__scopeId", "data-v-1acc5755"], ["__file", "D:/Code/Dev/GXA/Client/DevApp/uni_modules/lime-grid/components/l-grid/l-grid.vue"]]);
   const SYSTEM_INFO = uni.getSystemInfoSync();
   const getStatusBarHeight = () => SYSTEM_INFO.statusBarHeight;
   const _imports_0 = "/static/logo.png";
-  const _sfc_main$1 = {
+  const _sfc_main$2 = {
     __name: "user",
     setup(__props, { expose: __expose }) {
       __expose();
       const barheight = vue.ref(getStatusBarHeight());
-      const __returned__ = { barheight, ref: vue.ref, get getStatusBarHeight() {
+      function status() {
+        formatAppLog("log", "at pages/user/user.vue:42", barheight.value);
+      }
+      status();
+      const __returned__ = { barheight, status, ref: vue.ref, get getStatusBarHeight() {
         return getStatusBarHeight;
       } };
       Object.defineProperty(__returned__, "__isScriptSetup", { enumerable: false, value: true });
       return __returned__;
     }
   };
-  function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
+  function _sfc_render$1(_ctx, _cache, $props, $setup, $data, $options) {
     const _component_l_grid_item = resolveEasycom(vue.resolveDynamicComponent("l-grid-item"), __easycom_0);
     const _component_l_grid = resolveEasycom(vue.resolveDynamicComponent("l-grid"), __easycom_1);
     return vue.openBlock(), vue.createElementBlock("view", { class: "userLayout pageBg" }, [
@@ -4399,7 +3355,7 @@ if (uni.restoreGlobal) {
         "view",
         {
           class: "statuBar",
-          style: vue.normalizeStyle({ barheight: $setup.barheight } + "px")
+          style: vue.normalizeStyle({ height: $setup.barheight + "px" })
         },
         null,
         4
@@ -4447,9 +3403,14 @@ if (uni.restoreGlobal) {
       })
     ]);
   }
-  const PagesUserUser = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/user/user.vue"]]);
-  __definePage("pages/index/index", PagesIndexIndex);
+  const PagesUserUser = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["render", _sfc_render$1], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/user/user.vue"]]);
+  const _sfc_main$1 = {};
+  function _sfc_render(_ctx, _cache) {
+    return vue.openBlock(), vue.createElementBlock("view", { class: "" });
+  }
+  const PagesFunsFuns = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["render", _sfc_render], ["__file", "D:/Code/Dev/GXA/Client/DevApp/pages/funs/funs.vue"]]);
   __definePage("pages/user/user", PagesUserUser);
+  __definePage("pages/funs/funs", PagesFunsFuns);
   const _sfc_main = {
     onLaunch: function() {
       formatAppLog("log", "at App.vue:4", "App Launch");
