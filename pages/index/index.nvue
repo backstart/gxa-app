@@ -18,331 +18,184 @@
 				</view>
 			</view>
 
-
-
-
 			<scroll-view scroll-y="true" class="listcontent">
-				<view class="uni-list-cell" hover-class="uni-list-cell-hover" v-for="(item, index) in projectList"
-					:key="item.id" @click="goProDetail(item)">
-
-
+				<view class="uni-list-cell" v-for="(item, index) in projectList" :key="item.id" @click="goProDetail(item)">
 					<text class="topTitleV">{{item.proName}}</text>
 					<text class="topTitleV unitV">{{item.proUnit}}</text>
 
-					<view
-						style="display: flex; flex: 1; flex-wrap: wrap; margin-top: 0px; margin-left: -8px; height: 38px; width:calc(100vw-62px)">
-
-						<!-- 自定义了一个data-id的属性,可以通过js获取到它的值!  hover-class 指定按下去的样式类-->
+					<view class="tag-container">
 						<text class="cellView"
 							:style="{ color: bindColor(index) , backgroundColor: bindBgColor(index) }"
 							v-for="(tagItem, index) in bindTag(item)" :key="index">
 							{{tagItem}}
 						</text>
-
-
 					</view>
-
-
 				</view>
 			</scroll-view>
-
-
-
 		</you-touchbox>
 
 		<view class="btnview" @click="btnviewClick">
-			<!-- {{btnviewtxt}} -->
-			<uni-icons :type="btnviewicon" 
-			:style="{ color: '#80deea'   }"
-			size="28"></uni-icons>
-
+			<uni-icons :type="btnviewicon" size="28" color="#80deea"></uni-icons>
 		</view>
-
 	</view>
 </template>
 
 <script setup>
-	import {
-		ref
-	} from 'vue';
-
+	import { ref } from 'vue';
 
 	const myMap = ref();
 	const mintop = ref(300);
 	const isTouchDisable = ref(true);
-	const hasLaunch = ref(true);
-	const btnviewtxt = ref("展开");
-	let btnviewbool = false;
-	
-	const btnviewicon=ref("up");
+	const btnviewicon = ref("up");
+	const covers = ref([]);
+	const latitude = ref(0);
+	const longitude = ref(0);
+	const projectList = ref([]);
+	let boxstatus = false;
 
-	const title = ref('uni-fab');
-	const directionStr = ref('垂直');
-	const horizontal = ref('right');
-	const vertical = ref('bottom');
-	const direction = ref('horizontal');
-	
-	const covers=ref([]);
-	const pattern = ref({
-		color: '#7A7E83',
-		backgroundColor: '#fff',
-		selectedColor: '#007AFF',
-		buttonColor: '#007AFF',
-		iconColor: '#fff'
-	});
-	const is_color_type = ref(false);
-	const content = ref([{
-			iconPath: "https://www.pixsector.com/cache/517d8be6/av5c8336583e291842624.png",
-			selectedIconPath: "https://www.pixsector.com/cache/517d8be6/av5c8336583e291842624.png",
-			text: '热力图',
-			active: false
-		},
-		{
-			iconPath: '/static/home.png',
-			selectedIconPath: '/static/home-active.png',
-			text: '首页',
-			active: false
-		},
-		{
-			iconPath: '/static/star.png',
-			selectedIconPath: '/static/star-active.png',
-			text: '收藏',
-			active: false
-		}
+	// 快捷操作数据
+	const actions = ref([
+		{ icon: 'map', text: '警情', bgColor: '#e6f4ff', color: '#0089ff' },
+		{ icon: 'home', text: '场所', bgColor: '#e6f4ff', color: '#0089ff' },
+		{ icon: 'person', text: '人员', bgColor: '#e6f4ff', color: '#0089ff' },
+		{ icon: 'fire', text: '处警', bgColor: '#e6f4ff', color: '#0089ff' },
+		{ icon: 'map-pin', text: '巡防', bgColor: '#e6f4ff', color: '#0089ff' }
 	]);
 
+	// 展开/折叠按钮点击
 	function btnviewClick() {
-
-
 		if (boxstatus) {
-			btnviewtxt.value = "展开";
-			btnviewicon.value ="up";
-			myMap.value.setBottom(.4);
+			btnviewicon.value = "up";
+			myMap.value.setBottom(0.4);
 		} else {
-			btnviewtxt.value = "折叠";
-			myMap.value.setBottom(.8);
-			btnviewicon.value ="down";
+			btnviewicon.value = "down";
+			myMap.value.setBottom(0.8);
 		}
 		boxstatus = !boxstatus;
-
 	}
 
-	function trigger(e) {
-		console.log(e)
-		content.value[e.index].active = !e.item.active
-		uni.showModal({
-			title: '提示',
-			content: `您${content.value[e.index].active ? '选中了' : '取消了'}${e.item.text}`,
-			success: function(res) {
-				if (res.confirm) {
-					console.log('用户点击确定')
-				} else if (res.cancel) {
-					console.log('用户点击取消')
-				}
-			}
-		})
-	}
-
-	function fabClick() {
-		uni.showToast({
-			title: '点击了悬浮按钮',
-			icon: 'none'
-		})
-	}
-
+	// 进入详情页
 	function goProDetail(item) {
-
 		console.log(item);
 	}
 
+	// 绑定标签数据
 	function bindTag(item) {
-
-		return [item.area, item.proType, item.stage]
+		return [item.area, item.proType, item.stage];
 	}
 
+	// 标签颜色
 	function bindColor(index) {
-		let colorArr = ['#4473FF', '#FFA01B', '#41D380'];
+		const colorArr = ['#4473FF', '#FFA01B', '#41D380'];
 		return colorArr[index % 3];
 	}
 
+	// 标签背景色
 	function bindBgColor(index) {
-		let bgColorArr = ['#F1F4FA', '#FFF5E8', '#ECFAF2'];
+		const bgColorArr = ['#F1F4FA', '#FFF5E8', '#ECFAF2'];
 		return bgColorArr[index % 3];
 	}
 
-	// 快捷操作数据
-	const actions = ref([{
-			icon: 'map',
-			text: '警情',
-			bgColor: '#e6f4ff',
-			color: '#0089ff'
-		},
-		{
-			icon: 'home',
-			text: '场所',
-			bgColor: '#e6f4ff',
-			color: '#0089ff'
-		},
-		{
-			icon: 'person',
-			text: '人员',
-			bgColor: '#e6f4ff',
-			color: '#0089ff'
-		},
-		{
-			icon: 'fire',
-			text: '处警',
-			bgColor: '#e6f4ff',
-			color: '#0089ff'
-		},
-		{
-			icon: 'map-pin',
-			text: '巡防',
-			bgColor: '#e6f4ff',
-			color: '#0089ff'
-		}
-	]);
-
-	const latitude = ref(0);
-	const projectList = ref({});
-	const longitude = ref(0);
-	const totalNum = ref(0);
-	const curPageNum = ref(1);
-	let boxstatus = false;
-
+	// 获取定位
 	function getLocal() {
 		uni.getLocation({
 			type: 'gcj02',
-			isHighAccuracy: true, //高精度
-			geocode: true, //将位置解析成地址
+			isHighAccuracy: true,
+			geocode: true,
 			success: (res) => {
-				console.log(res);
-				latitude.value = res.latitude
-				longitude.value = res.longitude
+				latitude.value = res.latitude;
+				longitude.value = res.longitude;
 			}
-		})
+		});
 	}
 
-
-
-	function changbox(e) {
-		getDate(e);
+	// 切换标签
+	function changbox(index) {
+		getDate(index);
 	}
 
+	// 滑动事件
 	function movedital(e) {
-		// 获取滑动结束时top信息对象
-		// maxTop：最大高度top minTop：最小高度top curTop：当前高度top
-		console.log(e.curTop);
-		if (e.curTop < 300) {
-			// mintop.value=100;
-			// setBottom(100);
-			// myMap.value.setBottom(100);
-		}
-
+		console.log('滑动位置:', e.curTop);
 	}
 
-
-
-	function pageClick(tag) {
-		if (tag === 0) {
-			// 上一页 (不等于第一页)
-			if (curPageNum.value > 1) {
-
-				curPageNum.value--;
-				requestData();
-			}
-		} else {
-			// 下一页 (不等于最后一页)
-			if (totalNum.value > (curPageNum.value * 10)) {
-				curPageNum.value++;
-				requestData();
-			}
-
-		}
-	}
-
+	// 获取数据
 	function getDate(index) {
 		projectList.value = [];
-		totalNum.value = 15;
-		for (let i = 1; i < 2; i++) {
-
-			if (index === 0) {
-				projectList.value.push({
-					'proName': '警情一' ,
-					'proUnit': '长命水市场买菜纠纷',
-					'area': '纠纷类',
-					'proType': '未指派',
-					'stage': '未反馈',
-					'id': i + ''
-				});
-				 setMapPoint("警情一",0.001,0.001);
-			} else if (index === 1) {
-				projectList.value.push({
-					'proName': '龙井坊KTV' ,
-					'proUnit': '长命水大街3号',
-					'area': '娱乐场所',
-					'proType': '高风险',
-					'stage': '未检查',
-					'id': i + ''
-				});
-				 setMapPoint("龙井坊KTV",0.004,0.001);
-			} else if (index === 2) {
-				projectList.value.push({
-					'proName': '张三' ,
-					'proUnit': '住址：龙石大山脚45号',
-					'area': '吸毒',
-					'proType': '未走访',
-					'stage': '高风险',
-					'id': i + '',
-				});
-				setMapPoint("张三",0.002,0.002);
-			} else if (index === 3) {
-				projectList.value.push({
-					'proName': '警情一',
-					'proUnit': '长命水市场买菜纠纷  处警人：张三' ,
-					'area': '纠纷类',
-					'proType': '已指派',
-					'stage': '未反馈',
-					'id': i + ''
-				});
-				setMapPoint("警情一",0.003,0.005);
-			} else if (index === 4) {
-				projectList.value.push({
-					'proName': '长坑水库',
-					'proUnit': '桂南巡区到长坑水库进行安全检查',
-					'area': '桂南',
-					'proType': '安全检查',
-					'stage': '日常',
-					'id': i + ''
-				});
-				setMapPoint("长坑水库",0.001,0.001);
-			}
+		
+		if (index === 0) {
+			projectList.value.push({
+				'proName': '警情一',
+				'proUnit': '长命水市场买菜纠纷',
+				'area': '纠纷类',
+				'proType': '未指派',
+				'stage': '未反馈',
+				'id': '1'
+			});
+			setMapPoint("警情一", 0.001, 0.001);
+		} else if (index === 1) {
+			projectList.value.push({
+				'proName': '龙井坊KTV',
+				'proUnit': '长命水大街3号',
+				'area': '娱乐场所',
+				'proType': '高风险',
+				'stage': '未检查',
+				'id': '2'
+			});
+			setMapPoint("龙井坊KTV", 0.004, 0.001);
+		} else if (index === 2) {
+			projectList.value.push({
+				'proName': '张三',
+				'proUnit': '住址：龙石大山脚45号',
+				'area': '吸毒',
+				'proType': '未走访',
+				'stage': '高风险',
+				'id': '3'
+			});
+			setMapPoint("张三", 0.002, 0.002);
+		} else if (index === 3) {
+			projectList.value.push({
+				'proName': '警情一',
+				'proUnit': '长命水市场买菜纠纷  处警人：张三',
+				'area': '纠纷类',
+				'proType': '已指派',
+				'stage': '未反馈',
+				'id': '4'
+			});
+			setMapPoint("警情一", 0.003, 0.005);
+		} else if (index === 4) {
+			projectList.value.push({
+				'proName': '长坑水库',
+				'proUnit': '桂南巡区到长坑水库进行安全检查',
+				'area': '桂南',
+				'proType': '安全检查',
+				'stage': '日常',
+				'id': '5'
+			});
+			setMapPoint("长坑水库", 0.001, 0.001);
 		}
-		 
 	}
 	
-	//地图标点
-	function setMapPoint(txt,x,y){
-		covers.value=[{
-			latitude:  (latitude.value + x) ,
+	// 地图标点
+	function setMapPoint(txt, x, y) {
+		covers.value = [{
+			latitude: (latitude.value + x),
 			longitude: (longitude.value + y),
-			iconPath:"/common/img/地图标点.png",
-			width:'80rpx',
-			height:'80rpx',
-			callout:{
-				content:txt,
-				display:'ALWAYS',
-				fontSize:'16',
-				padding:'10',
-				bgColor:'#4cb0e0',
-				borderRadius:'10'
-			},
-			/* label:{
-				content:'警情一'
-			} */
+			iconPath: "/common/img/地图标点.png",
+			width: '80rpx',
+			height: '80rpx',
+			callout: {
+				content: txt,
+				display: 'ALWAYS',
+				fontSize: '16',
+				padding: '10',
+				bgColor: '#4cb0e0',
+				borderRadius: '10'
+			}
 		}];
 	}
 	
+	// 初始化
 	getLocal();
 	getDate(0);
 </script>
@@ -362,7 +215,6 @@
 		flex-direction: row;
 		align-items: center;
 		margin: 0 20px 20px;
-		// height: 100rpx;
 	}
 
 	.search-input {
@@ -406,30 +258,22 @@
 	.listcontent {
 		display: flex;
 		flex-direction: column;
-
-	}
-
-	.mui-content-padded {
-		margin: 0px 14px;
-		/* background-color: #ffffff; */
 	}
 
 	.btnview {
 		position: fixed;
 		bottom: 50px;
 		right: 15px;
-		 
 		z-index: inherit;
 		height: 50px;
 		width: 50px;
 		background-color: whitesmoke;
+		display: flex;
 		justify-content: center;
 		align-items: center;
 		border-radius: 50px;
 		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 		background-color: #F3F4F6;
-
-
 	}
 
 	.uni-list-cell {
@@ -437,24 +281,18 @@
 		margin-top: 10px;
 		background-color: white;
 		padding: 6px 12px;
-
-
 	}
 
 	.topTitleV {
-
 		height: 26px;
 		line-height: 26px;
 		color: #333333;
 		font-family: PingFangSC-Semibold, PingFang SC;
 		font-weight: 600;
 		font-size: 16px;
-		
-
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-
 	}
 
 	.unitV {
@@ -462,7 +300,15 @@
 		font-size: 12px;
 		margin-top: 0px;
 		font-family: PingFangSC-Regular, PingFang SC;
+	}
 
+	.tag-container {
+		display: flex;
+		flex: 1;
+		flex-wrap: wrap;
+		margin-top: 0px;
+		height: 38px;
+		width: calc(100vw - 62px);
 	}
 
 	.cellView {
@@ -472,16 +318,9 @@
 		line-height: 22px;
 		text-align: center;
 		border-radius: 2px;
-		padding: 0px 4px !important;
+		padding: 0px 4px;
 		font-size: 15px;
-
 		color: #4272FF;
 		background: #F3F4F6;
 	}
-
-	/* 	.con{
-		width: 750rpx;
-		height: 1500rpx;
-		position: relative;
-	} */
 </style>
