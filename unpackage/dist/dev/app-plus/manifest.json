@@ -125,6 +125,12 @@
           "text": "功能"
         },
         {
+          "pagePath": "pages/work/work",
+          "iconPath": "/static/tabBar/work.png",
+          "selectedIconPath": "/static/tabBar/work-h.png",
+          "text": "工作"
+        },
+        {
           "pagePath": "pages/user/user",
           "iconPath": "/static/tabBar/user.png",
           "selectedIconPath": "/static/tabBar/user-h.png",
