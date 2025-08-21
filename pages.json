@@ -32,6 +32,13 @@
 				"navigationBarTitleText" : ""
 			
 			}
+		},
+		{
+			"path" : "pages/policeDetail/policeDetail",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
 		}
 	],
 	"globalStyle": {
