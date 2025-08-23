@@ -51,6 +51,9 @@
 				</view>
 				
 			</view>
+			
+			<com-tag  ></com-tag>
+			
 		</view>
 	</view>
 </template>
