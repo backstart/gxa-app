@@ -72,13 +72,14 @@
 			
 		</view>
 		<view class="body">
-			<l-grid>
-			    <l-grid-item text="从业人员" :dot="true" image="/static/userFuns/meet.png" />
-			    <l-grid-item text="档案" badge="5" image="/static/userFuns/oa.png" />
-			    <l-grid-item text="检查记录" badge="15" image="/static/userFuns/leave.png" />
-			    <l-grid-item text="关联警情" badge="New" image="/static/userFuns/duty.png" />
+			<l-grid >
+				 <l-grid-item @click="lgClick('1')" text="检查记录" badge="15" image="/static/venue/检查记录 .png" />
+			    <l-grid-item @click="lgClick('1')" text="从业人员"  image="/static/venue/人员信息.png" />
+			    <l-grid-item @click="lgClick('1')" text="档案" badge="5" image="/static/venue/档案.png" />
+			    <l-grid-item @click="lgClick('1')" text="关联警情" badge="New" image="/static/venue/关联警情.png" />
 			</l-grid>
 		</view>
+		
 	</view>
 </template>
 
@@ -90,7 +91,16 @@
  	getStatusBarHeight
  } from "@/utils/system.js";
  const barheight = ref(getStatusBarHeight());
+ 
+ function lgClick(e){
+	 console.log(e);
+ }
+ 
+
+ 
 </script>
+
+
 
 <style lang="scss" scoped>
 	.page {

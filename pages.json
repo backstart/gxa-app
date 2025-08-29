@@ -41,13 +41,6 @@
 			}
 		},
 		{
-			"path" : "pages/venue/venue",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
 			"path" : "pages/venue/footbathVenue",
 			"style" : 
 			{
@@ -56,6 +49,20 @@
 		},
 		{
 			"path" : "pages/venue/rentalhouseVenue",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/venue/KTVVenue",
+			"style" : 
+			{
+				"navigationBarTitleText" : ""
+			}
+		},
+		{
+			"path" : "pages/venue/venue",
 			"style" : 
 			{
 				"navigationBarTitleText" : ""
