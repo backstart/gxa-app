@@ -79,7 +79,13 @@
 			</l-grid>
 		</view>
 		<view class="bottomlist">
-			<browselist :list="list" @clickitem="clickitem"></browselist>
+			<!-- 检查记录组件 -->
+			<!-- <browselist :list="list" @clickitem="clickitem"></browselist> -->
+
+
+			<!-- 从业人员组件 -->
+			<staffbrolist :list="stafflist" @clickitem="clickitem"></staffbrolist>
+
 		</view>
 	</view>
 </template>
@@ -103,7 +109,7 @@
 	}
 
 	const list = ref([{
-		title: "安全检查",
+		name: "安全检查",
 		maintxt: "抽查了三间包厢，暂未发现问题",
 		img: "/static/demofile/包房.jpg",
 		time: "2025-9-17",
@@ -116,6 +122,24 @@
 		time: "2025-9-17",
 		inspector: "李四",
 		id: '2'
+	}])
+
+	const stafflist = ref([{
+		name: "上官婉儿",
+		maintxt: "贵州省贵阳市南明区龙洞堡见龙路138-15号",
+		age: '25岁',
+		img: "/static/demofile/大头照.jpg",
+		time: "2025-9-17",
+		position: "经理",
+		id: '1',
+	}, {
+		name: "大司命",
+		maintxt: "广东省深圳市南山区海天二路33号腾讯滨海大厦",
+		age: '25岁',
+		img: "/static/demofile/大头照2.jpg",
+		time: "2021-4-17",
+		position: "前台",
+		id: '2',
 	}])
 </script>
 
@@ -158,5 +182,12 @@
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: 8px;
+	}
+
+
+
+
+	.bottomlist {
+		width: 100%;
 	}
 </style>
