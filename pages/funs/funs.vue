@@ -72,56 +72,60 @@
 		</view>
 		<view class="body">
 			<l-grid :inset="true">
-				<l-grid-item @click="lgClick('1')" text="检查记录" badge="15" image="/static/venue/检查记录 .png" />
-				<l-grid-item @click="lgClick('2')" text="从业人员" image="/static/venue/人员信息.png" />
-				<l-grid-item @click="lgClick('3')" text="档案" badge="5" image="/static/venue/档案.png" />
-				<l-grid-item @click="lgClick('4')" text="关联警情" badge="New" image="/static/venue/关联警情.png" />
+				<l-grid-item @click="lgClick('a')"     text="检查记录" badge="15" image="/static/venue/检查记录 .png" />
+				<l-grid-item @click="lgClick('b')"     text="从业人员" image="/static/venue/人员信息.png" />
+				<l-grid-item @click="lgClick('c')"     text="档案" badge="5" image="/static/venue/档案.png" />
+				<l-grid-item @click="lgClick('d')"     text="关联警情" badge="New" image="/static/venue/关联警情.png" />
 			</l-grid>
 		</view>
 		<view class="bottomlist">
 			<!-- 检查记录组件 -->
-			
-			<browselist :list="list" :v-show="indexpage.value===1" @clickitem="clickitem"></browselist>
+
+			<browselist :list="list" v-show="currentTab==='a'" @clickitem="clickitem"></browselist>
 
 
 			<!-- 从业人员组件 -->
-			<staffbrolist :list="stafflist" :v-show="indexpage.value===2" @clickitem="clickitem"></staffbrolist>
-			
+			<staffbrolist :list="stafflist" v-show="currentTab==='b'" @clickitem="clickitem"></staffbrolist>
+
 			<!-- 档案组件 -->
-			<archivelist :list="archivelists" :v-show="indexpage.value===3" @clickitem="clickitem"></archivelist>
-		
-		
+			<archivelist :list="archivelists" v-show="currentTab==='c'" @clickitem="clickitem"></archivelist>
+
+
+
+
 		</view>
 	</view>
 </template>
 
 <script setup>
 	import {
-		ref,watch
+		ref,
+		watch
 	} from 'vue';
 	import {
 		getStatusBarHeight
 	} from "@/utils/system.js";
+
+
 	const barheight = ref(getStatusBarHeight());
 	// 页面索引，1-检查记录，2-从业人员，3-档案
-    const indexpage=ref(1);
+	const currentTab = ref('a');
 
 	// 点击图标
 	function lgClick(e) {
-		indexpage.value=Number(e);
-		console.log(indexpage.value);
-		console.log(indexpage.value===1);
+		currentTab.value = e;
+
 	}
 	// 点击检查记录列表
 	function clickitem(e) {
 
 	}
 
-// 监听变化，打印日志
-watch(indexpage, (newVal) => {
-  console.log('indexpage 最新值：', newVal, '类型：', typeof newVal);
-});
-//#regoin 数据定义
+	// 监听变化，打印日志
+	watch(currentTab, (newVal) => {
+		console.log('currentTab 最新值：', newVal, '类型：', typeof newVal);
+	});
+	//#regoin 数据定义
 	const list = ref([{
 		name: "安全检查",
 		maintxt: "抽查了三间包厢，暂未发现问题",
@@ -156,15 +160,15 @@ watch(indexpage, (newVal) => {
 		id: '2',
 	}])
 	//这里还不能跟组件名称相同，不然报错
-	const archivelists=ref([{
+	const archivelists = ref([{
 		title: "营业执照",
 		maintxt: "这是一张营业执照，有效期截至2022年",
 		img: "/static/demofile/营业执照.png",
 		id: '1',
-	},{
+	}, {
 		title: "保安证",
 		maintxt: "张三的保安证",
-		img: "/static/demofile/保安证.png",	 
+		img: "/static/demofile/保安证.png",
 		id: '2',
 	}])
 	//#endregion
