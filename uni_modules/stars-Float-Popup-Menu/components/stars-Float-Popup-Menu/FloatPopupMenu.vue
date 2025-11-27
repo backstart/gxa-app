@@ -162,7 +162,7 @@
 
 	// 单个菜单大小
 	const getMenuItemPosition = (index : number) => {
-		console.log(index);
+
 		if (coordinate.value === 1) {
 			return topLeftCorner(index)
 		} else if (coordinate.value === 2) {
