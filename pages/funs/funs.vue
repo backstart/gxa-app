@@ -95,7 +95,7 @@
 
 		</view>
 		 <view>
-		     <FloatPopupMenu :menuItems="customMenuItems" buttonBgColor="linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)"
+		     <FloatPopupMenu :menuItems="customMenuItems" :disabled="false"   buttonBgColor="linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)"
 		         activeButtonBgColor="linear-gradient(165deg, #FFD166 0%, #FF6B6B 100%)" iconColor="#333333"
 		         textColor="#333333" @menuClick="onMenuClick">
 		     </FloatPopupMenu>
@@ -131,7 +131,7 @@
 	 import FloatPopupMenu from "@/uni_modules/stars-Float-Popup-Menu/components/stars-Float-Popup-Menu/FloatPopupMenu.vue";
 	
 	    const customMenuItems = [
-	        { icon: 'home', text: '首页', menuBgColor: "linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)", textColor: "#fff", iconColor: "#fff" },
+	        { icon: 'home', text: '首页', menuBgColor: "linear-gradient(165deg, #2B5BDB 20%, #00C9FF 50%, #ffffff 100%)", textColor: "#fff", iconColor: "#fff" },
 	        { icon: 'staff', text: 'AI服务', menuBgColor: "linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)", textColor: "#fff", iconColor: "#fff" },
 	        { icon: 'person', text: '我的', menuBgColor: "linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)", textColor: "#333333", iconColor: "#333333" },
 	        { icon: 'scan', text: 'NFC识别', menuBgColor: "linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)", textColor: "#fff", iconColor: "#fff" }
@@ -237,6 +237,7 @@
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: 8px;
+		
 	}
 
 

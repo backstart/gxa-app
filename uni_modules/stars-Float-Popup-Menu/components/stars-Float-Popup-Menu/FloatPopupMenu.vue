@@ -14,6 +14,7 @@
                         transform: getMenuItemPosition(index),
                         transitionDelay: `${index * 50}ms`
                     }" @click="handleMenuClick(item)">
+					
 							<view class="menu-item-inner" :style="{ background: item.menuBgColor }">
 								<uni-icons :type="item.icon" size="24" :color="item.iconColor" />
 								<text class="menu-item-text" :style="{ color: item.textColor }">{{ item.text }}</text>
@@ -90,13 +91,17 @@
 	const isMenuOpen = ref(false);
 	const buttonX = ref(props.x);
 	const buttonY = ref(props.y);
-	const coordinate = ref(1) // 坐标 1 ：左上角，2：右上角，3：左下角，4：右下角
+	const coordinate = ref(4) // 坐标 1 ：左上角，2：右上角，3：左下角，4：右下角
+
 	if (props.x === undefined || props.y === undefined) {
+
 		uni.getSystemInfo().then(res => {
 			// 这里宽高减掉部分，是为了初始化的时候不贴右边，不贴底边
 			buttonX.value = res.windowWidth - 80;
 			buttonY.value = res.windowHeight - 80;
+
 		});
+
 	}
 
 	const toggleMenu = () => {
@@ -129,6 +134,7 @@
 	const onMovableChange = (e) => {
 		x.value = e.detail.x;
 		y.value = e.detail.y;
+
 		const xw = screenWidth.value / 2
 		const yh = screenHeight.value / 2
 		// 判断是否在左上角
@@ -147,12 +153,16 @@
 		else if (x.value >= xw && y.value >= yh) {
 			coordinate.value = 4
 		}
+		console.log(xw);
+		console.log(yh);
+		console.log(coordinate.value);
 	};
 
 
 
 	// 单个菜单大小
 	const getMenuItemPosition = (index : number) => {
+		console.log(index);
 		if (coordinate.value === 1) {
 			return topLeftCorner(index)
 		} else if (coordinate.value === 2) {
