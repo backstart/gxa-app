@@ -3,7 +3,7 @@
 		<view class="tag-container" >
 			<text class="cellView"
 				:style="{ color: bindColor(index) , backgroundColor: bindBgColor(index) }"
-				v-for="(tagItem, index) in item" :key="index">
+				v-for="(tagItem, index) in taglist" :key="index">
 				{{tagItem.tag}}
 			</text>
 	 
@@ -12,7 +12,7 @@
 
 <script setup>
  defineProps({
- 	 item:{
+ 	 taglist:{
  		 type:[{}],
  		 default(){
  		 	return [{tag:"文字1"},{tag:"文字2"},{tag:"文字3"}]

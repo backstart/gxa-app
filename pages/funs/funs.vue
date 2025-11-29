@@ -1,21 +1,22 @@
+<!-- 出租屋场所 -->
 <template>
 	<view class="page">
 		<view class="statuBar" :style="{height: barheight+'px'}"></view>
 		<view class="head">
 			<view class="title">
 				<view class="txt1">
-					龙井坊KTV
+					温馨租房
 				</view>
-
+	
 			</view>
-
+	
 			<view class="pepoleinfo">
 				<view class="flexrow">
 					<view class="txt_gray">
 						负责人：
 					</view>
 					<view class="txtclick">
-						张三
+						
 					</view>
 				</view>
 				<view class="flexrow">
@@ -27,7 +28,7 @@
 					</view>
 				</view>
 			</view>
-
+	
 			<view class="pepoleinfo">
 				<view class="flexrow">
 					<view class="txt_gray">
@@ -46,7 +47,7 @@
 					</view>
 				</view>
 			</view>
-
+	
 			<view class="address flexrow">
 				<view class="txt_gray">
 					地址：
@@ -62,13 +63,13 @@
 				<view class="txt_gray_after">
 					2025年8月21日20时36分
 				</view>
-
+	
 			</view>
-			<com-tag></com-tag>
-
-
-
-
+			<com-tag :taglist="tag"></com-tag>
+	
+	
+	
+	
 		</view>
 		<view class="body">
 			<l-grid :inset="true">
@@ -80,19 +81,19 @@
 		</view>
 		<view class="bottomlist">
 			<!-- 检查记录组件 -->
-
+	
 			<browselist :list="list" v-show="currentTab==='a'" @clickitem="clickitem"></browselist>
-
-
+	
+	
 			<!-- 从业人员组件 -->
 			<staffbrolist :list="stafflist" v-show="currentTab==='b'" @clickitem="clickitem"></staffbrolist>
-
+	
 			<!-- 档案组件 -->
 			<archivelist :list="archivelists" v-show="currentTab==='c'" @clickitem="clickitem"></archivelist>
-
-
-
-
+	
+	
+	
+	
 		</view>
 		 <view>
 		     <FloatPopupMenu :menuItems="customMenuItems" :disabled="false"   buttonBgColor="linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)"
@@ -101,7 +102,6 @@
 		     </FloatPopupMenu>
 		 </view>
 	</view>
-
 </template>
 
 <script setup>
@@ -113,6 +113,7 @@
 		getStatusBarHeight
 	} from "@/utils/system.js";
 
+const tag=[{tag:"最小应急单元"},{tag:"重点场所"}];
 
 	const barheight = ref(getStatusBarHeight());
 	// 页面索引，1-检查记录，2-从业人员，3-档案
@@ -131,10 +132,10 @@
 	 import FloatPopupMenu from "@/uni_modules/stars-Float-Popup-Menu/components/stars-Float-Popup-Menu/FloatPopupMenu.vue";
 	
 	    const customMenuItems = [
-	        { icon: 'home', text: '首页', menuBgColor: "linear-gradient(165deg, #2B5BDB 20%, #00C9FF 50%, #ffffff 100%)", textColor: "#fff", iconColor: "#fff" },
-	        { icon: 'staff', text: 'AI服务', menuBgColor: "linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)", textColor: "#fff", iconColor: "#fff" },
-	        { icon: 'person', text: '我的', menuBgColor: "linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)", textColor: "#333333", iconColor: "#333333" },
-	        { icon: 'scan', text: 'NFC识别', menuBgColor: "linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)", textColor: "#fff", iconColor: "#fff" }
+	        { icon: 'home', text: '检查', menuBgColor: "linear-gradient(165deg, #2B5BDB 20%, #00C9FF 50%, #ffffff 100%)", textColor: "#fff", iconColor: "#fff" },
+	        { icon: 'staff', text: '修改', menuBgColor: "linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)", textColor: "#fff", iconColor: "#fff" },
+	        { icon: 'person', text: '新增', menuBgColor: "linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)", textColor: "#333333", iconColor: "#333333" },
+	        { icon: 'scan', text: '识别', menuBgColor: "linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)", textColor: "#fff", iconColor: "#fff" }
 	    ];
 	
 	    const onMenuClick = (item) => {
