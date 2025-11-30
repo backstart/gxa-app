@@ -16,7 +16,7 @@
 						负责人：
 					</view>
 					<view class="txtclick">
-						
+						李华
 					</view>
 				</view>
 				<view class="flexrow">
@@ -61,7 +61,7 @@
 					最近检查时间：
 				</view>
 				<view class="txt_gray_after">
-					2025年8月21日20时36分
+					2025年8月18日20时36分
 				</view>
 	
 			</view>
@@ -74,7 +74,7 @@
 		<view class="body">
 			<l-grid :inset="true">
 				<l-grid-item @click="lgClick('a')"     text="检查记录" badge="15" image="/static/venue/检查记录 .png" />
-				<l-grid-item @click="lgClick('b')"     text="从业人员" image="/static/venue/人员信息.png" />
+				<l-grid-item @click="lgClick('b')"     text="房间" image="/static/venue/人员信息.png" />
 				<l-grid-item @click="lgClick('c')"     text="档案" badge="5" image="/static/venue/档案.png" />
 				<l-grid-item @click="lgClick('d')"     text="关联警情" badge="New" image="/static/venue/关联警情.png" />
 			</l-grid>
@@ -82,16 +82,16 @@
 		<view class="bottomlist">
 			<!-- 检查记录组件 -->
 	
-			<browselist :list="list" v-show="currentTab==='a'" @clickitem="clickitem"></browselist>
+			<!-- <browselist :list="list" v-show="currentTab==='a'" @clickitem="clickitem"></browselist> -->
 	
 	
 			<!-- 从业人员组件 -->
-			<staffbrolist :list="stafflist" v-show="currentTab==='b'" @clickitem="clickitem"></staffbrolist>
+			<!-- <staffbrolist :list="stafflist" v-show="currentTab==='b'" @clickitem="clickitem"></staffbrolist> -->
 	
 			<!-- 档案组件 -->
-			<archivelist :list="archivelists" v-show="currentTab==='c'" @clickitem="clickitem"></archivelist>
+			<!-- <archivelist :list="archivelists" v-show="currentTab==='c'" @clickitem="clickitem"></archivelist> -->
 	
-	
+	<roomlist></roomlist>
 	
 	
 		</view>
