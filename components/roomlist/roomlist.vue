@@ -11,8 +11,8 @@
           mode="aspectFill" 
           lazy-load
         />
-        <view class="item-title">{{ item.title }}</view>
-        <view class="item-detail">{{ item.detail }}</view>
+      <view class="item-title">{{ item.roomInfo }}</view>
+            <view class="item-detail">{{ item.tenantName }}</view>
       </view>
     </view>
 
@@ -31,11 +31,22 @@ const props = defineProps({
   pageSize: {
     type: Number,
     default: 12
+  },
+  list: {
+  	type: [{}],
+  	default () {
+  		return [{
+  			tenantName: "201",
+  			roomInfo: "张三",
+  			image: 'https://picsum.photos/id/1016/400/500岁',
+  			
+  		}]
+  	}
   }
 })
 
 // 暴露事件给父组件
-const emit = defineEmits(['loadFinish','clickitem'])
+const emit = defineEmits(['loadFinish','clickitem','listChange'])
 
 // 响应式数据
 const list = ref([])       // 列表数据
@@ -44,40 +55,52 @@ const hasMore = ref(true)  // 是否有更多数据
 const page = ref(1)        // 当前页码
 	
 
+
 	function clickitem(e) {
 		console.log(e);
 		emit("clickitem", e);
 	}
-// 预设模拟数据池
-const titlePool = [
-  "春日樱花摄影技巧分享", "极简主义家居设计案例", "新手烘焙入门：戚风蛋糕教程",
-  "川西自驾游路线规划", "复古胶片滤镜调色参数", "多肉植物养护全攻略",
-  "日式拉面汤底熬制方法", "户外露营装备清单推荐", "手绘插画零基础入门",
-  "咖啡手冲技巧详解", "北欧风格装修避坑指南", "宠物猫咪行为解读"
+// 预设租房信息数据池（人像图片+房间信息+入住人）
+const roomInfoPool = [
+  "201",
+ "202",
+ "203",
+ "204",
+ "205",
+ "206",
+ "207",
+ "208"
 ]
 
-const detailPool = [
-  "分享3个春日樱花拍摄的关键技巧：光线选择、构图方法和后期调色，新手也能拍出氛围感大片！",
-  "以白色为主调，搭配原木色家具，打造简约又温馨的家居空间，附具体尺寸和软装链接。",
-  "详细拆解戚风蛋糕失败原因，从蛋白打发到烤箱温度控制，一步步教你做出蓬松不塌陷的蛋糕。",
-  "成都出发→四姑娘山→丹巴→新都桥→理塘，7天6晚川西环线攻略，含住宿推荐和注意事项。",
-  "VSCO复古胶片滤镜参数分享，适合街拍和人像，附手机修图步骤，轻松get电影感照片。",
-  "多肉服盆期养护要点：土壤配比、浇水频率、光照控制，解决多肉化水、徒长问题。",
-  "豚骨汤底熬制需要12小时以上，关键在于骨头焯水和火候控制，附配菜搭配建议。",
-  "轻量化露营装备清单，适合新手的性价比选择，包含帐篷、睡袋、炊具等必备品。",
-  "从线条练习到色彩搭配，零基础手绘插画入门教程，每天10分钟，30天可见进步。",
-  "手冲咖啡的水粉比、水温控制和萃取时间详解，不同咖啡豆的研磨度选择技巧。",
-  "北欧风装修容易忽略的5个细节：墙面颜色、灯具选择、收纳设计，避坑指南来了！",
-  "猫咪摇尾巴、竖耳朵的不同含义，解读猫咪常见行为，增进和主子的感情。"
+const tenantNamePool = [
+  "入住人：张三",
+  "入住人：李四",
+  "入住人：王五",
+  "入住人：赵六",
+  "入住人：孙七",
+  "入住人：周八",
+  "入住人：吴九",
+  "入住人：郑十",
+  "入住人：钱十一",
+  "入住人：孙十二",
+  "入住人：李十三",
+  "入住人：张十四"
 ]
 
-const imagePool = [
-  "https://picsum.photos/id/10/400/500", "https://picsum.photos/id/42/400/500", 
-  "https://picsum.photos/id/292/400/500", "https://picsum.photos/id/155/400/500",
-  "https://picsum.photos/id/96/400/500", "https://picsum.photos/id/118/400/500",
-  "https://picsum.photos/id/225/400/500", "https://picsum.photos/id/283/400/500",
-  "https://picsum.photos/id/65/400/500", "https://picsum.photos/id/766/400/500",
-  "https://picsum.photos/id/164/400/500", "https://picsum.photos/id/40/400/500"
+// 人像图片池（picsum人像分类id）
+const avatarImagePool = [
+  "https://picsum.photos/id/1001/400/500", // 人像
+  "https://picsum.photos/id/1002/400/500",
+  "https://picsum.photos/id/1003/400/500",
+  "https://picsum.photos/id/1004/400/500",
+  "https://picsum.photos/id/1005/400/500",
+  "https://picsum.photos/id/1006/400/500",
+  "https://picsum.photos/id/1007/400/500",
+  "https://picsum.photos/id/1008/400/500",
+  "https://picsum.photos/id/1009/400/500",
+  "https://picsum.photos/id/1010/400/500",
+  "https://picsum.photos/id/1011/400/500",
+  "https://picsum.photos/id/1012/400/500"
 ]
 
 // 组件挂载后初始化加载
@@ -85,7 +108,7 @@ onMounted(() => {
   fetchData()
 })
 
-// 数据请求核心方法
+// 数据请求核心方法（租房信息）
 const fetchData = async (isRefresh = false) => {
   if (loading.value || (!hasMore.value && !isRefresh)) return
   loading.value = true
@@ -93,55 +116,64 @@ const fetchData = async (isRefresh = false) => {
   try {
     await new Promise(resolve => setTimeout(resolve, 800)) // 模拟接口延迟
 
-    // 生成当前页数据（增加防御性检查）
+    // 生成租房数据
     let currentPageData = []
-    const poolLength = Math.min(imagePool.length, titlePool.length, detailPool.length)
+    const poolLength = Math.min(avatarImagePool.length, roomInfoPool.length, tenantNamePool.length)
     
     if (poolLength > 0) {
       currentPageData = Array.from({ length: props.pageSize }, (_, i) => {
         const globalIndex = (isRefresh ? 0 : (page.value - 1) * props.pageSize) + i
         const poolIndex = globalIndex % poolLength
         return {
-          image: imagePool[poolIndex] || 'https://picsum.photos/400/500',
-          title: titlePool[poolIndex] || '默认标题',
-          detail: detailPool[poolIndex] || '默认详情描述'
+          image: avatarImagePool[poolIndex] || 'https://picsum.photos/id/1005/400/500', // 兜底人像图
+          roomInfo: roomInfoPool[poolIndex] || '默认房间信息',
+          tenantName: tenantNamePool[poolIndex] || '入住人：未知',
+          id: globalIndex + 1 // 房源ID
         }
       })
     }
 
-    // 更新列表数据
-    if (isRefresh) {
-      list.value = currentPageData
-      page.value = 2 // 刷新后下一页从2开始
-      hasMore.value = true // 刷新重置“是否有更多”
-    } else {
-      list.value = [...list.value, ...currentPageData]
-      page.value++
-    }
-
-    // 模拟无更多数据（第5页后停止）
-    if (page.value > 5) {
-      hasMore.value = false
-    }
-
-    // 通知父组件加载完成
-    emit('loadFinish', { 
-      hasMore: hasMore.value, 
-      listLength: list.value.length 
-    })
-  } catch (err) {
-    console.error('数据加载失败：', err)
-    uni.showToast({ title: '加载失败', icon: 'error' })
-  } finally {
-    loading.value = false
-  }
-}
-
-// 暴露方法给父组件调用（刷新/加载更多）
-defineExpose({
-  fetchData, // 加载更多：ref.fetchData()
-  refresh: () => fetchData(true) // 刷新：ref.refresh()
-})
+   // 更新列表数据
+       if (isRefresh) {
+         list.value = currentPageData
+         page.value = 2
+         hasMore.value = true
+       } else {
+         list.value = [...list.value, ...currentPageData]
+         page.value++
+       }
+   
+       // 模拟无更多数据（第5页后停止）
+       if (page.value > 5) {
+         hasMore.value = false
+       }
+   
+       // 通知父组件列表变化
+       emit('listChange', list.value)
+       emit('loadFinish', { hasMore: hasMore.value, listLength: list.value.length })
+     } catch (err) {
+       console.error('房源数据加载失败：', err)
+       uni.showToast({ title: '加载失败', icon: 'error' })
+     } finally {
+       loading.value = false
+     }
+   }
+   
+   // 父组件直接赋值list的方法
+   const setList = (newList) => {
+     if (Array.isArray(newList)) {
+       list.value = newList
+       emit('listChange', list.value)
+     }
+   }
+   
+   // 暴露数据和方法给父组件
+   defineExpose({
+     list,          // 直接暴露list数据
+     fetchData,     // 加载更多方法
+     refresh: () => fetchData(true), // 刷新方法
+     setList        // 父组件赋值list的方法
+   })
 </script>
 
 <style scoped>

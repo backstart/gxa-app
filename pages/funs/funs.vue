@@ -87,7 +87,7 @@
 	
 			<!-- 从业人员组件 -->
 			<!-- <staffbrolist :list="stafflist" v-show="currentTab==='b'" @clickitem="clickitem"></staffbrolist> -->
-	<roomlist  ref="waterfallRef" @loadFinish="handleLoadFinish" v-show="currentTab==='b'" @clickitem="clickitem"></roomlist>
+	<roomlist  ref="waterfallRef"  @loadFinish="handleLoadFinish"  @listChange="handleListChange"  v-show="currentTab==='b'" @clickitem="clickitem"></roomlist>
 			<!-- 档案组件 -->
 			<!-- <archivelist :list="archivelists" v-show="currentTab==='c'" @clickitem="clickitem"></archivelist> -->
 	
@@ -218,6 +218,22 @@ const tag=[{tag:"最小应急单元"},{tag:"重点场所"}];
 		img: "/static/demofile/保安证.png",
 		id: '2',
 	}])
+	
+	//出租房数据
+	 const customHouseList = [
+	    {
+	      id: 999,
+	      image: 'https://picsum.photos/id/1015/400/500',
+	      roomInfo: '豪华三室一厅（江景房）',
+	      tenantName: '入住人：小明'
+	    },
+	    {
+	      id: 1000,
+	      image: 'https://picsum.photos/id/1016/400/500',
+	      roomInfo: '单身公寓（市中心）',
+	      tenantName: '入住人：小红'
+	    }
+	  ]
 	//#endregion
 </script>
 
