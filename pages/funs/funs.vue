@@ -87,11 +87,11 @@
 	
 			<!-- 从业人员组件 -->
 			<!-- <staffbrolist :list="stafflist" v-show="currentTab==='b'" @clickitem="clickitem"></staffbrolist> -->
-	
+	<roomlist  ref="waterfallRef" @loadFinish="handleLoadFinish" v-show="currentTab==='b'" @clickitem="clickitem"></roomlist>
 			<!-- 档案组件 -->
 			<!-- <archivelist :list="archivelists" v-show="currentTab==='c'" @clickitem="clickitem"></archivelist> -->
 	
-	<roomlist></roomlist>
+	
 	
 	
 		</view>
@@ -109,6 +109,10 @@
 		ref,
 		watch
 	} from 'vue';
+	import {onReady,onPullDownRefresh,onReachBottom} from "@dcloudio/uni-app";
+	
+	// 获取组件引用
+	const waterfallRef = ref(null)
 	import {
 		getStatusBarHeight
 	} from "@/utils/system.js";
@@ -127,6 +131,24 @@ const tag=[{tag:"最小应急单元"},{tag:"重点场所"}];
 	// 点击检查记录列表
 	function clickitem(e) {
 
+	}
+	onReady(()=>{
+		console.log("主界面onready");
+	})
+	// 页面下拉刷新：触发组件刷新
+	onPullDownRefresh(async () => {
+	  await waterfallRef.value?.refresh()
+	  uni.stopPullDownRefresh() // 结束下拉刷新
+	})
+	
+	// 页面触底：触发组件加载更多
+	onReachBottom(() => {
+	  waterfallRef.value?.fetchData()
+	})
+	
+	// 组件加载完成回调（可选）
+	const handleLoadFinish = (data) => {
+	  console.log('组件加载状态：', data)
 	}
 	
 	 import FloatPopupMenu from "@/uni_modules/stars-Float-Popup-Menu/components/stars-Float-Popup-Menu/FloatPopupMenu.vue";
