@@ -67,6 +67,12 @@
 			{
 				"navigationBarTitleText" : ""
 			}
+		},
+		{
+			"path": "pages/msg/msg",
+			"style": {
+				"navigationBarTitleText": ""
+			}
 		}
 	],
 	"globalStyle": {
@@ -81,6 +87,13 @@
 				"iconPath": "/static/tabBar/index.png",
 				"selectedIconPath": "/static/tabBar/index-h.png",
 				"text": "情报"
+				
+			},
+			{
+				"pagePath": "pages/msg/msg",
+				"iconPath": "/static/tabBar/msg.png",
+				"selectedIconPath": "/static/tabBar/msg-h.png",
+				"text": "消息"
 				
 			},
 			{
@@ -103,6 +116,7 @@
 				"text": "我的"
 				
 			}
+			
 		]
 	},
 	"uniIdRouter": {}
