@@ -2,7 +2,7 @@
 	  <!-- 新增根节点容器，包裹所有内容 -->
 	  <view class="archivelist-root">
 	<view class="venuelist flexrow" v-for="item in list" :key="item.id" @click="clickitem(item)">
-		<image class="titleimg" :src="item.img" mode=" aspectFill"
+		<image class="titleimg" :src="item.img" mode="aspectFill"
 			:style="{height: '200rpx',width:'200rpx'}"></image>
 		<view class="txtlist ">
 			<view class="txttile txt1">

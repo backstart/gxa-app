@@ -5,7 +5,7 @@
 			"style": {
 				"navigationBarTitleText": "",
 				"navigationStyle": "custom"
-				
+
 			}
 		},
 		{
@@ -26,50 +26,50 @@
 			}
 		},
 		{
-			"path" : "pages/work/work",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			
+			"path": "pages/work/work",
+			"style": {
+				"navigationBarTitleText": ""
+
 			}
 		},
 		{
-			"path" : "pages/policeDetail/policeDetail",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
+			"path": "pages/policeDetail/policeDetail",
+			"style": {
+				"navigationBarTitleText": ""
 			}
 		},
 		{
-			"path" : "pages/venue/footbathVenue",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
+			"path": "pages/venue/footbathVenue",
+			"style": {
+				"navigationBarTitleText": ""
 			}
 		},
 		{
-			"path" : "pages/venue/rentalhouseVenue",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
+			"path": "pages/venue/rentalhouseVenue",
+			"style": {
+				"navigationBarTitleText": ""
 			}
 		},
 		{
-			"path" : "pages/venue/KTVVenue",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
+			"path": "pages/venue/KTVVenue",
+			"style": {
+				"navigationBarTitleText": ""
 			}
 		},
 		{
-			"path" : "pages/venue/venue",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
+			"path": "pages/venue/venue",
+			"style": {
+				"navigationBarTitleText": ""
 			}
 		},
 		{
 			"path": "pages/policeCaller/policeCaller",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/msg/msg",
 			"style": {
 				"navigationBarTitleText": ""
 			}
@@ -87,7 +87,14 @@
 				"iconPath": "/static/tabBar/index.png",
 				"selectedIconPath": "/static/tabBar/index-h.png",
 				"text": "情报"
-				
+
+			},
+			{
+				"pagePath": "pages/msg/msg",
+				"iconPath": "/static/tabBar/msg.png",
+				"selectedIconPath": "/static/tabBar/msg-h.png",
+				"text": "消息"
+
 			},
 			{
 				"pagePath": "pages/funs/funs",
@@ -100,15 +107,15 @@
 				"iconPath": "/static/tabBar/work.png",
 				"selectedIconPath": "/static/tabBar/work-h.png",
 				"text": "工作"
-			}
-			,
+			},
 			{
 				"pagePath": "pages/user/user",
 				"iconPath": "/static/tabBar/user.png",
 				"selectedIconPath": "/static/tabBar/user-h.png",
 				"text": "我的"
-				
+
 			}
+
 		]
 	},
 	"uniIdRouter": {}
