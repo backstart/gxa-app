@@ -121,7 +121,7 @@
 	} from "@/utils/system.js";
 
 	const tag = [{
-		tag: "最小应急单元"
+		tag: "黄名单"
 	}, {
 		tag: "重点场所"
 	}];

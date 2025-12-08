@@ -76,7 +76,11 @@
 
 	// 进入详情页
 	function goProDetail(item) {
-		console.log(item);
+		if(item.id==='1'){
+			uni.navigateTo({
+				url:'/pages/policeDetail/policeDetail'
+			})
+		}
 	}
 
 	// 绑定标签数据
