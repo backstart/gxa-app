@@ -23,21 +23,21 @@
     <!-- Input bar -->
     <view>
       <view class="input-bar">
-        <image src="/static/icons/voice.png" class="tool-icon" />
+        <image src="/static/msg/voice.png" class="tool-icon" />
         <input class="input" v-model="text" placeholder="消息..." />
 
-        <image src="/static/icons/emoji.png" class="tool-icon" />
-        <image src="/static/icons/add.png" class="tool-icon" @click="togglePlus" />
+        <image src="/static/msg/emoji.png" class="tool-icon" />
+        <image src="/static/msg/add.png" class="tool-icon" @click="togglePlus" />
       </view>
 
       <!-- + panel (WeChat style) -->
       <view v-if="showPlus" class="plus-panel">
         <view class="plus-item" @click="chooseImage">
-          <image src="/static/icons/photo.png" class="plus-icon" />
+          <image src="/static/msg/photo.png" class="plus-icon" />
           <text>图片</text>
         </view>
         <view class="plus-item" @click="chooseVideo">
-          <image src="/static/icons/video.png" class="plus-icon" />
+          <image src="/static/msg/video.png" class="plus-icon" />
           <text>视频</text>
         </view>
       </view>

@@ -24,14 +24,14 @@ const chatList = ref([
   {
     id: 1,
     name: '张三',
-    avatar: '/static/avatar1.png',
+    avatar: '/static/msg/avatar1.png',
     time: '16:20',
     lastMsg: '好的，我知道了'
   },
   {
     id: 2,
     name: '李四',
-    avatar: '/static/avatar2.png',
+    avatar: '/static/msg/avatar2.png',
     time: '15:02',
     lastMsg: '[图片]'
   }
