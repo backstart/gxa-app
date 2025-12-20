@@ -26,6 +26,7 @@
 		    <l-grid-item text="OA" badge="5" image="/static/userFuns/oa.png" />
 		    <l-grid-item text="休假" badge="15" image="/static/userFuns/leave.png" />
 		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" />
+			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" />
 		</l-grid>
 
 	</view>
