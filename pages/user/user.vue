@@ -1,6 +1,5 @@
-<template>
+﻿<template>
 	<view class="userLayout pageBg">
-		
 		<view class="statuBar" :style="{height: barheight+'px'}"></view>
 		<view class="userInfo">
 			<view class="avator">
@@ -15,18 +14,13 @@
 				</view>
 			</view>
 		</view>
-		<!-- <view class="userfuns">
-		 <funs-one v-for="item in 7"></funs-one>
-		</view> -->
-		
-		<!-- <lime-grid /> -->
-		
+
 		<l-grid>
 		    <l-grid-item text="会议" :dot="true" image="/static/userFuns/meet.png" />
 		    <l-grid-item text="OA" badge="5" image="/static/userFuns/oa.png" />
 		    <l-grid-item text="休假" badge="15" image="/static/userFuns/leave.png" />
 		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" />
-			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" />
+			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" @click="goToUseCar" />
 		</l-grid>
 
 	</view>
@@ -34,23 +28,19 @@
 
 <script setup>
 import { ref } from 'vue';
-import {getStatusBarHeight} from "@/utils/system.js";
+import { getStatusBarHeight } from "@/utils/system.js";
 
-	  
-	 const barheight=ref(getStatusBarHeight()) ;
-	 
-	 function status(){
-		 console.log(barheight.value);
-	
-	 }
-	 
-	  status();
+const barheight = ref(getStatusBarHeight());
+
+const goToUseCar = () => {
+	uni.navigateTo({
+		url: '/pages/car/list'
+	});
+};
 </script>
 
 <style lang="scss">
 .userLayout{
-	
-	
 	.userInfo{
 		display: flex;
 		padding: 50rpx 0;
@@ -64,17 +54,14 @@ import {getStatusBarHeight} from "@/utils/system.js";
 				width: 100%;
 				height: 100%;
 			}
-			
 		}
 		.info{
 			margin-left: 50rpx;
 			.name{
 				font-size: 40rpx;
 				font-weight: 550;
-				
 			}
 			.level{
-				//font-weight: 600;
 				margin-top: 15rpx;
 				font-size: 30rpx;
 				color: #aaa;
@@ -82,7 +69,6 @@ import {getStatusBarHeight} from "@/utils/system.js";
 		}
 	}
 	.userfuns{
-	 
 		width: 700rpx;
 		margin: 10rpx auto;
 		padding-left: 10rpx;

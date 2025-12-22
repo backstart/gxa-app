@@ -1,4 +1,4 @@
-{
+﻿{
 	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
 		{
 			"path": "pages/index/index",
@@ -16,6 +16,27 @@
 				"app-plus": {
 					"bounce": "none"
 				}
+			}
+		},
+		{
+			"path": "pages/car/list",
+			"style": {
+				"navigationBarTitleText": "警车列表",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/car/detail",
+			"style": {
+				"navigationBarTitleText": "警车详情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/car/usecar",
+			"style": {
+				"navigationBarTitleText": "用车登记",
+				"navigationStyle": "custom"
 			}
 		},
 		{
