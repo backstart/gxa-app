@@ -58,30 +58,14 @@
 
 <script setup>
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
+import { getMetrics, getTodos, getShortcuts } from '@/common/database.js';
 
 const today = ref(new Date().toLocaleDateString());
 
-const metrics = ref([
-  { key: 'alert', title: '未处理警情', value: 7, desc: '待反馈警情' },
-  { key: 'task', title: '临期任务', value: 3, desc: '24小时内到期' },
-  { key: 'dispute', title: '待回访纠纷', value: 5, desc: '跟进群众回访' },
-  { key: 'closed', title: '今日闭环数', value: 12, desc: '已完成闭环' },
-]);
-
-const todos = ref([
-  { id: 'todo-1', type: 'alert', title: '桂南路口纠纷处置', risk: '高', deadline: '14:00', status: 'pending', url: '/pages/policeDetail/policeDetail' },
-  { id: 'todo-2', type: 'task', title: '主防巡逻-龙石片区', risk: '中', deadline: '16:30', status: 'pending', url: '/pages/work/work' },
-  { id: 'todo-3', type: 'dispute', title: '长命水邻里矛盾回访', risk: '低', deadline: '今日', status: 'processing', url: '/pages/venue/venue' },
-  { id: 'todo-4', type: 'order', title: '图上指挥派单-卡口布控', risk: '高', deadline: '15:20', status: 'pending', url: '/pages/index/index' },
-]);
-
-const shortcuts = ref([
-  { key: 'alertList', title: '警情列表', emoji: '🚨', url: '/pages/policeDetail/policeDetail' },
-  { key: 'task', title: '主防任务', emoji: '🛡️', url: '/pages/work/work' },
-  { key: 'dispute', title: '矛盾纠纷', emoji: '🤝', url: '/pages/venue/venue' },
-  { key: 'command', title: '图上指挥', emoji: '🗺️', url: '/pages/index/index' },
-  { key: 'handover', title: '交接班', emoji: '🔄', url: '/pages/msg/msg' },
-]);
+const metrics = ref([]);
+const todos = ref([]);
+const shortcuts = ref([]);
 
 const statusText = {
   pending: '待处理',
@@ -96,9 +80,36 @@ const typeText = {
   order: '派单',
 };
 
+function loadData() {
+  metrics.value = getMetrics();
+  todos.value = getTodos();
+  const baseShortcuts = getShortcuts();
+  const extra = [
+    { key: 'taskList', title: '任务列表', emoji: '📋', url: '/pages/task/list' },
+    { key: 'disputeList', title: '纠纷列表', emoji: '🧭', url: '/pages/dispute/list' },
+    { key: 'dispatchCreate', title: '派单创建', emoji: '📝', url: '/pages/dispatch/assign' },
+    { key: 'command', title: '图上指挥', emoji: '🗺️', url: '/subPackages/map/index' },
+  ];
+  shortcuts.value = [...baseShortcuts, ...extra];
+}
+
 // 待办跳转，根据类型或配置的 url 导航
 function goDetail(item) {
-  const target = item.url || '/pages/index/index';
+  if (item.url) {
+    uni.navigateTo({ url: item.url });
+    return;
+  }
+  const refId = item.refId || '';
+  let target = '/pages/index/index';
+  if (item.type === 'alert') {
+    target = `/pages/policeDetail/policeDetail?id=${refId}`;
+  } else if (item.type === 'task') {
+    target = `/pages/task/detail?taskId=${refId}`;
+  } else if (item.type === 'dispute') {
+    target = `/pages/dispute/detail?disputeId=${refId}`;
+  } else if (item.type === 'order') {
+    target = `/pages/dispatch/detail?dispatchId=${refId}`;
+  }
   uni.navigateTo({ url: target });
 }
 
@@ -114,6 +125,8 @@ function goShortcut(item) {
   const target = item.url || '/pages/index/index';
   uni.navigateTo({ url: target });
 }
+
+onShow(loadData);
 </script>
 
 <style lang="scss" scoped>

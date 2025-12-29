@@ -1,149 +1,55 @@
-﻿{
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "",
-				"navigationStyle": "custom"
-
-			}
-		},
-		{
-			"path": "pages/user/user",
-			"style": {
-				"navigationBarTitleText": "",
-				"navigationStyle": "custom",
-				"app-plus": {
-					"bounce": "none"
-				}
-			}
-		},
-		{
-			"path": "pages/car/list",
-			"style": {
-				"navigationBarTitleText": "警车列表",
-				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/car/detail",
-			"style": {
-				"navigationBarTitleText": "警车详情",
-				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/car/usecar",
-			"style": {
-				"navigationBarTitleText": "用车登记",
-				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/funs/funs",
-			"style": {
-				"navigationBarTitleText": "",
-				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/work/work",
-			"style": {
-				"navigationBarTitleText": ""
-
-			}
-		},
-		{
-			"path": "pages/policeDetail/policeDetail",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/venue/footbathVenue",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/venue/rentalhouseVenue",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/venue/KTVVenue",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/venue/venue",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/policeCaller/policeCaller",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/msg/msg",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/msgDetail/msgDetail",
-			"style": {
-				"navigationBarTitleText": ""
-			}
+{
+  "pages": [
+    {"path":"pages/index/index","style":{"navigationBarTitleText":"","navigationStyle":"custom"}},
+    {"path":"pages/user/user","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"bounce":"none"}}},
+    {"path":"pages/car/list","style":{"navigationBarTitleText":"警车列表","navigationStyle":"custom"}},
+    {"path":"pages/car/detail","style":{"navigationBarTitleText":"警车详情","navigationStyle":"custom"}},
+    {"path":"pages/car/usecar","style":{"navigationBarTitleText":"用车登记","navigationStyle":"custom"}},
+    {"path":"pages/funs/funs","style":{"navigationBarTitleText":"","navigationStyle":"custom"}},
+    {"path":"pages/work/work","style":{"navigationBarTitleText":""}},
+    {"path":"pages/policeDetail/policeDetail","style":{"navigationBarTitleText":""}},
+    {"path":"pages/venue/footbathVenue","style":{"navigationBarTitleText":""}},
+    {"path":"pages/venue/rentalhouseVenue","style":{"navigationBarTitleText":""}},
+    {"path":"pages/venue/KTVVenue","style":{"navigationBarTitleText":""}},
+    {"path":"pages/venue/venue","style":{"navigationBarTitleText":""}},
+    {"path":"pages/policeCaller/policeCaller","style":{"navigationBarTitleText":""}},
+    {"path":"pages/msg/msg","style":{"navigationBarTitleText":""}},
+    {"path":"pages/msgDetail/msgDetail","style":{"navigationBarTitleText":""}},
+    {"path":"pages/dispatch/assign","style":{"navigationBarTitleText":"任务指派","navigationStyle":"custom"}},
+    {"path":"pages/dispatch/detail","style":{"navigationBarTitleText":"派单详情","navigationStyle":"custom"}},
+    {"path":"pages/task/list","style":{"navigationBarTitleText":"任务列表","navigationStyle":"custom"}},
+    {"path":"pages/task/detail","style":{"navigationBarTitleText":"任务详情","navigationStyle":"custom"}},
+    {"path":"pages/handwork/handwork","style":{"navigationBarTitleText":"交接班安排","navigationStyle":"custom"}},
+    {"path":"pages/handwork/history","style":{"navigationBarTitleText":"交接班历史","navigationStyle":"custom"}},
+	{
+		"path": "pages/handwork/detail",
+		"style": {
+			"navigationBarTitleText": "交接详情",
+			"navigationStyle": "custom"
 		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
 	},
-	"tabBar": {
-		"list": [{
-				"pagePath": "pages/index/index",
-				"iconPath": "/static/tabBar/index.png",
-				"selectedIconPath": "/static/tabBar/index-h.png",
-				"text": "情报"
+	{
+		"path": "pages/analysis/analysis",
+		"style": {
+			"navigationBarTitleText": ""
+		}
+	}
+  ],
 
-			},
-			{
-				"pagePath": "pages/msg/msg",
-				"iconPath": "/static/tabBar/msg.png",
-				"selectedIconPath": "/static/tabBar/msg-h.png",
-				"text": "消息"
-
-			},
-			{
-				"pagePath": "pages/funs/funs",
-				"iconPath": "/static/tabBar/fun.png",
-				"selectedIconPath": "/static/tabBar/fun-h.png",
-				"text": "功能"
-			},
-			{
-				"pagePath": "pages/work/work",
-				"iconPath": "/static/tabBar/work.png",
-				"selectedIconPath": "/static/tabBar/work-h.png",
-				"text": "工作"
-			},
-			{
-				"pagePath": "pages/user/user",
-				"iconPath": "/static/tabBar/user.png",
-				"selectedIconPath": "/static/tabBar/user-h.png",
-				"text": "我的"
-
-			}
-
-		]
-	},
-	"uniIdRouter": {}
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "uni-app",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "list": [
+      {"pagePath":"pages/index/index","iconPath":"/static/tabBar/index.png","selectedIconPath":"/static/tabBar/index-h.png","text":"情报"},
+      {"pagePath":"pages/msg/msg","iconPath":"/static/tabBar/msg.png","selectedIconPath":"/static/tabBar/msg-h.png","text":"消息"},
+      {"pagePath":"pages/funs/funs","iconPath":"/static/tabBar/fun.png","selectedIconPath":"/static/tabBar/fun-h.png","text":"功能"},
+      {"pagePath":"pages/work/work","iconPath":"/static/tabBar/work.png","selectedIconPath":"/static/tabBar/work-h.png","text":"工作"},
+      {"pagePath":"pages/user/user","iconPath":"/static/tabBar/user.png","selectedIconPath":"/static/tabBar/user-h.png","text":"我的"}
+    ]
+  },
+  "uniIdRouter": {}
 }

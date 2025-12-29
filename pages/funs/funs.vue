@@ -22,6 +22,7 @@
 			<l-grid-item @click="lgClick('e')" text="重点人" badge="New" image="/static/fun/重点人.png" />
 			<l-grid-item @click="lgClick('f')" text="棋牌室" badge="New" image="/static/fun/棋牌室.png" />
 			<l-grid-item @click="lgClick('g')" text="任务指派" badge="New" image="/static/fun/任务.png" />
+			<l-grid-item @click="lgClick('h')" text="数据分析" badge="New" image="/static/fun/分析.png" />
 		</l-grid>
 	</view>
 
@@ -56,6 +57,7 @@
 	]);
 
 	function lgClick(e) {
+		 
 		if (e === 'a') {
 			uni.navigateTo({
 				url: '/pages/venue/KTVVenue'
@@ -63,6 +65,14 @@
 		} else if (e === 'b') {
 			uni.navigateTo({
 				url: '/pages/venue/rentalhouseVenue'
+			})
+		}else if (e === 'g') {
+			 
+		}
+		else if (e === 'h') {
+			
+			uni.navigateTo({
+				url: '/pages/analysis/analysis'
 			})
 		}
 

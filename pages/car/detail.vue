@@ -62,7 +62,7 @@
 <script setup>
 import { ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
-import { getHistory, getVehicleById, statusText } from './data.js';
+import { getHistory, getVehicleById, statusText } from '@/common/database.js';
 import { getStatusBarHeight } from '@/utils/system.js';
 
 const barheight = ref(getStatusBarHeight());

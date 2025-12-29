@@ -111,7 +111,16 @@
 
 <script setup>
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { getStatusBarHeight } from '@/utils/system.js';
+import {
+  getChatMessages,
+  addChatMessage,
+  getSceneItems,
+  addSceneItem,
+  getDisposeItems,
+  addDisposeItem,
+} from '@/common/database.js';
 
 const barheight = ref(getStatusBarHeight());
 const tabs = [
@@ -121,23 +130,17 @@ const tabs = [
 ];
 const activeTab = ref(0);
 
-const messages = ref([
-  { id: 'd1', type: 'date', content: '2025年08月21日 10:00' },
-  { id: 'm1', user: '李警官', content: '我已到达现场，情绪基本稳定。', time: '10:20', self: false, avatar: '/static/avatar/a1.png' },
-  { id: 'm2', user: '王警官', content: '路上有点堵，预计10分钟后到。', time: '10:21', self: false, avatar: '/static/avatar/a2.png' },
-  { id: 'm3', user: '张警官', content: '建议联系家属协助疏导。', time: '10:22', self: true, avatar: '/static/avatar/me.png' },
-  { id: 'm4', user: '指挥席', content: '注意安全，先稳定情绪，等待增援。', time: '10:23', self: false, avatar: '/static/avatar/a3.png' },
-]);
+const messages = ref([]);
 const chatText = ref('');
 
-const sceneItems = ref([
-  { id: 's1', title: '现场照片', desc: '上传2张现场照', time: '10:18' },
-  { id: 's2', title: '报警人补充信息', desc: '情绪波动，需医生评估', time: '10:25' },
-]);
+const sceneItems = ref([]);
+const disposes = ref([]);
 
-const disposes = ref([
-  { id: 'd1', title: '处置进展', desc: '劝解成功，已联系家属陪同', time: '10:40' },
-]);
+function loadData() {
+  messages.value = getChatMessages();
+  sceneItems.value = getSceneItems();
+  disposes.value = getDisposeItems();
+}
 
 // 发送文字消息
 function sendText() {
@@ -145,7 +148,7 @@ function sendText() {
     uni.showToast({ title: '请输入内容', icon: 'none' });
     return;
   }
-  messages.value.push({
+  messages.value = addChatMessage({
     id: `m-${Date.now()}`,
     user: '我',
     content: chatText.value,
@@ -158,7 +161,7 @@ function sendText() {
 
 // 新增现场信息（模拟）
 function addScene() {
-  sceneItems.value.unshift({
+  sceneItems.value = addSceneItem({
     id: `s-${Date.now()}`,
     title: '新增现场信息',
     desc: '请在真实环境中替换为表单提交结果',
@@ -169,7 +172,7 @@ function addScene() {
 
 // 新增处置结果（模拟）
 function addDispose() {
-  disposes.value.unshift({
+  disposes.value = addDisposeItem({
     id: `d-${Date.now()}`,
     title: '新增处置结果',
     desc: '请在真实环境中替换为表单提交结果',
@@ -177,6 +180,8 @@ function addDispose() {
   });
   uni.showToast({ title: '已新增', icon: 'success' });
 }
+
+onShow(loadData);
 </script>
 
 <style lang="scss" scoped>

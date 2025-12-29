@@ -79,7 +79,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { addRegistration, endUse, getActiveRecord, getLastEndMileage, getVehicles, statusText } from './data.js';
+import { addRegistration, endUse, getActiveRecord, getLastEndMileage, getVehicles, statusText } from '@/common/database.js';
 import { getStatusBarHeight } from '@/utils/system.js';
 
 const barheight = ref(getStatusBarHeight());

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
 	<view class="userLayout pageBg">
 		<view class="statuBar" :style="{height: barheight+'px'}"></view>
 		<view class="userInfo">
@@ -20,7 +20,8 @@
 		    <l-grid-item text="OA" badge="5" image="/static/userFuns/oa.png" />
 		    <l-grid-item text="休假" badge="15" image="/static/userFuns/leave.png" />
 		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" />
-			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" @click="goToUseCar" />
+			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" @click="goDetail('car')" />
+			<l-grid-item text="交接班" badge="4" image="/static/userFuns/handwork.png" @click="goDetail('handwork')" />
 		</l-grid>
 
 	</view>
@@ -32,11 +33,21 @@ import { getStatusBarHeight } from "@/utils/system.js";
 
 const barheight = ref(getStatusBarHeight());
 
-const goToUseCar = () => {
-	uni.navigateTo({
-		url: '/pages/car/list'
-	});
-};
+
+
+function goDetail(item) {
+  
+ let target ='';
+  if (item === 'car') {
+	  //用车
+    target = '/pages/car/list';
+  } else if (item === 'handwork') {
+	  //交接班
+    target = '/pages/handwork/handwork';
+  } 
+  console.log(target);
+  uni.navigateTo({ url: target });
+}
 </script>
 
 <style lang="scss">
