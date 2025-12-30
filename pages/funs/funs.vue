@@ -67,7 +67,9 @@
 				url: '/pages/venue/rentalhouseVenue'
 			})
 		}else if (e === 'g') {
-			 
+			 uni.navigateTo({
+			 	url: '/pages/dispatch/assign'
+			 })
 		}
 		else if (e === 'h') {
 			

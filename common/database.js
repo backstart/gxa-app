@@ -30,17 +30,17 @@ export const statusText = {
 
 const defaults = {
   vehicles: [
-    { id: 'car-1', plate: '粤A-0001', type: 'SUV', status: 'idle', mileage: 23540, occupant: '', maintenanceDate: '2025-11-01', insurance: '2025-12-31' },
-    { id: 'car-2', plate: '粤A-0002', type: '轿车', status: 'in_use', mileage: 17890, occupant: '李警官', maintenanceDate: '2025-10-12', insurance: '2025-09-30' },
-    { id: 'car-3', plate: '粤A-0003', type: '面包车', status: 'maintenance', mileage: 41200, occupant: '', maintenanceDate: '2025-08-18', insurance: '2025-08-25' },
-    { id: 'car-4', plate: '粤A-0004', type: 'SUV', status: 'idle', mileage: 9650, occupant: '', maintenanceDate: '2026-01-05', insurance: '2025-12-20' },
+    { id: 'car-1', plate: '粤T0001', type: 'SUV', status: 'idle', mileage: 23540, occupant: '', maintenanceDate: '2025-11-01', insurance: '2025-12-31' },
+    { id: 'car-2', plate: '粤T0002', type: '轿车', status: 'in_use', mileage: 17890, occupant: '李警官', maintenanceDate: '2025-10-12', insurance: '2025-09-30' },
+    { id: 'car-3', plate: '粤T0003', type: '面包车', status: 'maintenance', mileage: 41200, occupant: '', maintenanceDate: '2025-08-18', insurance: '2025-08-25' },
+    { id: 'car-4', plate: '粤T0004', type: 'SUV', status: 'idle', mileage: 9650, occupant: '', maintenanceDate: '2026-01-05', insurance: '2025-12-20' },
   ],
   history: [
-    { id: 'his-1', applicant: '李警官', vehicleId: 'car-2', purpose: '临检', destination: '江北路口', startMileage: 17800, endMileage: 17890, status: 'completed', comment: '准时归队' },
+    { id: 'his-1', applicant: '李警官', vehicleId: 'car-2', purpose: '临检', destination: '路口', startMileage: 17800, endMileage: 17890, status: 'completed', comment: '准时归队' },
     { id: 'his-2', applicant: '赵警官', vehicleId: 'car-3', purpose: '物资运输', destination: '警务站', startMileage: 41000, endMileage: 41200, status: 'rejected', comment: '车辆维护中' },
   ],
   approvals: [
-    { id: 'ap-1', applicant: '李警官', vehicleId: 'car-2', purpose: '临检', destination: '江北路口', startMileage: 17800, endMileage: 17890, status: 'completed', comment: '' },
+    { id: 'ap-1', applicant: '李警官', vehicleId: 'car-2', purpose: '临检', destination: '桂南路口', startMileage: 17800, endMileage: 17890, status: 'completed', comment: '' },
   ],
   metrics: [
     { key: 'alert', title: '未回告警情', value: 7, desc: '待反馈警情' },
@@ -79,12 +79,12 @@ const defaults = {
   tasks: [
     { id: 'task-1', title: '龙石片区巡逻', address: '龙石片区', riskLevel: '中', status: 'pending', type: 'PATROL', deadline: '2025-12-31 18:00', feedbacks: [], url: '/pages/task/detail?taskId=task-1' },
     { id: 'task-2', title: '桂南市场守点', address: '桂南市场', riskLevel: '高', status: 'pending', type: 'PATROL', deadline: '2025-12-30 20:00', feedbacks: [], url: '/pages/task/detail?taskId=task-2' },
-    { id: 'task-3', title: '江北夜巡', address: '江北街道', riskLevel: '低', status: 'pending', type: 'PATROL', deadline: '2025-12-29 22:00', feedbacks: [], url: '/pages/task/detail?taskId=task-3' },
+    { id: 'task-3', title: '桂南夜巡', address: '桂南街道', riskLevel: '低', status: 'pending', type: 'PATROL', deadline: '2025-12-29 22:00', feedbacks: [], url: '/pages/task/detail?taskId=task-3' },
   ],
   disputes: [
     { id: 'dis-1', title: '邻里矛盾回访', address: '长命水社区', riskLevel: '中', url: '/pages/policeDetail/policeDetail' },
     { id: 'dis-2', title: '家庭纠纷调处', address: '龙石片区', riskLevel: '高', url: '/pages/policeDetail/policeDetail' },
-    { id: 'dis-3', title: '商铺噪音纠纷', address: '江北商业街', riskLevel: '低', url: '/pages/policeDetail/policeDetail' },
+    { id: 'dis-3', title: '商铺噪音纠纷', address: '桂南商业街', riskLevel: '低', url: '/pages/policeDetail/policeDetail' },
   ],
   keyPlaces: [
     { id: 'kp-1', name: '龙井坊KTV', address: '龙井路', riskLevel: '高', url: '/pages/venue/KTVVenue' },
@@ -93,17 +93,17 @@ const defaults = {
   ],
   keyPersons: [
     { id: 'person-1', name: '张*', community: '桂南社区', riskLevel: '高', url: '/pages/policeDetail/policeDetail' },
-    { id: 'person-2', name: '李*', community: '江北社区', riskLevel: '中', url: '/pages/policeDetail/policeDetail' },
+    { id: 'person-2', name: '李*', community: '桂南社区', riskLevel: '中', url: '/pages/policeDetail/policeDetail' },
     { id: 'person-3', name: '王*', community: '龙石社区', riskLevel: '低', url: '/pages/policeDetail/policeDetail' },
   ],
   patrolPoints: [
     { id: 'pt-1', name: '桂南路口卡点', address: '桂南片区', riskLevel: '中', url: '/pages/dispatch/detail' },
     { id: 'pt-2', name: '龙石广场', address: '龙石片区', riskLevel: '低', url: '/pages/dispatch/detail' },
-    { id: 'pt-3', name: '江北市场周界', address: '江北片区', riskLevel: '中', url: '/pages/dispatch/detail' },
+    { id: 'pt-3', name: '桂南市场周界', address: '桂南片区', riskLevel: '中', url: '/pages/dispatch/detail' },
   ],
   incidents: [
     { id: 'inc-1', title: '桂南路口纠纷', address: '桂南路口', riskLevel: '高', url: '/pages/policeDetail/policeDetail' },
-    { id: 'inc-2', title: '江北报警', address: '江北街道', riskLevel: '中', url: '/pages/policeDetail/policeDetail' },
+    { id: 'inc-2', title: '桂南报警', address: '桂南街道', riskLevel: '中', url: '/pages/policeDetail/policeDetail' },
     { id: 'inc-3', title: '龙石噪音警情', address: '龙石社区', riskLevel: '低', url: '/pages/policeDetail/policeDetail' },
   ],
   shifts: [
@@ -150,12 +150,12 @@ const defaults = {
       handoverTime: '2025-12-19 08:00',
       currentShift: 'B组-王警官',
       nextShift: { id: 'u1', name: 'A组-李警官' },
-      overallRemark: '巡逻点江北市场需关注，纠纷回访安排今日完成。',
+      overallRemark: '巡逻点桂南市场需关注，纠纷回访安排今日完成。',
       items: [
         {
           type: 'order',
           refId: 'disp-1001',
-          title: '派单-江北市场巡逻',
+          title: '派单-桂南市场巡逻',
           risk: '中',
           status: 'pending',
           assignedToUserId: 'u1',
@@ -207,7 +207,7 @@ const defaults = {
         {
           type: 'task',
           refId: 'task-3',
-          title: '江北夜巡',
+          title: '桂南夜巡',
           risk: '低',
           status: 'pending',
           assignedToUserId: 'u1',
@@ -245,7 +245,7 @@ const defaults = {
         {
           type: 'alert',
           refId: 'inc-2',
-          title: '江北报警',
+          title: '桂南报警',
           risk: '中',
           status: '未结',
           assignedToUserId: 'u3',

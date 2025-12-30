@@ -156,7 +156,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import qiunDataCharts from '@/uni_modules/qiun-data-charts/components/qiun-data-charts/qiun-data-charts.vue';
 
-const granularityOptions = ['day', 'week', 'month'];
+const granularityOptions = ['天', '周', '月'];
 const periodOptions = [
   { value: 7, label: '7天' },
   { value: 30, label: '30天' },
