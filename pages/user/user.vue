@@ -22,6 +22,7 @@
 		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" />
 			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" @click="goDetail('car')" />
 			<l-grid-item text="交接班" badge="4" image="/static/userFuns/handwork.png" @click="goDetail('handwork')" />
+			<l-grid-item text="申领" badge="4" image="/static/userFuns/applyfor.png" @click="goDetail('applyfor')" />
 		</l-grid>
 
 	</view>
