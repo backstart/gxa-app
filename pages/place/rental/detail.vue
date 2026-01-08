@@ -8,10 +8,6 @@
           <view class="place-name">{{ place.name }}</view>
           <view class="place-sub">出租屋</view>
         </view>
-        <view class="header-actions">
-          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
-          <button size="mini" class="ghost-btn" @click="goDispatch">一键派单</button>
-        </view>
       </view>
 
       <view class="info-grid">
@@ -42,9 +38,7 @@
         <text class="value">{{ place.lastVisitAt || '暂无记录' }}</text>
       </view>
 
-      <view class="chips">
-        <text class="chip" v-for="tag in tags" :key="tag">{{ tag }}</text>
-      </view>
+      <com-tag :taglist="tagList"></com-tag>
     </view>
 
     <view class="tab-bar">
@@ -62,9 +56,6 @@
 
     <view class="card tab-card">
       <view v-if="activeTab === 'rooms'">
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn">新增房间</button>
-        </view>
         <view class="room-grid">
           <view
             v-for="room in rooms"
@@ -81,11 +72,8 @@
       </view>
 
       <view v-else-if="activeTab === 'records'">
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
-        </view>
-        <view v-if="visits.length === 0" class="empty">暂无走访记录</view>
-        <view v-for="item in visits" :key="item.visitId" class="list-item" @click="openRecord(item)">
+        <view v-if="recordList.length === 0" class="empty">暂无走访记录</view>
+        <view v-for="item in recordList" :key="item.visitId" class="list-item" @click="openRecord(item)">
           <view class="thumb"></view>
           <view class="list-body">
             <view class="list-title">{{ item.content }}</view>
@@ -130,6 +118,10 @@
         <view v-if="moduleSummary(activeTab).length === 0" class="empty">请完善模块信息</view>
       </view>
     </view>
+
+    <view class="action-bar" v-if="actionVisible">
+      <button type="primary" class="action-btn" @click="handleAction">{{ actionLabel }}</button>
+    </view>
   </view>
 </template>
 
@@ -155,6 +147,18 @@ const tags = computed(() => {
   (place.value?.modules || []).forEach((m) => list.push(moduleLabel(m)));
   return Array.from(new Set(list));
 });
+const tagList = computed(() => tags.value.map((t) => ({ tag: t })));
+
+const actionLabel = computed(() => {
+  if (activeTab.value === 'rooms') return '新增房间';
+  if (activeTab.value === 'records') return '新增走访';
+  if (activeTab.value === 'archive') return '新增档案';
+  if (activeTab.value === 'incidents') return '新增关联警情';
+  if (activeTab.value.startsWith('module_')) return '完善模块信息';
+  return '';
+});
+
+const actionVisible = computed(() => !!actionLabel.value);
 
 const tabs = computed(() => {
   const base = [
@@ -171,6 +175,32 @@ const tabs = computed(() => {
   }));
   return [...base, ...moduleTabs];
 });
+
+const mockRecords = [
+  {
+    visitId: 'mock-1',
+    content: '入户登记核查，发现1户信息需补录。',
+    visitType: '例行走访',
+    visitAt: '2025-09-17 09:40',
+    visitorName: '张三',
+  },
+  {
+    visitId: 'mock-2',
+    content: '租住情况复核，住户信息一致。',
+    visitType: '信息核查',
+    visitAt: '2025-09-03 15:20',
+    visitorName: '李四',
+  },
+  {
+    visitId: 'mock-3',
+    content: '消防设施检查，通道畅通。',
+    visitType: '安全检查',
+    visitAt: '2025-08-26 19:05',
+    visitorName: '王五',
+  },
+];
+
+const recordList = computed(() => (visits.value.length ? visits.value : mockRecords));
 
 function loadData() {
   place.value = getPlaces().find((p) => p.placeId === placeId.value) || null;
@@ -218,6 +248,28 @@ function goModule(tabKey) {
     return;
   }
   uni.navigateTo({ url: `${base}?placeId=${placeId.value}` });
+}
+
+function handleAction() {
+  if (activeTab.value === 'rooms') {
+    uni.showToast({ title: '新增房间', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 'records') {
+    goVisit();
+    return;
+  }
+  if (activeTab.value === 'archive') {
+    uni.showToast({ title: '新增档案', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 'incidents') {
+    uni.showToast({ title: '新增关联警情', icon: 'none' });
+    return;
+  }
+  if (activeTab.value.startsWith('module_')) {
+    goModule(activeTab.value);
+  }
 }
 
 function updateRooms(roomsValue) {
@@ -274,7 +326,7 @@ onShow(loadData);
 <style lang="scss" scoped>
 .place-detail {
   min-height: 100vh;
-  padding: 0 24rpx 40rpx;
+  padding: 0 24rpx 140rpx;
 }
 .card {
   background: #fff;
@@ -393,6 +445,22 @@ onShow(loadData);
   display: flex;
   justify-content: flex-end;
   margin-bottom: 10rpx;
+}
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12rpx 24rpx 24rpx;
+  background: #fff;
+  border-top: 1px solid #eef1f4;
+}
+.action-btn {
+  width: 100%;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 16rpx;
+  font-size: 30rpx;
 }
 .room-grid {
   display: grid;

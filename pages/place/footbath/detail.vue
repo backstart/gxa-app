@@ -8,10 +8,6 @@
           <view class="place-name">{{ place.name }}</view>
           <view class="place-sub">足浴</view>
         </view>
-        <view class="header-actions">
-          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
-          <button size="mini" class="ghost-btn" @click="goDispatch">一键派单</button>
-        </view>
       </view>
 
       <view class="info-grid">
@@ -42,9 +38,7 @@
         <text class="value">{{ place.lastVisitAt || '暂无记录' }}</text>
       </view>
 
-      <view class="chips">
-        <text class="chip" v-for="tag in tags" :key="tag">{{ tag }}</text>
-      </view>
+      <com-tag :taglist="tagList"></com-tag>
     </view>
 
     <view class="tab-bar">
@@ -62,11 +56,8 @@
 
     <view class="card tab-card">
       <view v-if="activeTab === 'records'">
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
-        </view>
-        <view v-if="visits.length === 0" class="empty">暂无检查记录</view>
-        <view v-for="item in visits" :key="item.visitId" class="list-item" @click="openRecord(item)">
+        <view v-if="recordList.length === 0" class="empty">暂无检查记录</view>
+        <view v-for="item in recordList" :key="item.visitId" class="list-item" @click="openRecord(item)">
           <view class="thumb"></view>
           <view class="list-body">
             <view class="list-title">{{ item.content }}</view>
@@ -77,9 +68,6 @@
       </view>
 
       <view v-else-if="activeTab === 'staff'">
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn">新增人员</button>
-        </view>
         <view v-if="staffList.length === 0" class="empty">暂无从业人员信息</view>
         <view v-for="item in staffList" :key="item.id" class="list-item">
           <view class="thumb"></view>
@@ -126,6 +114,10 @@
         <view v-if="moduleSummary(activeTab).length === 0" class="empty">请完善模块信息</view>
       </view>
     </view>
+
+    <view class="action-bar" v-if="actionVisible">
+      <button type="primary" class="action-btn" @click="handleAction">{{ actionLabel }}</button>
+    </view>
   </view>
 </template>
 
@@ -161,6 +153,7 @@ const tags = computed(() => {
   (place.value?.modules || []).forEach((m) => list.push(moduleLabel(m)));
   return Array.from(new Set(list));
 });
+const tagList = computed(() => tags.value.map((t) => ({ tag: t })));
 
 const expiringCount = computed(() => {
   const date = profile.value?.primary?.licenseDue;
@@ -182,6 +175,43 @@ const tabs = computed(() => {
   }));
   return [...base, ...moduleTabs];
 });
+
+const mockRecords = [
+  {
+    visitId: 'mock-1',
+    content: '检查包间卫生与消防设施，情况正常。',
+    visitType: '例行检查',
+    visitAt: '2025-09-15 16:10',
+    visitorName: '张三',
+  },
+  {
+    visitId: 'mock-2',
+    content: '从业人员证件核验，记录齐全。',
+    visitType: '证件核验',
+    visitAt: '2025-09-01 20:30',
+    visitorName: '李四',
+  },
+  {
+    visitId: 'mock-3',
+    content: '排查涉黄风险，暂未发现问题。',
+    visitType: '专项检查',
+    visitAt: '2025-08-23 11:50',
+    visitorName: '王五',
+  },
+];
+
+const recordList = computed(() => (visits.value.length ? visits.value : mockRecords));
+
+const actionLabel = computed(() => {
+  if (activeTab.value === 'records') return '新增走访';
+  if (activeTab.value === 'staff') return '新增人员';
+  if (activeTab.value === 'archive') return '新增档案';
+  if (activeTab.value === 'incidents') return '新增关联警情';
+  if (activeTab.value.startsWith('module_')) return '完善模块信息';
+  return '';
+});
+
+const actionVisible = computed(() => !!actionLabel.value);
 
 function loadData() {
   place.value = getPlaces().find((p) => p.placeId === placeId.value) || null;
@@ -229,6 +259,28 @@ function goModule(tabKey) {
     return;
   }
   uni.navigateTo({ url: `${base}?placeId=${placeId.value}` });
+}
+
+function handleAction() {
+  if (activeTab.value === 'records') {
+    goVisit();
+    return;
+  }
+  if (activeTab.value === 'staff') {
+    uni.showToast({ title: '新增人员', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 'archive') {
+    uni.showToast({ title: '新增档案', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 'incidents') {
+    uni.showToast({ title: '新增关联警情', icon: 'none' });
+    return;
+  }
+  if (activeTab.value.startsWith('module_')) {
+    goModule(activeTab.value);
+  }
 }
 
 function goVisit() {
@@ -281,7 +333,7 @@ onShow(loadData);
 <style lang="scss" scoped>
 .place-detail {
   min-height: 100vh;
-  padding: 0 24rpx 40rpx;
+  padding: 0 24rpx 140rpx;
 }
 .card {
   background: #fff;
@@ -400,6 +452,22 @@ onShow(loadData);
   display: flex;
   justify-content: flex-end;
   margin-bottom: 10rpx;
+}
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12rpx 24rpx 24rpx;
+  background: #fff;
+  border-top: 1px solid #eef1f4;
+}
+.action-btn {
+  width: 100%;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 16rpx;
+  font-size: 30rpx;
 }
 .list-item {
   display: flex;
