@@ -19,23 +19,23 @@
     {"path":"pages/dispatch/detail","style":{"navigationBarTitleText":"派单详情","navigationStyle":"custom"}},
     {"path":"pages/task/list","style":{"navigationBarTitleText":"任务列表","navigationStyle":"custom"}},
     {"path":"pages/task/detail","style":{"navigationBarTitleText":"任务详情","navigationStyle":"custom"}},
+    {"path":"pages/place/index","style":{"navigationBarTitleText":"重点场所","navigationStyle":"custom"}},
+    {"path":"pages/place/list","style":{"navigationBarTitleText":"重点场所列表","navigationStyle":"custom"}},
+    {"path":"pages/place/visit/add","style":{"navigationBarTitleText":"新增走访","navigationStyle":"custom"}},
+    {"path":"pages/place/ktv/detail","style":{"navigationBarTitleText":"KTV详情","navigationStyle":"custom"}},
+    {"path":"pages/place/rental/detail","style":{"navigationBarTitleText":"出租屋详情","navigationStyle":"custom"}},
+    {"path":"pages/place/netbar/detail","style":{"navigationBarTitleText":"网吧详情","navigationStyle":"custom"}},
+    {"path":"pages/place/footbath/detail","style":{"navigationBarTitleText":"足浴详情","navigationStyle":"custom"}},
+    {"path":"pages/place/chess/detail","style":{"navigationBarTitleText":"棋牌详情","navigationStyle":"custom"}},
+    {"path":"pages/place/modules/billiard","style":{"navigationBarTitleText":"台球模块","navigationStyle":"custom"}},
+    {"path":"pages/place/modules/chessCard","style":{"navigationBarTitleText":"棋牌模块","navigationStyle":"custom"}},
+    {"path":"pages/place/modules/netbar","style":{"navigationBarTitleText":"网吧模块","navigationStyle":"custom"}},
+    {"path":"pages/place/modules/footbath","style":{"navigationBarTitleText":"足浴模块","navigationStyle":"custom"}},
     {"path":"pages/handwork/handwork","style":{"navigationBarTitleText":"交接班安排","navigationStyle":"custom"}},
     {"path":"pages/handwork/history","style":{"navigationBarTitleText":"交接班历史","navigationStyle":"custom"}},
-	{
-		"path": "pages/handwork/detail",
-		"style": {
-			"navigationBarTitleText": "交接详情",
-			"navigationStyle": "custom"
-		}
-	},
-	{
-		"path": "pages/analysis/analysis",
-		"style": {
-			"navigationBarTitleText": ""
-		}
-	}
+    {"path":"pages/handwork/detail","style":{"navigationBarTitleText":"交接详情","navigationStyle":"custom"}},
+    {"path":"pages/analysis/analysis","style":{"navigationBarTitleText":""}}
   ],
-
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "uni-app",

@@ -157,6 +157,7 @@ import {
   addDispatch,
   getTodos,
   saveTodos,
+  getPlaces,
   getKeyPlaces,
   getKeyPersons,
   getDisputes,
@@ -201,6 +202,7 @@ const entitySheetVisible = ref(false);
 const userSheetVisible = ref(false);
 const entitySearch = ref('');
 const userSearch = ref('');
+const sourceModule = ref('');
 
 const currentEntityType = computed(() => {
   switch (form.taskType) {
@@ -234,7 +236,24 @@ const selectedEntities = computed(() => form.entities || []);
 
 const filteredEntities = computed(() => {
   let list = [];
-  if (currentEntityType.value === 'KEY_PLACE') list = getKeyPlaces();
+  if (currentEntityType.value === 'KEY_PLACE') {
+    const placeList = getPlaces().map((p) => ({
+      id: p.placeId,
+      name: p.name,
+      address: p.address,
+      area: p.area,
+      riskLevel: p.riskLevel || '中',
+      type: '重点场所',
+    }));
+    const legacy = getKeyPlaces().map((p) => ({
+      id: p.id,
+      name: p.name,
+      address: p.address,
+      riskLevel: p.riskLevel || '中',
+      type: '重点场所',
+    }));
+    list = [...placeList, ...legacy];
+  }
   if (currentEntityType.value === 'KEY_PERSON') list = getKeyPersons();
   if (currentEntityType.value === 'DISPUTE') list = getDisputes();
   if (currentEntityType.value === 'PATROL_POINT') list = getPatrolPoints();
@@ -268,6 +287,7 @@ function resetForm() {
   form.risk = '中';
   form.mustVisit = false;
   form.desc = '';
+  sourceModule.value = '';
 }
 
 function selectTaskType(val) {
@@ -357,8 +377,9 @@ function generateDesc() {
     return;
   }
   const name = form.entities[0].name || form.entities[0].title;
+  const moduleNote = sourceModule.value ? `重点检查【${moduleLabel(sourceModule.value)}】模块。` : '';
   const tplMap = {
-    PLACE_VISIT: `对娱乐场所【${name}】开展走访检查，核查台账与安全隐患，发现问题及时反馈整改。`,
+    PLACE_VISIT: `对娱乐场所【${name}】开展走访检查，核查台账与安全隐患，发现问题及时反馈整改。${moduleNote}`,
     KEY_PERSON_VISIT: `对重点人【${name}】进行走访核查，了解动态与风险，发现异常及时上报。`,
     INCIDENT_FOLLOW: `对警情【${name}】开展跟进处置，跟踪进展并及时反馈。`,
     DISPUTE_VISIT: `对纠纷【${name}】进行回访，了解进度与情绪，必要时再次介入调处。`,
@@ -371,6 +392,41 @@ function generateDesc() {
 
 function resetTemplate() {
   generateDesc();
+}
+
+function moduleLabel(type) {
+  const map = {
+    BILLIARD: '台球',
+    CHESS_CARD: '棋牌',
+    NETBAR: '网吧',
+    FOOTBATH: '足浴',
+    KTV: 'KTV',
+  };
+  return map[type] || type;
+}
+
+function applySource(query) {
+  if (!query || !query.sourceType) return;
+  if (query.sourceType === 'KEY_PLACE') {
+    form.taskType = 'PLACE_VISIT';
+    form.entityType = 'KEY_PLACE';
+    sourceModule.value = query.module || '';
+    const place = getPlaces().find((p) => p.placeId === query.sourceId) || null;
+    if (place) {
+      form.entities = [
+        {
+          id: place.placeId,
+          name: place.name,
+          address: place.address,
+          riskLevel: place.riskLevel || '中',
+          type: '重点场所',
+        },
+      ];
+    }
+    form.mustVisit = false;
+    updateRiskFromEntities();
+    generateDesc();
+  }
 }
 
 function validate() {
@@ -461,8 +517,9 @@ function submit() {
   uni.navigateTo({ url: `/pages/dispatch/detail?dispatchId=${dispatchRecord.dispatchId}` });
 }
 
-onLoad(() => {
+onLoad((query) => {
   resetForm();
+  applySource(query || {});
 });
 </script>
 
