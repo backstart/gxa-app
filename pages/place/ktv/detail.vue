@@ -8,10 +8,6 @@
           <view class="place-name">{{ place.name }}</view>
           <view class="place-sub">KTV/夜场</view>
         </view>
-        <view class="header-actions">
-          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
-          <button size="mini" class="ghost-btn" @click="goDispatch">一键派单</button>
-        </view>
       </view>
 
       <view class="info-grid">
@@ -42,9 +38,7 @@
         <text class="value">{{ place.lastVisitAt || '暂无记录' }}</text>
       </view>
 
-      <view class="chips">
-        <text class="chip" v-for="tag in tags" :key="tag">{{ tag }}</text>
-      </view>
+      <com-tag :taglist="tagList"></com-tag>
     </view>
 
     <view class="tab-bar">
@@ -65,13 +59,13 @@
         <view class="tab-actions">
           <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
         </view>
-        <view v-if="visits.length === 0" class="empty">暂无检查记录</view>
-        <view v-for="item in visits" :key="item.visitId" class="list-item" @click="openRecord(item)">
-          <view class="thumb"></view>
+        <view v-if="recordList.length === 0" class="empty">暂无检查记录</view>
+        <view v-for="item in recordList" :key="item.id" class="list-item" @click="openRecord(item)">
+          <image class="thumb" :src="item.img" mode="aspectFill"></image>
           <view class="list-body">
-            <view class="list-title">{{ item.content }}</view>
-            <view class="list-sub">类型：{{ item.visitType || '检查' }}</view>
-            <view class="list-meta">{{ item.visitAt }} · {{ item.visitorName || '--' }}</view>
+            <view class="list-title">{{ item.title }}</view>
+            <view class="list-sub">{{ item.maintxt }}</view>
+            <view class="list-meta">检查时间：{{ item.time }} · 人员：{{ item.inspector }}</view>
           </view>
         </view>
       </view>
@@ -81,8 +75,8 @@
           <button size="mini" class="ghost-btn">新增人员</button>
         </view>
         <view v-if="staffList.length === 0" class="empty">暂无从业人员信息</view>
-        <view v-for="item in staffList" :key="item.id" class="list-item">
-          <view class="thumb"></view>
+        <view v-for="item in staffList" :key="item.id" class="list-item" @click="openStaff(item)">
+          <image class="thumb" :src="item.thumb" mode="aspectFill"></image>
           <view class="list-body">
             <view class="list-title">{{ item.name }}</view>
             <view class="list-sub">{{ item.role }}</view>
@@ -92,6 +86,17 @@
       </view>
 
       <view v-else-if="activeTab === 'archive'">
+        <view class="tab-actions">
+          <button size="mini" class="ghost-btn">新增档案</button>
+        </view>
+        <view v-if="archiveList.length === 0" class="empty">暂无档案</view>
+        <view v-for="item in archiveList" :key="item.id" class="list-item" @click="openArchive(item)">
+          <image class="thumb" :src="item.img" mode="aspectFill"></image>
+          <view class="list-body">
+            <view class="list-title">{{ item.title }}</view>
+            <view class="list-sub">{{ item.maintxt }}</view>
+          </view>
+        </view>
         <view class="info-card">
           <view class="info-row"><text class="label">营业执照</text><text class="value">{{ profile?.primary.businessLicenseNo || '--' }}</text></view>
           <view class="info-row"><text class="label">到期</text><text :class="['value', dueClass(profile?.primary.businessLicenseDue)]">{{ profile?.primary.businessLicenseDue || '--' }}</text></view>
@@ -108,7 +113,7 @@
       <view v-else-if="activeTab === 'incidents'">
         <view v-if="incidents.length === 0" class="empty">暂无关联警情</view>
         <view v-for="item in incidents" :key="item.id" class="list-item" @click="openIncident(item)">
-          <view class="thumb"></view>
+          <image class="thumb" src="/static/venue/关联警情.png" mode="aspectFill"></image>
           <view class="list-body">
             <view class="list-title">{{ item.title }}</view>
             <view class="list-sub">{{ item.address }}</view>
@@ -130,6 +135,16 @@
         <view v-if="moduleSummary(activeTab).length === 0" class="empty">请完善模块信息</view>
       </view>
     </view>
+
+    <FloatPopupMenu
+      :menuItems="menuItems"
+      :disabled="false"
+      buttonBgColor="linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)"
+      activeButtonBgColor="linear-gradient(165deg, #FFD166 0%, #FF6B6B 100%)"
+      iconColor="#333333"
+      textColor="#333333"
+      @menuClick="onMenuClick"
+    />
   </view>
 </template>
 
@@ -137,6 +152,7 @@
 import { ref, computed, watch } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, getPlaceVisits, getIncidents } from '@/common/database.js';
+import FloatPopupMenu from '@/uni_modules/stars-Float-Popup-Menu/components/stars-Float-Popup-Menu/FloatPopupMenu.vue';
 
 const placeId = ref('');
 const place = ref(null);
@@ -158,7 +174,13 @@ const staffList = computed(() => {
   const list = [];
   const total = Math.min(count || 0, 6);
   for (let i = 0; i < total; i += 1) {
-    list.push({ id: `staff-${i}`, name: `安保${i + 1}号`, role: '安保人员', time: '2025-09-01' });
+    list.push({
+      id: `staff-${i}`,
+      name: `安保${i + 1}号`,
+      role: '安保人员',
+      thumb: '/static/venue/人员信息.png',
+      time: '2025-09-01',
+    });
   }
   return list;
 });
@@ -171,6 +193,64 @@ const tags = computed(() => {
   (place.value?.modules || []).forEach((m) => list.push(moduleLabel(m)));
   return Array.from(new Set(list));
 });
+
+const tagList = computed(() => tags.value.map((t) => ({ tag: t })));
+
+const recordList = computed(() =>
+  (visits.value.length ? visits.value : mockRecords).map((item, idx) => ({
+    id: item.visitId || `record-${idx}`,
+    title: item.title || '检查记录',
+    maintxt: item.content || '暂无描述',
+    img: '/static/venue/检查记录.png',
+    time: item.visitAt || '--',
+    inspector: item.visitorName || '--',
+  }))
+);
+
+const mockRecords = [
+  {
+    visitId: 'mock-1',
+    title: '安全检查',
+    content: '抽查包厢与消防通道，未发现安全隐患。',
+    visitAt: '2025-09-17 10:20',
+    visitorName: '张三、李四',
+  },
+  {
+    visitId: 'mock-2',
+    title: '证照核验',
+    content: '证照信息齐全，特行许可未到期。',
+    visitAt: '2025-09-05 15:10',
+    visitorName: '王五',
+  },
+  {
+    visitId: 'mock-3',
+    title: '未成年人排查',
+    content: '未发现未成年人入内，登记台账完整。',
+    visitAt: '2025-08-28 20:30',
+    visitorName: '赵六',
+  },
+];
+
+const archiveList = computed(() => [
+  {
+    id: 'archive-1',
+    title: '营业执照',
+    maintxt: `编号：${profile.value?.primary.businessLicenseNo || '--'}，到期：${profile.value?.primary.businessLicenseDue || '--'}`,
+    img: '/static/venue/档案.png',
+  },
+  {
+    id: 'archive-2',
+    title: '特行许可',
+    maintxt: `编号：${profile.value?.primary.specialLicenseNo || '--'}，到期：${profile.value?.primary.specialLicenseDue || '--'}`,
+    img: '/static/venue/档案.png',
+  },
+  {
+    id: 'archive-3',
+    title: '消防检查',
+    maintxt: `检查日期：${profile.value?.primary.fireCheckDate || '--'}`,
+    img: '/static/venue/档案.png',
+  },
+]);
 
 const tabs = computed(() => {
   const base = [
@@ -249,6 +329,23 @@ function goDispatch() {
   uni.navigateTo({ url: `/pages/dispatch/assign?sourceType=KEY_PLACE&sourceId=${placeId.value}` });
 }
 
+const menuItems = [
+  { icon: 'home', text: '新增走访', menuBgColor: 'linear-gradient(165deg, #2B5BDB 20%, #00C9FF 100%)', textColor: '#fff', iconColor: '#fff', action: 'visit' },
+  { icon: 'staff', text: '新增从业人员', menuBgColor: 'linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)', textColor: '#333', iconColor: '#333', action: 'staff' },
+  { icon: 'person', text: '新增档案', menuBgColor: 'linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)', textColor: '#fff', iconColor: '#fff', action: 'archive' },
+  { icon: 'scan', text: '信息修改', menuBgColor: 'linear-gradient(165deg, #7F5DFF 0%, #9F8CFF 100%)', textColor: '#fff', iconColor: '#fff', action: 'edit' },
+  { icon: 'plusempty', text: '一键派单', menuBgColor: 'linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)', textColor: '#333', iconColor: '#333', action: 'dispatch' },
+];
+
+function onMenuClick(item) {
+  const action = item.action;
+  if (action === 'visit') goVisit();
+  else if (action === 'staff') uni.showToast({ title: '新增从业人员', icon: 'none' });
+  else if (action === 'archive') uni.showToast({ title: '新增档案', icon: 'none' });
+  else if (action === 'edit') uni.showToast({ title: '信息修改', icon: 'none' });
+  else if (action === 'dispatch') goDispatch();
+}
+
 function callPhone(phone) {
   if (!phone) return;
   uni.makePhoneCall({ phoneNumber: phone });
@@ -260,7 +357,15 @@ function copyAddress() {
 }
 
 function openRecord(item) {
-  uni.showModal({ title: '检查记录', content: item.content || '--', showCancel: false });
+  uni.showModal({ title: item.title || '检查记录', content: item.maintxt || '--', showCancel: false });
+}
+
+function openStaff(item) {
+  uni.showModal({ title: item.name || '从业人员', content: item.role || '--', showCancel: false });
+}
+
+function openArchive(item) {
+  uni.showModal({ title: item.title || '档案', content: item.maintxt || '--', showCancel: false });
 }
 
 function openIncident(item) {
