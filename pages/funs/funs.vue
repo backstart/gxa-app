@@ -60,9 +60,9 @@
 		 
 		if (e === 'a') {
 			uni.navigateTo({
-				// url: '/pages/place/index'
+				url: '/pages/place/index'
 				 
-				url:  '/pages/venue/KTVVenue'
+				// url:  '/pages/venue/KTVVenue'
 			})
 		} else if (e === 'b') {
 			uni.navigateTo({

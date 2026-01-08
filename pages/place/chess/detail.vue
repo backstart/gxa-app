@@ -1,112 +1,190 @@
 <template>
   <view class="place-detail pageBg">
     <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">棋牌/麻将详情</view>
-        <view class="sub">{{ place?.name || '' }}</view>
-      </view>
-    </view>
 
-    <view class="card" v-if="place">
-      <view class="section-head">
-        <text class="section-title">场所概览</text>
+    <view class="card header-card" v-if="place">
+      <view class="header-top">
+        <view>
+          <view class="place-name">{{ place.name }}</view>
+          <view class="place-sub">棋牌/麻将</view>
+        </view>
+        <view class="header-actions">
+          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
+          <button size="mini" class="ghost-btn" @click="goDispatch">一键派单</button>
+        </view>
       </view>
-      <view class="row"><text class="label">地址</text><text class="value">{{ place.address }}</text></view>
-      <view class="row"><text class="label">类型</text><text class="value">棋牌/麻将</text></view>
-      <view class="row"><text class="label">风险</text><text class="value">{{ place.riskLevel }}</text></view>
-      <view class="row"><text class="label">下次走访</text><text class="value">{{ place.nextVisitDue }}</text></view>
+
+      <view class="info-grid">
+        <view class="info-item">
+          <text class="label">负责人</text>
+          <text class="value">{{ place.ownerName || '--' }}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">电话</text>
+          <text class="value link" @click="callPhone(place.ownerPhone)">{{ place.ownerPhone || '--' }}</text>
+        </view>
+        <view class="info-item" v-if="managerName">
+          <text class="label">管理员</text>
+          <text class="value">{{ managerName }}</text>
+        </view>
+        <view class="info-item" v-if="managerPhone">
+          <text class="label">电话</text>
+          <text class="value link" @click="callPhone(managerPhone)">{{ managerPhone }}</text>
+        </view>
+      </view>
+
+      <view class="info-line">
+        <text class="label">地址</text>
+        <text class="value link" @click="copyAddress">{{ place.address }}</text>
+      </view>
+      <view class="info-line">
+        <text class="label">最近走访</text>
+        <text class="value">{{ place.lastVisitAt || '暂无记录' }}</text>
+      </view>
+
       <view class="chips">
-        <text class="chip" v-for="m in place.modules" :key="m">{{ moduleLabel(m) }}</text>
+        <text class="chip" v-for="tag in tags" :key="tag">{{ tag }}</text>
       </view>
     </view>
 
-    <view class="card" v-if="profile">
-      <view class="section-head">
-        <text class="section-title">棋牌信息</text>
-      </view>
-      <view class="row"><text class="label">麻将台数</text><text class="value">{{ profile.primary.mahjongTableCount }}</text></view>
-      <view class="row"><text class="label">棋牌包间</text><text class="value">{{ profile.primary.chessRoomCount }}</text></view>
-      <view class="row"><text class="label">涉赌风险</text><text class="value">{{ profile.primary.riskGambleFlag ? '是' : '否' }}</text></view>
-      <view class="row"><text class="label">营业时间</text><text class="value">{{ profile.primary.businessHours }}</text></view>
-    </view>
-
-    <view class="card" v-if="place?.modules?.length">
-      <view class="section-head">
-        <text class="section-title">模块信息</text>
-      </view>
-      <view class="module-card" v-for="m in place.modules" :key="m" @click="goModule(m)">
-        <view class="module-title">{{ moduleLabel(m) }}</view>
-        <view class="module-sub">{{ moduleSummary(m) }}</view>
+    <view class="tab-bar">
+      <view
+        v-for="tab in tabs"
+        :key="tab.key"
+        :class="['tab-item', activeTab === tab.key ? 'active' : '']"
+        @click="activeTab = tab.key"
+      >
+        <text class="tab-icon">{{ tab.icon }}</text>
+        <text class="tab-label">{{ tab.label }}</text>
+        <text v-if="tab.badge" class="badge">{{ tab.badge }}</text>
       </view>
     </view>
 
-    <view class="card">
-      <view class="section-head">
-        <text class="section-title">走访记录</text>
-        <text class="section-sub">{{ visits.length }} 条</text>
+    <view class="card tab-card">
+      <view v-if="activeTab === 'records'">
+        <view class="tab-actions">
+          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
+        </view>
+        <view v-if="visits.length === 0" class="empty">暂无检查记录</view>
+        <view v-for="item in visits" :key="item.visitId" class="list-item" @click="openRecord(item)">
+          <view class="thumb"></view>
+          <view class="list-body">
+            <view class="list-title">{{ item.content }}</view>
+            <view class="list-sub">类型：{{ item.visitType || '检查' }}</view>
+            <view class="list-meta">{{ item.visitAt }} · {{ item.visitorName || '--' }}</view>
+          </view>
+        </view>
       </view>
-      <view v-if="visits.length === 0" class="empty">暂无走访记录</view>
-      <view v-for="item in visits" :key="item.visitId" class="visit-item">
-        <view class="visit-time">{{ item.visitAt }}</view>
-        <view class="visit-content">{{ item.content }}</view>
-      </view>
-    </view>
 
-    <view class="card actions">
-      <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
-      <button size="mini" class="ghost-btn" @click="goDispatch">一键派单</button>
-      <button size="mini" class="ghost-btn" @click="callOwner">拨号</button>
-      <button size="mini" class="ghost-btn" @click="copyAddress">复制地址</button>
+      <view v-else-if="activeTab === 'archive'">
+        <view class="info-card">
+          <view class="info-row"><text class="label">麻将台数</text><text class="value">{{ profile?.primary.mahjongTableCount || '--' }}</text></view>
+          <view class="info-row"><text class="label">棋牌包间</text><text class="value">{{ profile?.primary.chessRoomCount || '--' }}</text></view>
+          <view class="info-row"><text class="label">涉赌风险</text><text class="value">{{ profile?.primary.riskGambleFlag ? '是' : '否' }}</text></view>
+          <view class="info-row"><text class="label">营业时间</text><text class="value">{{ profile?.primary.businessHours || '--' }}</text></view>
+        </view>
+      </view>
+
+      <view v-else-if="activeTab === 'incidents'">
+        <view v-if="incidents.length === 0" class="empty">暂无关联警情</view>
+        <view v-for="item in incidents" :key="item.id" class="list-item" @click="openIncident(item)">
+          <view class="thumb"></view>
+          <view class="list-body">
+            <view class="list-title">{{ item.title }}</view>
+            <view class="list-sub">{{ item.address }}</view>
+            <view class="list-meta">{{ item.time || '--' }} · {{ item.riskLevel || '--' }}</view>
+          </view>
+        </view>
+      </view>
+
+      <view v-else>
+        <view class="tab-actions">
+          <button size="mini" class="ghost-btn" @click="goModule(activeTab)">进入模块详情</button>
+        </view>
+        <view class="info-card">
+          <view class="info-row" v-for="row in moduleSummary(activeTab)" :key="row.label">
+            <text class="label">{{ row.label }}</text>
+            <text class="value">{{ row.value }}</text>
+          </view>
+        </view>
+        <view v-if="moduleSummary(activeTab).length === 0" class="empty">请完善模块信息</view>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
-import { getPlaces, getPlaceProfiles, getPlaceVisits, updateProfile } from '@/common/database.js';
+import { getPlaces, getPlaceProfiles, getPlaceVisits, getIncidents } from '@/common/database.js';
 
 const placeId = ref('');
 const place = ref(null);
 const profile = ref(null);
 const visits = ref([]);
+const incidents = ref([]);
+const activeTab = ref('');
+
+const managerName = computed(() => place.value?.managerName || place.value?.manager?.name || '');
+const managerPhone = computed(() => place.value?.managerPhone || place.value?.manager?.phone || '');
+
+const tags = computed(() => {
+  const list = [];
+  if (place.value?.focusLevel === '重点') list.push('重点场所');
+  if (profile.value?.primary?.riskGambleFlag) list.push('涉赌风险');
+  (place.value?.modules || []).forEach((m) => list.push(moduleLabel(m)));
+  return Array.from(new Set(list));
+});
+
+const tabs = computed(() => {
+  const base = [
+    { key: 'records', label: '检查记录', icon: '📋', badge: visits.value.length || '' },
+    { key: 'archive', label: '档案', icon: '📁', badge: '' },
+    { key: 'incidents', label: '关联警情', icon: '📌', badge: incidents.value.length || '' },
+  ];
+  const moduleTabs = (place.value?.modules || []).map((m) => ({
+    key: `module_${m}`,
+    label: moduleLabel(m),
+    icon: '🧩',
+    badge: '',
+  }));
+  return [...base, ...moduleTabs];
+});
 
 function loadData() {
   place.value = getPlaces().find((p) => p.placeId === placeId.value) || null;
   profile.value = getPlaceProfiles().find((p) => p.placeId === placeId.value) || null;
-  visits.value = getPlaceVisits()
-    .filter((v) => v.placeId === placeId.value)
-    .sort((a, b) => (a.visitAt < b.visitAt ? 1 : -1));
+  visits.value = getPlaceVisits().filter((v) => v.placeId === placeId.value).sort((a, b) => (a.visitAt < b.visitAt ? 1 : -1));
+  incidents.value = getIncidents().slice(0, 4);
 }
 
+watch(tabs, (list) => {
+  if (!list.length) return;
+  if (!list.find((t) => t.key === activeTab.value)) {
+    activeTab.value = list[0].key;
+  }
+}, { immediate: true });
+
 function moduleLabel(type) {
-  const map = { BILLIARD: '台球', CHESS_CARD: '棋牌', NETBAR: '网吧', FOOTBATH: '足浴' };
+  const map = { BILLIARD: '台球', CHESS_CARD: '棋牌', NETBAR: '网吧', FOOTBATH: '足浴', KTV: 'KTV' };
   return map[type] || type;
 }
 
-function moduleSummary(type) {
+function moduleSummary(tabKey) {
+  if (!tabKey.startsWith('module_')) return [];
+  const type = tabKey.replace('module_', '');
   const data = profile.value?.modules?.[type];
-  if (!data) return '点击完善模块信息';
-  if (type === 'BILLIARD') return `台球桌 ${data.tableCount || 0}`;
-  if (type === 'NETBAR') return `机位 ${data.seatCount || 0}`;
-  return '查看模块详情';
+  if (!data) return [];
+  if (type === 'BILLIARD') return [{ label: '台球桌数', value: data.tableCount || 0 }, { label: '营业时间', value: data.businessHours || '--' }];
+  if (type === 'CHESS_CARD') return [{ label: '麻将台数', value: data.mahjongTableCount || 0 }, { label: '棋牌包间', value: data.chessRoomCount || 0 }];
+  if (type === 'NETBAR') return [{ label: '机位数', value: data.seatCount || 0 }, { label: '实名系统', value: data.realNameSystem || '--' }];
+  if (type === 'FOOTBATH') return [{ label: '包间数', value: data.roomCount || 0 }, { label: '从业人数', value: data.staffCount || 0 }];
+  return [];
 }
 
-function ensureModule(type) {
-  const modules = profile.value?.modules || {};
-  if (modules[type]) return;
-  const defaults = {
-    BILLIARD: { tableCount: 0, businessHours: '', hasCCTV: false, notes: '' },
-    NETBAR: { seatCount: 0, realNameSystem: '未知', minorControl: '未知', peakHours: '', hasCCTV: false },
-    FOOTBATH: { roomCount: 0, staffCount: 0, riskPornFlag: false, businessHours: '', licenseDue: '' },
-    CHESS_CARD: { mahjongTableCount: 0, chessRoomCount: 0, riskGambleFlag: false, businessHours: '', notes: '' },
-  };
-  updateProfile(placeId.value, { modules: { [type]: defaults[type] || {} } });
-}
-
-function goModule(type) {
-  ensureModule(type);
+function goModule(tabKey) {
+  if (!tabKey.startsWith('module_')) return;
+  const type = tabKey.replace('module_', '');
   const map = {
     BILLIARD: '/pages/place/modules/billiard',
     CHESS_CARD: '/pages/place/modules/chessCard',
@@ -114,7 +192,10 @@ function goModule(type) {
     FOOTBATH: '/pages/place/modules/footbath',
   };
   const base = map[type];
-  if (!base) return;
+  if (!base) {
+    uni.showToast({ title: '暂无模块页', icon: 'none' });
+    return;
+  }
   uni.navigateTo({ url: `${base}?placeId=${placeId.value}` });
 }
 
@@ -126,17 +207,22 @@ function goDispatch() {
   uni.navigateTo({ url: `/pages/dispatch/assign?sourceType=KEY_PLACE&sourceId=${placeId.value}` });
 }
 
-function callOwner() {
-  if (!place.value?.ownerPhone) {
-    uni.showToast({ title: '暂无电话', icon: 'none' });
-    return;
-  }
-  uni.makePhoneCall({ phoneNumber: place.value.ownerPhone });
+function callPhone(phone) {
+  if (!phone) return;
+  uni.makePhoneCall({ phoneNumber: phone });
 }
 
 function copyAddress() {
   if (!place.value?.address) return;
   uni.setClipboardData({ data: place.value.address });
+}
+
+function openRecord(item) {
+  uni.showModal({ title: '检查记录', content: item.content || '--', showCancel: false });
+}
+
+function openIncident(item) {
+  uni.showModal({ title: '关联警情', content: item.title || '--', showCancel: false });
 }
 
 onLoad((query) => {
@@ -150,113 +236,170 @@ onShow(loadData);
   min-height: 100vh;
   padding: 0 24rpx 40rpx;
 }
-.header {
-  padding: 10rpx 0 20rpx;
-  .title {
-    font-size: 44rpx;
-    font-weight: 700;
-    color: #1f2b3a;
-  }
-  .sub {
-    margin-top: 6rpx;
-    color: #6e7a89;
-    font-size: 26rpx;
-  }
-}
 .card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 16rpx;
+  background: #fff;
+  border-radius: 20rpx;
   padding: 18rpx;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.06);
   margin-bottom: 16rpx;
 }
-.section-head {
+.header-card {
+  padding: 20rpx;
+}
+.header-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10rpx;
-  .section-title {
-    font-size: 32rpx;
-    font-weight: 700;
-  }
-  .section-sub {
-    font-size: 24rpx;
-    color: #6e7a89;
-  }
+  align-items: flex-start;
+  margin-bottom: 12rpx;
 }
-.row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8rpx;
-  .label {
-    color: #6b7785;
-    font-size: 26rpx;
-  }
-  .value {
-    color: #1f2b3a;
-    font-size: 26rpx;
-  }
-}
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-  margin-top: 8rpx;
-}
-.chip {
-  padding: 6rpx 12rpx;
-  border-radius: 12rpx;
-  font-size: 22rpx;
-  background: #f4f6f8;
-  color: #344150;
-}
-.module-card {
-  padding: 14rpx;
-  border-radius: 12rpx;
-  background: #f6f8fb;
-  margin-bottom: 10rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-}
-.module-title {
-  font-size: 28rpx;
+.place-name {
+  font-size: 40rpx;
   font-weight: 700;
   color: #1f2b3a;
 }
-.module-sub {
+.place-sub {
   margin-top: 6rpx;
-  font-size: 24rpx;
   color: #6e7a89;
-}
-.visit-item {
-  padding: 10rpx 0;
-  border-bottom: 1px solid #f1f3f5;
-}
-.visit-item:last-child {
-  border-bottom: none;
-}
-.visit-time {
   font-size: 24rpx;
-  color: #6e7a89;
 }
-.visit-content {
-  margin-top: 4rpx;
-  font-size: 26rpx;
-  color: #1f2b3a;
-}
-.empty {
-  text-align: center;
-  color: #97a1ad;
-  padding: 10rpx 0;
-}
-.actions {
+.header-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
+  gap: 8rpx;
 }
 .ghost-btn {
   border: 1px solid #d0d6de;
   background: #fff;
   color: #1f2b3a;
   border-radius: 12rpx;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10rpx 20rpx;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+.info-line {
+  margin-top: 8rpx;
+  display: flex;
+  justify-content: space-between;
+}
+.label {
+  color: #6b7785;
+  font-size: 24rpx;
+}
+.value {
+  color: #1f2b3a;
+  font-size: 26rpx;
+}
+.value.link {
+  color: #0f75ff;
+}
+.chips {
+  margin-top: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+.chip {
+  padding: 6rpx 12rpx;
+  border-radius: 12rpx;
+  background: #f4f6f8;
+  font-size: 22rpx;
+  color: #344150;
+}
+.tab-bar {
+  display: flex;
+  gap: 12rpx;
+  padding: 6rpx 6rpx 12rpx;
+  overflow-x: auto;
+}
+.tab-item {
+  min-width: 140rpx;
+  background: #f6f8fb;
+  border-radius: 16rpx;
+  padding: 12rpx;
+  text-align: center;
+  position: relative;
+}
+.tab-item.active {
+  background: #eaf3ff;
+  color: #0f75ff;
+}
+.tab-icon {
+  font-size: 32rpx;
+  display: block;
+}
+.tab-label {
+  font-size: 24rpx;
+  margin-top: 4rpx;
+}
+.badge {
+  position: absolute;
+  top: 6rpx;
+  right: 10rpx;
+  background: #ff4d4f;
+  color: #fff;
+  font-size: 20rpx;
+  border-radius: 12rpx;
+  padding: 2rpx 8rpx;
+}
+.tab-card {
+  padding: 10rpx 18rpx 18rpx;
+}
+.tab-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10rpx;
+}
+.list-item {
+  display: flex;
+  gap: 12rpx;
+  padding: 12rpx 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+.list-item:last-child {
+  border-bottom: none;
+}
+.thumb {
+  width: 90rpx;
+  height: 90rpx;
+  border-radius: 12rpx;
+  background: #e9edf2;
+}
+.list-body {
+  flex: 1;
+}
+.list-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2b3a;
+}
+.list-sub {
+  margin-top: 4rpx;
+  font-size: 24rpx;
+  color: #6e7a89;
+}
+.list-meta {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #9aa3af;
+}
+.info-card {
+  background: #f6f8fb;
+  border-radius: 14rpx;
+  padding: 14rpx;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+.empty {
+  text-align: center;
+  color: #97a1ad;
+  padding: 20rpx 0;
 }
 </style>
