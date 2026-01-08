@@ -16,6 +16,10 @@ const KEYS = {
   patrolPoints: 'db_patrol_points',
   incidents: 'db_incidents',
   shifts: 'db_shifts',
+  cars: 'db_cars',
+  carUseLogs: 'db_car_use_logs',
+  policeDetails: 'db_police_details',
+  venueDetails: 'db_venue_details',
 };
 
 export const statusText = {
@@ -298,6 +302,138 @@ const defaults = {
       createdAt: '2025-12-16T00:00:00.000Z',
     },
   ],
+  cars: [
+    {
+      carId: 'car-1',
+      plateNo: 'GX0001',
+      name: 'Patrol 1',
+      status: 'IDLE',
+      currentOdo: 23540,
+      insuranceDue: '2025-12-31',
+      inspectionDue: '2025-11-15',
+      maintainDate: '2025-10-01',
+      maintainOdo: 23000,
+      nextMaintainOdo: 26000,
+      lastUseAt: '2025-12-20 09:00',
+    },
+    {
+      carId: 'car-2',
+      plateNo: 'GX0002',
+      name: 'Response',
+      status: 'IN_USE',
+      currentOdo: 17890,
+      insuranceDue: '2025-09-30',
+      inspectionDue: '2025-08-20',
+      maintainDate: '2025-07-01',
+      maintainOdo: 17000,
+      nextMaintainOdo: 20000,
+      lastUseAt: '2025-12-20 10:00',
+    },
+    {
+      carId: 'car-3',
+      plateNo: 'GX0003',
+      name: 'Support',
+      status: 'MAINTAIN',
+      currentOdo: 41200,
+      insuranceDue: '2025-08-25',
+      inspectionDue: '2025-08-18',
+      maintainDate: '2025-08-10',
+      maintainOdo: 40000,
+      nextMaintainOdo: 43000,
+      lastUseAt: '2025-12-18 14:30',
+    },
+    {
+      carId: 'car-4',
+      plateNo: 'GX0004',
+      name: 'Duty',
+      status: 'IDLE',
+      currentOdo: 9650,
+      insuranceDue: '2026-01-05',
+      inspectionDue: '2025-12-20',
+      maintainDate: '2025-09-01',
+      maintainOdo: 9000,
+      nextMaintainOdo: 12000,
+      lastUseAt: '2025-12-19 16:10',
+    },
+  ],
+  carUseLogs: [],
+  policeDetails: [
+    {
+      id: 'police-1',
+      title: '警情一',
+      caseNo: 'JJ202508210836',
+      description:
+        '群众张某报警称，其朋友李某因情绪不稳提出分手后，可能采取冲动行为，请求民警到场处置。',
+      reporter: '张某',
+      phone: '123456789',
+      address: 'XX市XX区XX街道XX小区3栋1单元',
+      receiveTime: '2025-08-01 10:06',
+    },
+  ],
+  venueDetails: [
+    {
+      id: 'ktv-1',
+      type: 'KTV',
+      name: '龙井坊KTV',
+      owner: { name: '张三', phone: '123456789' },
+      manager: { name: '李四', phone: '1855522365' },
+      address: 'XX市XX区XX街道XX小区3栋1单元',
+      lastCheckTime: '2025-08-01 10:06',
+      tags: [{ tag: '最小应急单位' }, { tag: '重点场所' }],
+      checkRecords: [
+        {
+          id: '1',
+          name: '安全检查',
+          maintxt: '抽查了三间包厢，暂未发现问题',
+          img: '/static/demofile/包房.jpg',
+          time: '2025-09-17',
+          inspector: '张三、李四',
+        },
+        {
+          id: '2',
+          name: '消防检查',
+          maintxt: '干粉灭火器齐全，未发现过期',
+          img: '/static/demofile/ktv灭火器.jpg',
+          time: '2025-09-17',
+          inspector: '李四',
+        },
+      ],
+      staffList: [
+        {
+          id: '1',
+          name: '上官婉儿',
+          maintxt: '贵州省贵阳市南明区龙洞堡见龙路38-15号',
+          age: '25岁',
+          img: '/static/demofile/大头照.jpg',
+          time: '2025-09-17',
+          position: '经理',
+        },
+        {
+          id: '2',
+          name: '大司命',
+          maintxt: '广东省深圳市南山区海天二路3号腾讯滨海大厦',
+          age: '25岁',
+          img: '/static/demofile/大头照.jpg',
+          time: '2021-04-17',
+          position: '前台',
+        },
+      ],
+      archiveList: [
+        {
+          id: '1',
+          title: '营业执照',
+          maintxt: '营业执照有效期至2027年',
+          img: '/static/demofile/营业执照.png',
+        },
+        {
+          id: '2',
+          title: '保安证',
+          maintxt: '张三的保安证',
+          img: '/static/demofile/保安证.png',
+        },
+      ],
+    },
+  ],
 };
 
 function clone(data) {
@@ -362,6 +498,20 @@ export const saveIncidents = (list) => uni.setStorageSync(KEYS.incidents, list);
 
 export const getShifts = () => ensure(KEYS.shifts, defaults.shifts);
 export const saveShifts = (list) => uni.setStorageSync(KEYS.shifts, list);
+
+export const getCars = () => ensure(KEYS.cars, defaults.cars);
+export const saveCars = (list) => uni.setStorageSync(KEYS.cars, list);
+
+export const getCarUseLogs = () => ensure(KEYS.carUseLogs, defaults.carUseLogs);
+export const saveCarUseLogs = (list) => uni.setStorageSync(KEYS.carUseLogs, list);
+
+export const getPoliceDetails = () => ensure(KEYS.policeDetails, defaults.policeDetails);
+export const savePoliceDetails = (list) => uni.setStorageSync(KEYS.policeDetails, list);
+export const getPoliceDetailById = (id) => getPoliceDetails().find((item) => item.id === id);
+
+export const getVenueDetails = () => ensure(KEYS.venueDetails, defaults.venueDetails);
+export const saveVenueDetails = (list) => uni.setStorageSync(KEYS.venueDetails, list);
+export const getVenueDetailById = (id) => getVenueDetails().find((item) => item.id === id);
 
 // Vehicle helpers
 export const getVehicleById = (id) => getVehicles().find((v) => v.id === id);
@@ -457,3 +607,10 @@ export function addDispatch(record) {
   saveDispatches(list);
   return list;
 }
+
+// Car helpers
+export const getOpenLogByCarId = (carId) =>
+  getCarUseLogs().find((log) => log.carId === carId && log.status === 'OPEN');
+
+export const getOpenLogByUserId = (userId) =>
+  getCarUseLogs().find((log) => log.userId === userId && log.status === 'OPEN');

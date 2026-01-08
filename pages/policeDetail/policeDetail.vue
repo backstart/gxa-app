@@ -1,34 +1,32 @@
 <template>
   <view class="page">
-    <view class="statuBar" :style="{height: barheight+'px'}"></view>
+    <view class="statuBar" :style="{ height: barheight + 'px' }"></view>
     <view class="head">
       <view class="title">
-        <view class="txt1">警情一</view>
+        <view class="txt1">{{ detail.title || '警情' }}</view>
         <view class="innum">
           <view class="txt_gray">警情编号：</view>
-          <view class="txtclick">JJ202508210836</view>
+          <view class="txtclick">{{ detail.caseNo || '-' }}</view>
         </view>
       </view>
-      <view class="introduction txt2">
-        群众张某报警称，其朋友李某因情绪不稳提出分手后，想冲动做危险行为，需民警赶赴现场劝解并处置。
-      </view>
+      <view class="introduction txt2">{{ detail.description || '' }}</view>
       <view class="pepoleinfo">
         <view class="flexrow">
           <view class="txt_gray">报警人：</view>
-          <view class="txtclick">张某</view>
+          <view class="txtclick">{{ detail.reporter || '-' }}</view>
         </view>
         <view class="flexrow">
           <view class="txt_gray">电话：</view>
-          <view class="txtclick">123456789</view>
+          <view class="txtclick">{{ detail.phone || '-' }}</view>
         </view>
       </view>
       <view class="address flexrow">
         <view class="txt_gray">地址：</view>
-        <view class="txtclick">XX市XX区XX街道XX小区3栋1单元</view>
+        <view class="txtclick">{{ detail.address || '-' }}</view>
       </view>
       <view class="time flexrow">
         <view class="txt_gray">接警时间：</view>
-        <view class="txt_gray_after">2025年8月21日 10:06</view>
+        <view class="txt_gray_after">{{ detail.receiveTime || '-' }}</view>
       </view>
       <com-tag></com-tag>
     </view>
@@ -48,11 +46,15 @@
       <view v-if="activeTab === 0" class="chat">
         <view class="section-head">
           <text class="section-title">聊天交流</text>
-          <text class="section-sub">群聊讨论该警情，仿微信样式</text>
+          <text class="section-sub">群聊讨论该警情</text>
         </view>
         <view class="chat-panel">
           <view class="messages">
-            <view v-for="msg in messages" :key="msg.id" :class="['msg-row', msg.self ? 'self' : '', msg.type === 'date' ? 'date-row' : '']">
+            <view
+              v-for="msg in messages"
+              :key="msg.id"
+              :class="['msg-row', msg.self ? 'self' : '', msg.type === 'date' ? 'date-row' : '']"
+            >
               <view v-if="msg.type === 'date'" class="date-badge">{{ msg.content }}</view>
               <template v-else>
                 <image class="avatar" :src="msg.avatar" mode="aspectFill"></image>
@@ -79,7 +81,7 @@
       <view v-else-if="activeTab === 1" class="scene">
         <view class="section-head">
           <text class="section-title">现场信息</text>
-          <text class="section-sub">照片、报警人信息、视频、现场情况</text>
+          <text class="section-sub">照片、报警人信息、现场情况</text>
         </view>
         <view class="scene-list">
           <view v-for="item in sceneItems" :key="item.id" class="scene-card">
@@ -111,7 +113,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getStatusBarHeight } from '@/utils/system.js';
 import {
   getChatMessages,
@@ -120,6 +122,8 @@ import {
   addSceneItem,
   getDisposeItems,
   addDisposeItem,
+  getPoliceDetails,
+  getPoliceDetailById,
 } from '@/common/database.js';
 
 const barheight = ref(getStatusBarHeight());
@@ -129,6 +133,8 @@ const tabs = [
   { key: 'dispose', label: '处置情况' },
 ];
 const activeTab = ref(0);
+const detailId = ref('');
+const detail = ref({});
 
 const messages = ref([]);
 const chatText = ref('');
@@ -140,9 +146,10 @@ function loadData() {
   messages.value = getChatMessages();
   sceneItems.value = getSceneItems();
   disposes.value = getDisposeItems();
+  const list = getPoliceDetails();
+  detail.value = detailId.value ? getPoliceDetailById(detailId.value) || list[0] || {} : list[0] || {};
 }
 
-// 发送文字消息
 function sendText() {
   if (!chatText.value) {
     uni.showToast({ title: '请输入内容', icon: 'none' });
@@ -159,7 +166,6 @@ function sendText() {
   chatText.value = '';
 }
 
-// 新增现场信息（模拟）
 function addScene() {
   sceneItems.value = addSceneItem({
     id: `s-${Date.now()}`,
@@ -170,7 +176,6 @@ function addScene() {
   uni.showToast({ title: '已新增', icon: 'success' });
 }
 
-// 新增处置结果（模拟）
 function addDispose() {
   disposes.value = addDisposeItem({
     id: `d-${Date.now()}`,
@@ -180,6 +185,10 @@ function addDispose() {
   });
   uni.showToast({ title: '已新增', icon: 'success' });
 }
+
+onLoad((query) => {
+  detailId.value = query.id || '';
+});
 
 onShow(loadData);
 </script>
