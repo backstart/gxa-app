@@ -136,15 +136,9 @@
       </view>
     </view>
 
-    <FloatPopupMenu
-      :menuItems="menuItems"
-      :disabled="false"
-      buttonBgColor="linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)"
-      activeButtonBgColor="linear-gradient(165deg, #FFD166 0%, #FF6B6B 100%)"
-      iconColor="#333333"
-      textColor="#333333"
-      @menuClick="onMenuClick"
-    />
+    <view class="action-bar" v-if="actionVisible">
+      <button type="primary" class="action-btn" @click="handleAction">{{ actionLabel }}</button>
+    </view>
   </view>
 </template>
 
@@ -152,7 +146,6 @@
 import { ref, computed, watch } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, getPlaceVisits, getIncidents } from '@/common/database.js';
-import FloatPopupMenu from '@/uni_modules/stars-Float-Popup-Menu/components/stars-Float-Popup-Menu/FloatPopupMenu.vue';
 
 const placeId = ref('');
 const place = ref(null);
@@ -273,6 +266,17 @@ const expiringCount = computed(() => {
   return dates.filter((d) => daysTo(d) <= 30).length;
 });
 
+const actionLabel = computed(() => {
+  if (activeTab.value === 'records') return '新增走访';
+  if (activeTab.value === 'staff') return '新增从业人员';
+  if (activeTab.value === 'archive') return '新增档案';
+  if (activeTab.value === 'incidents') return '新增关联警情';
+  if (activeTab.value.startsWith('module_')) return '完善模块信息';
+  return '';
+});
+
+const actionVisible = computed(() => !!actionLabel.value);
+
 function loadData() {
   place.value = getPlaces().find((p) => p.placeId === placeId.value) || null;
   profile.value = getPlaceProfiles().find((p) => p.placeId === placeId.value) || null;
@@ -329,21 +333,26 @@ function goDispatch() {
   uni.navigateTo({ url: `/pages/dispatch/assign?sourceType=KEY_PLACE&sourceId=${placeId.value}` });
 }
 
-const menuItems = [
-  { icon: 'home', text: '新增走访', menuBgColor: 'linear-gradient(165deg, #2B5BDB 20%, #00C9FF 100%)', textColor: '#fff', iconColor: '#fff', action: 'visit' },
-  { icon: 'staff', text: '新增从业人员', menuBgColor: 'linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)', textColor: '#333', iconColor: '#333', action: 'staff' },
-  { icon: 'person', text: '新增档案', menuBgColor: 'linear-gradient(165deg, #2B5BDB 0%, #00C9FF 100%)', textColor: '#fff', iconColor: '#fff', action: 'archive' },
-  { icon: 'scan', text: '信息修改', menuBgColor: 'linear-gradient(165deg, #7F5DFF 0%, #9F8CFF 100%)', textColor: '#fff', iconColor: '#fff', action: 'edit' },
-  { icon: 'plusempty', text: '一键派单', menuBgColor: 'linear-gradient(165deg, #FF6B6B 0%, #FFD166 100%)', textColor: '#333', iconColor: '#333', action: 'dispatch' },
-];
-
-function onMenuClick(item) {
-  const action = item.action;
-  if (action === 'visit') goVisit();
-  else if (action === 'staff') uni.showToast({ title: '新增从业人员', icon: 'none' });
-  else if (action === 'archive') uni.showToast({ title: '新增档案', icon: 'none' });
-  else if (action === 'edit') uni.showToast({ title: '信息修改', icon: 'none' });
-  else if (action === 'dispatch') goDispatch();
+function handleAction() {
+  if (activeTab.value === 'records') {
+    goVisit();
+    return;
+  }
+  if (activeTab.value === 'staff') {
+    uni.showToast({ title: '新增从业人员', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 'archive') {
+    uni.showToast({ title: '新增档案', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 'incidents') {
+    uni.showToast({ title: '新增关联警情', icon: 'none' });
+    return;
+  }
+  if (activeTab.value.startsWith('module_')) {
+    goModule(activeTab.value);
+  }
 }
 
 function callPhone(phone) {
@@ -396,7 +405,7 @@ onShow(loadData);
 <style lang="scss" scoped>
 .place-detail {
   min-height: 100vh;
-  padding: 0 24rpx 40rpx;
+  padding: 0 24rpx 140rpx;
 }
 .card {
   background: #fff;
@@ -569,5 +578,22 @@ onShow(loadData);
   text-align: center;
   color: #97a1ad;
   padding: 20rpx 0;
+}
+
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10rpx 20rpx 26rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -6rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+.action-btn {
+  width: 100%;
+  background: linear-gradient(90deg, #0f75ff, #56a0ff);
+  color: #fff;
+  border-radius: 12rpx;
 }
 </style>
