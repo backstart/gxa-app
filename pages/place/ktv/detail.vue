@@ -57,68 +57,105 @@
 
     <view class="card tab-card">
       <view v-if="activeTab === 'records'">
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn" @click="goVisit">新增走访</button>
-        </view>
         <view v-if="recordList.length === 0" class="empty">暂无检查记录</view>
-        <view v-for="item in recordList" :key="item.id" class="list-item" @click="openRecord(item)">
-          <image class="thumb" :src="item.img" mode="aspectFill"></image>
-          <view class="list-body">
-            <view class="list-title">{{ item.title }}</view>
-            <view class="list-sub">{{ item.maintxt }}</view>
-            <view class="list-meta">检查时间：{{ item.time }} · 人员：{{ item.inspector }}</view>
+        <view v-for="item in recordList" :key="item.id" class="listItem" @click="openRecord(item)">
+          <image class="listItemImage" :src="item.img" mode="aspectFill"></image>
+          <view class="listItemContent">
+            <view class="listItemTitle">{{ item.title }}</view>
+            <view class="listItemMeta">{{ item.maintxt }}</view>
+            <view class="listItemMeta">检查时间：{{ item.time }} · 人员：{{ item.inspector }}</view>
           </view>
         </view>
       </view>
 
       <view v-else-if="activeTab === 'staff'">
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn" @click="openAddStaff">新增人员</button>
+        <view class="filterBar">
+          <view class="filterItem" @click="toggleFilter('type')">
+            <text>{{ staffTypeFilter }}</text>
+            <text class="filterArrow">▼</text>
+          </view>
+          <view class="filterItem" @click="toggleFilter('status')">
+            <text>{{ staffStatusFilter }}</text>
+            <text class="filterArrow">▼</text>
+          </view>
         </view>
-        <view v-if="staffList.length === 0" class="empty">暂无从业人员信息</view>
-        <view v-for="item in staffList" :key="item.id" class="list-item" @click="openStaff(item)">
-          <image class="thumb" :src="item.thumb" mode="aspectFill"></image>
-          <view class="list-body">
-            <view class="list-title">{{ item.name }}</view>
-            <view class="list-sub">{{ item.role }}</view>
-            <view class="list-meta">登记时间：{{ item.time }}</view>
+        <view v-if="filterOpen" class="filterMask" @click="filterOpen = ''"></view>
+        <view v-if="filterOpen" class="filterPanel">
+          <view
+            v-for="item in filterOptions"
+            :key="item"
+            class="filterOption"
+            @click="selectFilter(item)"
+          >
+            {{ item }}
+          </view>
+        </view>
+        <view class="tabActionBar stats">
+          <text>总人数 {{ staffStats.total }}</text>
+          <text>在岗 {{ staffStats.onJob }}</text>
+          <text>离职 {{ staffStats.offJob }}</text>
+        </view>
+        <view v-if="filteredStaffList.length === 0" class="empty">暂无从业人员信息</view>
+        <view v-for="item in filteredStaffList" :key="item.id" class="listItem" @click="openStaff(item)">
+          <image class="listItemImage" :src="item.thumb" mode="aspectFill"></image>
+          <view class="listItemContent">
+            <view class="listItemTitle">
+              <text>{{ item.name }}</text>
+              <text class="placeTag placeTagPrimary">{{ item.staffType }}</text>
+              <text :class="['placeTag', statusTagClass(item.status)]">{{ item.status }}</text>
+            </view>
+            <view class="listItemMeta">
+              <text class="link" @click.stop="callPhone(item.phone)">{{ item.phone || '--' }}</text>
+              <text>证件 {{ item.idNoMasked || '--' }}</text>
+            </view>
           </view>
         </view>
       </view>
 
       <view v-else-if="activeTab === 'archive'">
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn" @click="openAddArchive">新增档案</button>
-        </view>
-        <view v-if="archiveList.length === 0" class="empty">暂无档案</view>
-        <view v-for="item in archiveList" :key="item.id" class="list-item" @click="openArchive(item)">
-          <image class="thumb" :src="item.img" mode="aspectFill"></image>
-          <view class="list-body">
-            <view class="list-title">{{ item.title }}</view>
-            <view class="list-sub">{{ item.maintxt }}</view>
+        <view class="sectionCard infoGrid">
+          <view class="infoItem">
+            <text class="infoLabel">营业执照</text>
+            <text class="infoValue">{{ profile?.primary.businessLicenseNo || '--' }}</text>
+            <text :class="['infoValue', dueClass(profile?.primary.businessLicenseDue)]">{{ profile?.primary.businessLicenseDue || '--' }}</text>
+          </view>
+          <view class="infoItem">
+            <text class="infoLabel">特行许可</text>
+            <text class="infoValue">{{ profile?.primary.specialLicenseNo || '--' }}</text>
+            <text :class="['infoValue', dueClass(profile?.primary.specialLicenseDue)]">{{ profile?.primary.specialLicenseDue || '--' }}</text>
+          </view>
+          <view class="infoItem">
+            <text class="infoLabel">消防检查</text>
+            <text class="infoValue">{{ profile?.primary.fireCheckDate || '--' }}</text>
+          </view>
+          <view class="infoItem">
+            <text class="infoLabel">基础信息</text>
+            <text class="infoValue">包厢 {{ profile?.primary.roomCount || '--' }}</text>
+            <text class="infoValue">安保 {{ profile?.primary.securityCount || '--' }}</text>
           </view>
         </view>
-        <view class="info-card">
-          <view class="info-row"><text class="label">营业执照</text><text class="value">{{ profile?.primary.businessLicenseNo || '--' }}</text></view>
-          <view class="info-row"><text class="label">到期</text><text :class="['value', dueClass(profile?.primary.businessLicenseDue)]">{{ profile?.primary.businessLicenseDue || '--' }}</text></view>
-          <view class="info-row"><text class="label">特行许可</text><text class="value">{{ profile?.primary.specialLicenseNo || '--' }}</text></view>
-          <view class="info-row"><text class="label">到期</text><text :class="['value', dueClass(profile?.primary.specialLicenseDue)]">{{ profile?.primary.specialLicenseDue || '--' }}</text></view>
-          <view class="info-row"><text class="label">消防检查</text><text class="value">{{ profile?.primary.fireCheckDate || '--' }}</text></view>
-          <view class="info-row"><text class="label">包厢数</text><text class="value">{{ profile?.primary.roomCount || '--' }}</text></view>
-          <view class="info-row"><text class="label">营业时间</text><text class="value">{{ profile?.primary.businessHours || '--' }}</text></view>
-          <view class="info-row"><text class="label">安保人数</text><text class="value">{{ profile?.primary.securityCount || '--' }}</text></view>
-          <view class="info-row"><text class="label">风险标记</text><text class="value">{{ riskFlagsText }}</text></view>
+
+        <view v-if="archiveList.length === 0" class="empty">暂无档案</view>
+        <view v-for="item in archiveList" :key="item.id" class="listItem" @click="openArchive(item)">
+          <image class="listItemImage" :src="item.img" mode="aspectFill"></image>
+          <view class="listItemContent">
+            <view class="listItemTitle">{{ item.title }}</view>
+            <view class="listItemMeta">
+              <text>{{ item.docNoText }}</text>
+              <text :class="['infoValue', dueClass(item.dueDate)]">{{ item.dueDate || '--' }}</text>
+            </view>
+          </view>
         </view>
       </view>
 
       <view v-else-if="activeTab === 'incidents'">
         <view v-if="incidents.length === 0" class="empty">暂无关联警情</view>
-        <view v-for="item in incidents" :key="item.id" class="list-item" @click="openIncident(item)">
-          <image class="thumb" src="/static/venue/关联警情.png" mode="aspectFill"></image>
-          <view class="list-body">
-            <view class="list-title">{{ item.title }}</view>
-            <view class="list-sub">{{ item.address }}</view>
-            <view class="list-meta">{{ item.time || '--' }} · {{ item.riskLevel || '--' }}</view>
+        <view v-for="item in incidents" :key="item.id" class="listItem" @click="openIncident(item)">
+          <image class="listItemImage" src="/static/venue/关联警情.png" mode="aspectFill"></image>
+          <view class="listItemContent">
+            <view class="listItemTitle">{{ item.title }}</view>
+            <view class="listItemMeta">{{ item.address }}</view>
+            <view class="listItemMeta">{{ item.time || '--' }} · {{ item.riskLevel || '--' }}</view>
           </view>
         </view>
       </view>
@@ -149,22 +186,41 @@
           <input class="formInput" v-model="staffForm.name" placeholder="必填" />
         </view>
         <view class="formRow">
-          <text class="formLabel">岗位</text>
-          <input class="formInput" v-model="staffForm.role" placeholder="如 安保人员" />
+          <text class="formLabel">性别</text>
+          <picker :range="genderOptions" @change="(e)=> staffForm.gender = genderOptions[e.detail.value]">
+            <view class="formInput">{{ staffForm.gender }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">人员类型</text>
+          <picker :range="staffTypeOptions.slice(1)" @change="(e)=> staffForm.staffType = staffTypeOptions.slice(1)[e.detail.value]">
+            <view class="formInput">{{ staffForm.staffType }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">状态</text>
+          <picker :range="staffStatusOptions.slice(1)" @change="(e)=> staffForm.status = staffStatusOptions.slice(1)[e.detail.value]">
+            <view class="formInput">{{ staffForm.status }}</view>
+          </picker>
         </view>
         <view class="formRow">
           <text class="formLabel">电话</text>
           <input class="formInput" v-model="staffForm.phone" placeholder="可选" />
         </view>
         <view class="formRow">
-          <text class="formLabel">入职日期</text>
-          <picker mode="date" @change="(e)=> staffForm.entryDate = e.detail.value">
-            <view class="formInput">{{ staffForm.entryDate || '请选择' }}</view>
-          </picker>
+          <text class="formLabel">身份证号</text>
+          <input class="formInput" v-model="staffForm.idNo" placeholder="可选，自动脱敏" />
         </view>
         <view class="formRow">
-          <text class="formLabel">证件</text>
-          <input class="formInput" v-model="staffForm.idNoMasked" placeholder="可选" />
+          <text class="formLabel">身份证照片</text>
+          <view class="photoRow">
+            <button size="mini" class="tabActionBtn ghost" @click="addIdPhoto('front')">正面示例</button>
+            <button size="mini" class="tabActionBtn ghost" @click="addIdPhoto('back')">反面示例</button>
+          </view>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">个人照片</text>
+          <button size="mini" class="tabActionBtn ghost" @click="addPortrait">添加示例</button>
         </view>
         <view class="formRow">
           <text class="formLabel">备注</text>
@@ -210,6 +266,56 @@
         </view>
       </view>
     </view>
+    <view v-if="staffDetailVisible" class="modalMask" @click.self="staffDetailVisible = false">
+      <view class="modalCard">
+        <view class="modalTitle">从业人员详情</view>
+        <view class="formRow">
+          <text class="formLabel">姓名</text>
+          <text>{{ staffDetail?.name || '--' }}</text>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">性别</text>
+          <text>{{ staffDetail?.gender || '未知' }}</text>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">类型</text>
+          <text>{{ staffDetail?.staffType || '其他' }}</text>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">状态</text>
+          <text>{{ staffDetail?.status || '在岗' }}</text>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">电话</text>
+          <text>{{ staffDetail?.phone || '--' }}</text>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">证件</text>
+          <text>{{ staffDetail?.idNoMasked || '--' }}</text>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">身份证照片</text>
+          <view class="photoRow">
+            <image v-for="(img, idx) in (staffDetail?.idCardPhotos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+            <text v-if="!(staffDetail?.idCardPhotos || []).length">--</text>
+          </view>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">个人照片</text>
+          <view class="photoRow">
+            <image v-for="(img, idx) in (staffDetail?.portraitPhotos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+            <text v-if="!(staffDetail?.portraitPhotos || []).length">--</text>
+          </view>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">备注</text>
+          <text>{{ staffDetail?.remark || '--' }}</text>
+        </view>
+        <view class="modalActions">
+          <button class="btnSave" @click="staffDetailVisible = false">关闭</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 <script setup>
@@ -230,13 +336,19 @@ const staffFormMode = ref('add');
 const archiveFormMode = ref('add');
 const editingStaffId = ref('');
 const editingArchiveId = ref('');
+const staffDetailVisible = ref(false);
+const staffDetail = ref(null);
 
 const staffForm = reactive({
   name: '',
-  role: '安保人员',
+  gender: '未知',
+  staffType: '保安',
+  status: '在岗',
   phone: '',
+  idNo: '',
   idNoMasked: '',
-  entryDate: '',
+  idCardPhotos: [],
+  portraitPhotos: [],
   remark: '',
 });
 
@@ -248,7 +360,19 @@ const archiveForm = reactive({
   photos: [],
 });
 
-const docTypeOptions = ['营业执照', '特行许可', '消防检查', '其他'];
+const docTypeOptions = ['营业执照', '特行许可', '消防检查', '健康证', '其他'];
+const genderOptions = ['男', '女', '未知'];
+const staffTypeOptions = ['全部', '保安', '前台', '服务员', '经理', '收银', '保洁', '其他'];
+const staffStatusOptions = ['全部', '在岗', '离职', '请假', '临时'];
+const staffTypeFilter = ref('全部');
+const staffStatusFilter = ref('全部');
+const filterOpen = ref('');
+
+const filterOptions = computed(() => {
+  if (filterOpen.value === 'type') return staffTypeOptions;
+  if (filterOpen.value === 'status') return staffStatusOptions;
+  return [];
+});
 
 const managerName = computed(() => place.value?.managerName || place.value?.manager?.name || '');
 const managerPhone = computed(() => place.value?.managerPhone || place.value?.manager?.phone || '');
@@ -264,14 +388,16 @@ const staffList = computed(() => {
     return members.map((item) => ({
       id: item.id,
       name: item.name,
-      role: item.role || '安保人员',
+      gender: item.gender || '未知',
+      staffType: item.staffType || '其他',
+      status: item.status || '在岗',
       phone: item.phone || '',
-      entryDate: item.entryDate || '',
-      remark: item.remark || '',
       idNoMasked: item.idNoMasked || '',
-      time: item.entryDate || item.createdAt?.slice(0, 10) || '--',
+      idCardPhotos: item.idCardPhotos || [],
+      portraitPhotos: item.portraitPhotos || [],
+      remark: item.remark || '',
+      time: item.updatedAt ? new Date(item.updatedAt).toISOString().slice(0, 10) : new Date(item.createdAt || Date.now()).toISOString().slice(0, 10),
       thumb: '/static/venue/人员信息.png',
-      _fromMock: false,
     }));
   }
   const count = profile.value?.primary?.securityCount || 0;
@@ -281,17 +407,36 @@ const staffList = computed(() => {
     list.push({
       id: `mock-staff-${i}`,
       name: `安保${i + 1}号`,
-      role: '安保人员',
+      gender: '未知',
+      staffType: '保安',
+      status: '在岗',
       phone: '',
-      entryDate: '',
-      remark: '',
       idNoMasked: '',
+      idCardPhotos: [],
+      portraitPhotos: [],
+      remark: '',
       time: '2025-09-01',
       thumb: '/static/venue/人员信息.png',
-      _fromMock: true,
     });
   }
   return list;
+});
+
+const filteredStaffList = computed(() => {
+  return staffList.value.filter((item) => {
+    const typeOk = staffTypeFilter.value === '全部' || item.staffType === staffTypeFilter.value;
+    const statusOk = staffStatusFilter.value === '全部' || item.status === staffStatusFilter.value;
+    return typeOk && statusOk;
+  });
+});
+
+const staffStats = computed(() => {
+  const list = staffList.value;
+  return {
+    total: list.length,
+    onJob: list.filter((s) => s.status === '在岗').length,
+    offJob: list.filter((s) => s.status === '离职').length,
+  };
 });
 
 const tags = computed(() => {
@@ -347,6 +492,8 @@ const archiveList = computed(() => {
       id: item.id,
       title: item.docType,
       maintxt: buildArchiveSummary(item),
+      docNoText: item.docNo ? `编号：${item.docNo}` : '编号：--',
+      dueDate: item.dueDate || '',
       img: item.photos?.[0] || '/static/venue/档案.png',
       raw: item,
     }));
@@ -497,28 +644,38 @@ function openRecord(item) {
 
 function openStaff(item) {
   uni.showActionSheet({
-    itemList: ['查看/编辑', '删除', '取消'],
+    itemList: ['查看详情', '编辑', '快速改状态', '删除', '取消'],
     success: (res) => {
-      if (res.tapIndex === 0) {
-        openEditStaff(item);
-      } else if (res.tapIndex === 1) {
-        confirmDeleteStaff(item);
-      }
+      if (res.tapIndex === 0) openStaffDetail(item);
+      if (res.tapIndex === 1) openEditStaff(item);
+      if (res.tapIndex === 2) quickUpdateStaffStatus(item);
+      if (res.tapIndex === 3) confirmDeleteStaff(item);
     },
   });
 }
 
 function openArchive(item) {
   uni.showActionSheet({
-    itemList: ['查看/编辑', '删除', '取消'],
+    itemList: ['查看/编辑', '删除', '复制摘要', '取消'],
     success: (res) => {
-      if (res.tapIndex === 0) {
-        openEditArchive(item);
-      } else if (res.tapIndex === 1) {
-        confirmDeleteArchive(item);
-      }
+      if (res.tapIndex === 0) openEditArchive(item);
+      if (res.tapIndex === 1) confirmDeleteArchive(item);
+      if (res.tapIndex === 2) copyArchiveSummary(item);
     },
   });
+}
+
+function toggleFilter(key) {
+  filterOpen.value = filterOpen.value === key ? '' : key;
+}
+
+function selectFilter(item) {
+  if (filterOpen.value === 'type') {
+    staffTypeFilter.value = item;
+  } else if (filterOpen.value === 'status') {
+    staffStatusFilter.value = item;
+  }
+  filterOpen.value = '';
 }
 
 function openIncident(item) {
@@ -529,10 +686,14 @@ function openAddStaff() {
   staffFormMode.value = 'add';
   editingStaffId.value = '';
   staffForm.name = '';
-  staffForm.role = '安保人员';
+  staffForm.gender = '未知';
+  staffForm.staffType = '保安';
+  staffForm.status = '在岗';
   staffForm.phone = '';
+  staffForm.idNo = '';
   staffForm.idNoMasked = '';
-  staffForm.entryDate = new Date().toISOString().slice(0, 10);
+  staffForm.idCardPhotos = [];
+  staffForm.portraitPhotos = [];
   staffForm.remark = '';
   staffFormVisible.value = true;
 }
@@ -542,10 +703,14 @@ function openEditStaff(item) {
   staffFormMode.value = 'edit';
   editingStaffId.value = item.id;
   staffForm.name = item.name || '';
-  staffForm.role = item.role || '安保人员';
+  staffForm.gender = item.gender || '未知';
+  staffForm.staffType = item.staffType || '保安';
+  staffForm.status = item.status || '在岗';
   staffForm.phone = item.phone || '';
+  staffForm.idNo = '';
   staffForm.idNoMasked = item.idNoMasked || '';
-  staffForm.entryDate = item.entryDate || '';
+  staffForm.idCardPhotos = item.idCardPhotos ? [...item.idCardPhotos] : [];
+  staffForm.portraitPhotos = item.portraitPhotos ? [...item.portraitPhotos] : [];
   staffForm.remark = item.remark || '';
   staffFormVisible.value = true;
 }
@@ -563,19 +728,25 @@ function saveStaff() {
     uni.showToast({ title: '电话需为数字', icon: 'none' });
     return;
   }
+  const masked = maskIdNo(staffForm.idNo);
   const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
   current.primary = current.primary || {};
   current.primary.staffMembers = current.primary.staffMembers || [];
+  const now = Date.now();
   if (staffFormMode.value === 'add') {
     current.primary.staffMembers.push({
       id: `staff_${Date.now()}`,
       name: staffForm.name,
-      role: staffForm.role,
+      gender: staffForm.gender,
+      staffType: staffForm.staffType,
+      status: staffForm.status,
       phone: staffForm.phone,
-      idNoMasked: staffForm.idNoMasked,
-      entryDate: staffForm.entryDate,
+      idNoMasked: masked,
+      idCardPhotos: [...staffForm.idCardPhotos],
+      portraitPhotos: [...staffForm.portraitPhotos],
       remark: staffForm.remark,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     });
   } else {
     const idx = current.primary.staffMembers.findIndex((m) => m.id === editingStaffId.value);
@@ -583,11 +754,15 @@ function saveStaff() {
       current.primary.staffMembers[idx] = {
         ...current.primary.staffMembers[idx],
         name: staffForm.name,
-        role: staffForm.role,
+        gender: staffForm.gender,
+        staffType: staffForm.staffType,
+        status: staffForm.status,
         phone: staffForm.phone,
-        idNoMasked: staffForm.idNoMasked,
-        entryDate: staffForm.entryDate,
+        idNoMasked: masked || current.primary.staffMembers[idx].idNoMasked,
+        idCardPhotos: [...staffForm.idCardPhotos],
+        portraitPhotos: [...staffForm.portraitPhotos],
         remark: staffForm.remark,
+        updatedAt: now,
       };
     }
   }
@@ -619,12 +794,16 @@ function ensureStaffMembersFromMock() {
   const mock = staffList.value.map((staff) => ({
     id: staff.id,
     name: staff.name,
-    role: staff.role,
+    gender: staff.gender || '未知',
+    staffType: staff.staffType || '保安',
+    status: staff.status || '在岗',
     phone: staff.phone || '',
     idNoMasked: staff.idNoMasked || '',
-    entryDate: staff.entryDate || '',
+    idCardPhotos: staff.idCardPhotos || [],
+    portraitPhotos: staff.portraitPhotos || [],
     remark: staff.remark || '',
-    createdAt: new Date().toISOString(),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   }));
   const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
   current.primary = current.primary || {};
@@ -675,7 +854,7 @@ function saveArchive() {
     dueDate: archiveForm.dueDate,
     note: archiveForm.note,
     photos: archiveForm.photos,
-    updatedAt: new Date().toISOString(),
+    updatedAt: Date.now(),
   };
   if (archiveFormMode.value === 'add') {
     current.primary.archives.unshift(payload);
@@ -744,6 +923,43 @@ function toggleArchivePhoto(enable) {
   }
 }
 
+function addIdPhoto(type) {
+  if (type === 'front') {
+    staffForm.idCardPhotos = ['/static/mock/id_front.png', staffForm.idCardPhotos[1]].filter(Boolean);
+  } else {
+    staffForm.idCardPhotos = [staffForm.idCardPhotos[0], '/static/mock/id_back.png'].filter(Boolean);
+  }
+}
+
+function addPortrait() {
+  staffForm.portraitPhotos = [...staffForm.portraitPhotos, '/static/mock/portrait.png'];
+}
+
+function openStaffDetail(item) {
+  staffDetail.value = item;
+  staffDetailVisible.value = true;
+}
+
+function quickUpdateStaffStatus(item) {
+  const options = staffStatusOptions.slice(1);
+  uni.showActionSheet({
+    itemList: options,
+    success: (res) => {
+      const status = options[res.tapIndex];
+      const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
+      current.primary = current.primary || {};
+      current.primary.staffMembers = current.primary.staffMembers || [];
+      const idx = current.primary.staffMembers.findIndex((m) => m.id === item.id);
+      if (idx >= 0) {
+        current.primary.staffMembers[idx] = { ...current.primary.staffMembers[idx], status, updatedAt: Date.now() };
+        profile.value = current;
+        persistProfile();
+        uni.showToast({ title: '状态已更新', icon: 'success' });
+      }
+    },
+  });
+}
+
 function buildArchiveSummary(item) {
   const parts = [];
   if (item.docNo) parts.push(`编号：${item.docNo}`);
@@ -763,6 +979,7 @@ function buildFallbackArchives() {
     photos: [],
     img: '/static/venue/档案.png',
     maintxt: `编号：${profile.value?.primary.businessLicenseNo || '--'}，到期：${profile.value?.primary.businessLicenseDue || '--'}`,
+    docNoText: profile.value?.primary.businessLicenseNo ? `编号：${profile.value?.primary.businessLicenseNo}` : '编号：--',
   });
   arr.push({
     id: 'archive-2',
@@ -773,6 +990,7 @@ function buildFallbackArchives() {
     photos: [],
     img: '/static/venue/档案.png',
     maintxt: `编号：${profile.value?.primary.specialLicenseNo || '--'}，到期：${profile.value?.primary.specialLicenseDue || '--'}`,
+    docNoText: profile.value?.primary.specialLicenseNo ? `编号：${profile.value?.primary.specialLicenseNo}` : '编号：--',
   });
   arr.push({
     id: 'archive-3',
@@ -783,6 +1001,7 @@ function buildFallbackArchives() {
     photos: [],
     img: '/static/venue/档案.png',
     maintxt: `检查日期：${profile.value?.primary.fireCheckDate || '--'}`,
+    docNoText: '编号：--',
   });
   return arr;
 }
@@ -801,6 +1020,27 @@ function applyArchiveToPrimary(primary, payload) {
   }
 }
 
+function maskIdNo(idNo) {
+  if (!idNo) return '';
+  const clean = idNo.trim();
+  if (clean.length <= 8) return clean;
+  return `${clean.slice(0, 4)}********${clean.slice(-4)}`;
+}
+
+function statusTagClass(status) {
+  if (status === '在岗') return 'placeTagNormal';
+  if (status === '离职') return 'placeTagWarning';
+  if (status === '请假') return 'placeTagPrimary';
+  return 'placeTagWarning';
+}
+
+function copyArchiveSummary(item) {
+  const docNo = item.raw?.docNo || '';
+  const due = item.raw?.dueDate || '';
+  const text = `【${item.title}】编号${docNo || '--'} 到期${due || '--'}`;
+  uni.setClipboardData({ data: text });
+}
+
 function daysTo(dateStr) {
   if (!dateStr) return 999;
   const now = new Date();
@@ -811,8 +1051,8 @@ function daysTo(dateStr) {
 
 function dueClass(dateStr) {
   const days = daysTo(dateStr);
-  if (days <= 7) return 'danger';
-  if (days <= 30) return 'warn';
+  if (days <= 7) return 'infoValueDanger';
+  if (days <= 30) return 'infoValueWarning';
   return '';
 }
 
@@ -888,6 +1128,39 @@ onShow(loadData);
 .value.link {
   color: #0f75ff;
 }
+.link {
+  color: #0f75ff;
+}
+.sectionCard {
+  background: #f6f8fb;
+  border-radius: 14rpx;
+  padding: 14rpx;
+  margin-bottom: 12rpx;
+}
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10rpx;
+}
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.infoLabel {
+  color: #6b7785;
+  font-size: 22rpx;
+}
+.infoValue {
+  color: #1f2b3a;
+  font-size: 24rpx;
+}
+.infoValueWarning {
+  color: #c88719;
+}
+.infoValueDanger {
+  color: #d64545;
+}
 .tab-bar {
   display: flex;
   gap: 12rpx;
@@ -927,43 +1200,143 @@ onShow(loadData);
 .tab-card {
   padding: 10rpx 18rpx 18rpx;
 }
-.tab-actions {
+.tabActionBar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
   margin-bottom: 10rpx;
 }
-.list-item {
+.tabActionBar.stats {
+  justify-content: flex-start;
+  color: #6e7a89;
+  font-size: 24rpx;
+  gap: 20rpx;
+}
+.filterBar {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 10rpx;
+}
+.filterItem {
+  flex: 1;
+  background: #f6f8fb;
+  border-radius: 12rpx;
+  padding: 12rpx 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #1f2b3a;
+  font-size: 24rpx;
+}
+.filterArrow {
+  color: #8a96a3;
+  font-size: 20rpx;
+}
+.filterMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 20;
+}
+.filterPanel {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  top: 340rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 12rpx 0;
+  z-index: 21;
+  box-shadow: 0 12rpx 30rpx rgba(0, 0, 0, 0.12);
+}
+.filterOption {
+  padding: 14rpx 24rpx;
+  font-size: 26rpx;
+  color: #1f2b3a;
+}
+.tabFilters {
+  display: flex;
+  gap: 10rpx;
+}
+.tabActionBtn {
+  background: #f4f6f8;
+  border-radius: 12rpx;
+  padding: 8rpx 14rpx;
+  font-size: 24rpx;
+  color: #1f2b3a;
+}
+.tabActionBtn.primary {
+  background: #0f75ff;
+  color: #fff;
+}
+.tabActionBtn.ghost {
+  background: #fff;
+  border: 1px solid #d0d6de;
+}
+.photoRow {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+.photoThumb {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 10rpx;
+  background: #e9edf2;
+}
+.listItem {
   display: flex;
   gap: 12rpx;
   padding: 12rpx 0;
   border-bottom: 1px solid #f1f3f5;
 }
-.list-item:last-child {
+.listItem:last-child {
   border-bottom: none;
 }
-.thumb {
+.listItemImage {
   width: 90rpx;
   height: 90rpx;
   border-radius: 12rpx;
   background: #e9edf2;
 }
-.list-body {
+.listItemContent {
   flex: 1;
 }
-.list-title {
+.listItemTitle {
   font-size: 28rpx;
   font-weight: 600;
   color: #1f2b3a;
+  display: flex;
+  gap: 8rpx;
+  align-items: center;
 }
-.list-sub {
+.listItemMeta {
   margin-top: 4rpx;
   font-size: 24rpx;
   color: #6e7a89;
+  display: flex;
+  justify-content: space-between;
 }
-.list-meta {
-  margin-top: 4rpx;
-  font-size: 22rpx;
-  color: #9aa3af;
+.placeTag {
+  padding: 4rpx 10rpx;
+  border-radius: 10rpx;
+  font-size: 20rpx;
+}
+.placeTagPrimary {
+  background: #eaf3ff;
+  color: #0f75ff;
+}
+.placeTagNormal {
+  background: #e6f7ed;
+  color: #1b9d5d;
+}
+.placeTagWarning {
+  background: #fff6e6;
+  color: #c88719;
 }
 .info-card {
   background: #f6f8fb;
