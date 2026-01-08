@@ -1,3 +1,4 @@
+﻿
 <template>
   <view class="place-detail pageBg">
     <view class="statuBar"></view>
@@ -72,7 +73,7 @@
 
       <view v-else-if="activeTab === 'staff'">
         <view class="tab-actions">
-          <button size="mini" class="ghost-btn">新增人员</button>
+          <button size="mini" class="ghost-btn" @click="openAddStaff">新增人员</button>
         </view>
         <view v-if="staffList.length === 0" class="empty">暂无从业人员信息</view>
         <view v-for="item in staffList" :key="item.id" class="list-item" @click="openStaff(item)">
@@ -87,7 +88,7 @@
 
       <view v-else-if="activeTab === 'archive'">
         <view class="tab-actions">
-          <button size="mini" class="ghost-btn">新增档案</button>
+          <button size="mini" class="ghost-btn" @click="openAddArchive">新增档案</button>
         </view>
         <view v-if="archiveList.length === 0" class="empty">暂无档案</view>
         <view v-for="item in archiveList" :key="item.id" class="list-item" @click="openArchive(item)">
@@ -139,13 +140,82 @@
     <view class="action-bar" v-if="actionVisible">
       <button type="primary" class="action-btn" @click="handleAction">{{ actionLabel }}</button>
     </view>
+
+    <view v-if="staffFormVisible" class="modalMask" @click.self="closeStaffForm">
+      <view class="modalCard">
+        <view class="modalTitle">{{ staffFormMode === 'add' ? '新增从业人员' : '编辑从业人员' }}</view>
+        <view class="formRow">
+          <text class="formLabel">姓名</text>
+          <input class="formInput" v-model="staffForm.name" placeholder="必填" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">岗位</text>
+          <input class="formInput" v-model="staffForm.role" placeholder="如 安保人员" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">电话</text>
+          <input class="formInput" v-model="staffForm.phone" placeholder="可选" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">入职日期</text>
+          <picker mode="date" @change="(e)=> staffForm.entryDate = e.detail.value">
+            <view class="formInput">{{ staffForm.entryDate || '请选择' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">证件</text>
+          <input class="formInput" v-model="staffForm.idNoMasked" placeholder="可选" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">备注</text>
+          <textarea class="formInput textarea" v-model="staffForm.remark" placeholder="可选"></textarea>
+        </view>
+        <view class="modalActions">
+          <button class="btnCancel" @click="closeStaffForm">取消</button>
+          <button class="btnSave" @click="saveStaff">保存</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="archiveFormVisible" class="modalMask" @click.self="closeArchiveForm">
+      <view class="modalCard">
+        <view class="modalTitle">{{ archiveFormMode === 'add' ? '新增档案' : '编辑档案' }}</view>
+        <view class="formRow">
+          <text class="formLabel">类型</text>
+          <picker :range="docTypeOptions" @change="(e)=> archiveForm.docType = docTypeOptions[e.detail.value]">
+            <view class="formInput">{{ archiveForm.docType || '请选择' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">编号</text>
+          <input class="formInput" v-model="archiveForm.docNo" placeholder="可选" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">到期日期</text>
+          <picker mode="date" @change="(e)=> archiveForm.dueDate = e.detail.value">
+            <view class="formInput">{{ archiveForm.dueDate || '请选择' }}</view>
+          </picker>
+        </view>
+        <view class="formRow switchRow">
+          <text class="formLabel">示例图片</text>
+          <switch :checked="archiveForm.photos.length > 0" @change="(e)=> toggleArchivePhoto(e.detail.value)" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">备注</text>
+          <textarea class="formInput textarea" v-model="archiveForm.note" placeholder="可选"></textarea>
+        </view>
+        <view class="modalActions">
+          <button class="btnCancel" @click="closeArchiveForm">取消</button>
+          <button class="btnSave" @click="saveArchive">保存</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
-
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, reactive } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
-import { getPlaces, getPlaceProfiles, getPlaceVisits, getIncidents } from '@/common/database.js';
+import { getPlaces, getPlaceProfiles, getPlaceVisits, getIncidents, savePlaceProfiles } from '@/common/database.js';
 
 const placeId = ref('');
 const place = ref(null);
@@ -153,6 +223,32 @@ const profile = ref(null);
 const visits = ref([]);
 const incidents = ref([]);
 const activeTab = ref('');
+
+const staffFormVisible = ref(false);
+const archiveFormVisible = ref(false);
+const staffFormMode = ref('add');
+const archiveFormMode = ref('add');
+const editingStaffId = ref('');
+const editingArchiveId = ref('');
+
+const staffForm = reactive({
+  name: '',
+  role: '安保人员',
+  phone: '',
+  idNoMasked: '',
+  entryDate: '',
+  remark: '',
+});
+
+const archiveForm = reactive({
+  docType: '',
+  docNo: '',
+  dueDate: '',
+  note: '',
+  photos: [],
+});
+
+const docTypeOptions = ['营业执照', '特行许可', '消防检查', '其他'];
 
 const managerName = computed(() => place.value?.managerName || place.value?.manager?.name || '');
 const managerPhone = computed(() => place.value?.managerPhone || place.value?.manager?.phone || '');
@@ -163,16 +259,36 @@ const riskFlagsText = computed(() => {
 });
 
 const staffList = computed(() => {
+  const members = profile.value?.primary?.staffMembers || [];
+  if (members.length) {
+    return members.map((item) => ({
+      id: item.id,
+      name: item.name,
+      role: item.role || '安保人员',
+      phone: item.phone || '',
+      entryDate: item.entryDate || '',
+      remark: item.remark || '',
+      idNoMasked: item.idNoMasked || '',
+      time: item.entryDate || item.createdAt?.slice(0, 10) || '--',
+      thumb: '/static/venue/人员信息.png',
+      _fromMock: false,
+    }));
+  }
   const count = profile.value?.primary?.securityCount || 0;
   const list = [];
   const total = Math.min(count || 0, 6);
   for (let i = 0; i < total; i += 1) {
     list.push({
-      id: `staff-${i}`,
+      id: `mock-staff-${i}`,
       name: `安保${i + 1}号`,
       role: '安保人员',
-      thumb: '/static/venue/人员信息.png',
+      phone: '',
+      entryDate: '',
+      remark: '',
+      idNoMasked: '',
       time: '2025-09-01',
+      thumb: '/static/venue/人员信息.png',
+      _fromMock: true,
     });
   }
   return list;
@@ -224,26 +340,19 @@ const mockRecords = [
   },
 ];
 
-const archiveList = computed(() => [
-  {
-    id: 'archive-1',
-    title: '营业执照',
-    maintxt: `编号：${profile.value?.primary.businessLicenseNo || '--'}，到期：${profile.value?.primary.businessLicenseDue || '--'}`,
-    img: '/static/venue/档案.png',
-  },
-  {
-    id: 'archive-2',
-    title: '特行许可',
-    maintxt: `编号：${profile.value?.primary.specialLicenseNo || '--'}，到期：${profile.value?.primary.specialLicenseDue || '--'}`,
-    img: '/static/venue/档案.png',
-  },
-  {
-    id: 'archive-3',
-    title: '消防检查',
-    maintxt: `检查日期：${profile.value?.primary.fireCheckDate || '--'}`,
-    img: '/static/venue/档案.png',
-  },
-]);
+const archiveList = computed(() => {
+  const archives = profile.value?.primary?.archives || [];
+  if (archives.length) {
+    return archives.map((item) => ({
+      id: item.id,
+      title: item.docType,
+      maintxt: buildArchiveSummary(item),
+      img: item.photos?.[0] || '/static/venue/档案.png',
+      raw: item,
+    }));
+  }
+  return buildFallbackArchives();
+});
 
 const tabs = computed(() => {
   const base = [
@@ -282,6 +391,23 @@ function loadData() {
   profile.value = getPlaceProfiles().find((p) => p.placeId === placeId.value) || null;
   visits.value = getPlaceVisits().filter((v) => v.placeId === placeId.value).sort((a, b) => (a.visitAt < b.visitAt ? 1 : -1));
   incidents.value = getIncidents().slice(0, 4);
+}
+
+function persistProfile() {
+  const list = getPlaceProfiles();
+  const current = profile.value || {
+    placeId: placeId.value,
+    primaryType: place.value?.primaryType || 'KTV',
+    primary: {},
+    modules: {},
+  };
+  current.primary = current.primary || {};
+  current.modules = current.modules || {};
+  const idx = list.findIndex((p) => p.placeId === placeId.value);
+  if (idx >= 0) list[idx] = current;
+  else list.unshift(current);
+  savePlaceProfiles(list);
+  loadData();
 }
 
 watch(tabs, (list) => {
@@ -339,11 +465,11 @@ function handleAction() {
     return;
   }
   if (activeTab.value === 'staff') {
-    uni.showToast({ title: '新增从业人员', icon: 'none' });
+    openAddStaff();
     return;
   }
   if (activeTab.value === 'archive') {
-    uni.showToast({ title: '新增档案', icon: 'none' });
+    openAddArchive();
     return;
   }
   if (activeTab.value === 'incidents') {
@@ -370,15 +496,309 @@ function openRecord(item) {
 }
 
 function openStaff(item) {
-  uni.showModal({ title: item.name || '从业人员', content: item.role || '--', showCancel: false });
+  uni.showActionSheet({
+    itemList: ['查看/编辑', '删除', '取消'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        openEditStaff(item);
+      } else if (res.tapIndex === 1) {
+        confirmDeleteStaff(item);
+      }
+    },
+  });
 }
 
 function openArchive(item) {
-  uni.showModal({ title: item.title || '档案', content: item.maintxt || '--', showCancel: false });
+  uni.showActionSheet({
+    itemList: ['查看/编辑', '删除', '取消'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        openEditArchive(item);
+      } else if (res.tapIndex === 1) {
+        confirmDeleteArchive(item);
+      }
+    },
+  });
 }
 
 function openIncident(item) {
   uni.showModal({ title: '关联警情', content: item.title || '--', showCancel: false });
+}
+
+function openAddStaff() {
+  staffFormMode.value = 'add';
+  editingStaffId.value = '';
+  staffForm.name = '';
+  staffForm.role = '安保人员';
+  staffForm.phone = '';
+  staffForm.idNoMasked = '';
+  staffForm.entryDate = new Date().toISOString().slice(0, 10);
+  staffForm.remark = '';
+  staffFormVisible.value = true;
+}
+
+function openEditStaff(item) {
+  ensureStaffMembersFromMock();
+  staffFormMode.value = 'edit';
+  editingStaffId.value = item.id;
+  staffForm.name = item.name || '';
+  staffForm.role = item.role || '安保人员';
+  staffForm.phone = item.phone || '';
+  staffForm.idNoMasked = item.idNoMasked || '';
+  staffForm.entryDate = item.entryDate || '';
+  staffForm.remark = item.remark || '';
+  staffFormVisible.value = true;
+}
+
+function closeStaffForm() {
+  staffFormVisible.value = false;
+}
+
+function saveStaff() {
+  if (!staffForm.name.trim()) {
+    uni.showToast({ title: '请填写姓名', icon: 'none' });
+    return;
+  }
+  if (staffForm.phone && !/^\d+$/.test(staffForm.phone)) {
+    uni.showToast({ title: '电话需为数字', icon: 'none' });
+    return;
+  }
+  const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
+  current.primary = current.primary || {};
+  current.primary.staffMembers = current.primary.staffMembers || [];
+  if (staffFormMode.value === 'add') {
+    current.primary.staffMembers.push({
+      id: `staff_${Date.now()}`,
+      name: staffForm.name,
+      role: staffForm.role,
+      phone: staffForm.phone,
+      idNoMasked: staffForm.idNoMasked,
+      entryDate: staffForm.entryDate,
+      remark: staffForm.remark,
+      createdAt: new Date().toISOString(),
+    });
+  } else {
+    const idx = current.primary.staffMembers.findIndex((m) => m.id === editingStaffId.value);
+    if (idx >= 0) {
+      current.primary.staffMembers[idx] = {
+        ...current.primary.staffMembers[idx],
+        name: staffForm.name,
+        role: staffForm.role,
+        phone: staffForm.phone,
+        idNoMasked: staffForm.idNoMasked,
+        entryDate: staffForm.entryDate,
+        remark: staffForm.remark,
+      };
+    }
+  }
+  profile.value = current;
+  persistProfile();
+  staffFormVisible.value = false;
+  uni.showToast({ title: '已保存', icon: 'success' });
+}
+
+function confirmDeleteStaff(item) {
+  ensureStaffMembersFromMock();
+  uni.showModal({
+    title: '删除人员',
+    content: '确认删除该从业人员？',
+    success: (res) => {
+      if (!res.confirm) return;
+      const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
+      current.primary = current.primary || {};
+      current.primary.staffMembers = current.primary.staffMembers || [];
+      current.primary.staffMembers = current.primary.staffMembers.filter((m) => m.id !== item.id);
+      profile.value = current;
+      persistProfile();
+    },
+  });
+}
+
+function ensureStaffMembersFromMock() {
+  if (profile.value?.primary?.staffMembers?.length) return;
+  const mock = staffList.value.map((staff) => ({
+    id: staff.id,
+    name: staff.name,
+    role: staff.role,
+    phone: staff.phone || '',
+    idNoMasked: staff.idNoMasked || '',
+    entryDate: staff.entryDate || '',
+    remark: staff.remark || '',
+    createdAt: new Date().toISOString(),
+  }));
+  const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
+  current.primary = current.primary || {};
+  current.primary.staffMembers = mock;
+  profile.value = current;
+}
+
+function openAddArchive() {
+  archiveFormMode.value = 'add';
+  editingArchiveId.value = '';
+  archiveForm.docType = '';
+  archiveForm.docNo = '';
+  archiveForm.dueDate = '';
+  archiveForm.note = '';
+  archiveForm.photos = [];
+  archiveFormVisible.value = true;
+}
+
+function openEditArchive(item) {
+  ensureArchivesFromFallback();
+  archiveFormMode.value = 'edit';
+  editingArchiveId.value = item.id;
+  const raw = item.raw || findArchiveById(item.id);
+  archiveForm.docType = raw?.docType || item.title || '';
+  archiveForm.docNo = raw?.docNo || '';
+  archiveForm.dueDate = raw?.dueDate || '';
+  archiveForm.note = raw?.note || '';
+  archiveForm.photos = raw?.photos ? [...raw.photos] : [];
+  archiveFormVisible.value = true;
+}
+
+function closeArchiveForm() {
+  archiveFormVisible.value = false;
+}
+
+function saveArchive() {
+  if (!archiveForm.docType) {
+    uni.showToast({ title: '请选择档案类型', icon: 'none' });
+    return;
+  }
+  const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
+  current.primary = current.primary || {};
+  current.primary.archives = current.primary.archives || [];
+  const payload = {
+    id: archiveFormMode.value === 'add' ? `archive_${Date.now()}` : editingArchiveId.value,
+    docType: archiveForm.docType,
+    docNo: archiveForm.docNo,
+    dueDate: archiveForm.dueDate,
+    note: archiveForm.note,
+    photos: archiveForm.photos,
+    updatedAt: new Date().toISOString(),
+  };
+  if (archiveFormMode.value === 'add') {
+    current.primary.archives.unshift(payload);
+  } else {
+    const idx = current.primary.archives.findIndex((m) => m.id === editingArchiveId.value);
+    if (idx >= 0) current.primary.archives[idx] = { ...current.primary.archives[idx], ...payload };
+  }
+  applyArchiveToPrimary(current.primary, payload);
+  profile.value = current;
+  persistProfile();
+  archiveFormVisible.value = false;
+  uni.showToast({ title: '已保存', icon: 'success' });
+}
+
+function confirmDeleteArchive(item) {
+  ensureArchivesFromFallback();
+  uni.showModal({
+    title: '删除档案',
+    content: '确认删除该档案？',
+    success: (res) => {
+      if (!res.confirm) return;
+      const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
+      current.primary = current.primary || {};
+      current.primary.archives = current.primary.archives || [];
+      current.primary.archives = current.primary.archives.filter((m) => m.id !== item.id);
+      if (item.title === '营业执照' && current.primary.businessLicenseNo === item.raw?.docNo) {
+        current.primary.businessLicenseNo = '';
+        current.primary.businessLicenseDue = '';
+      }
+      if (item.title === '特行许可' && current.primary.specialLicenseNo === item.raw?.docNo) {
+        current.primary.specialLicenseNo = '';
+        current.primary.specialLicenseDue = '';
+      }
+      profile.value = current;
+      persistProfile();
+    },
+  });
+}
+
+function ensureArchivesFromFallback() {
+  if (profile.value?.primary?.archives?.length) return;
+  const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
+  current.primary = current.primary || {};
+  current.primary.archives = buildFallbackArchives().map((item) => ({
+    id: item.id,
+    docType: item.title,
+    docNo: item.docNo || '',
+    dueDate: item.dueDate || '',
+    note: item.note || '',
+    photos: item.photos || [],
+    updatedAt: new Date().toISOString(),
+  }));
+  profile.value = current;
+}
+
+function findArchiveById(id) {
+  return profile.value?.primary?.archives?.find((m) => m.id === id);
+}
+
+function toggleArchivePhoto(enable) {
+  if (enable && archiveForm.photos.length === 0) {
+    archiveForm.photos.push('/static/venue/档案.png');
+  }
+  if (!enable) {
+    archiveForm.photos = [];
+  }
+}
+
+function buildArchiveSummary(item) {
+  const parts = [];
+  if (item.docNo) parts.push(`编号：${item.docNo}`);
+  if (item.dueDate) parts.push(`到期：${item.dueDate}`);
+  if (item.note) parts.push(item.note);
+  return parts.join('，') || '暂无摘要';
+}
+
+function buildFallbackArchives() {
+  const arr = [];
+  arr.push({
+    id: 'archive-1',
+    title: '营业执照',
+    docNo: profile.value?.primary?.businessLicenseNo || '',
+    dueDate: profile.value?.primary?.businessLicenseDue || '',
+    note: '',
+    photos: [],
+    img: '/static/venue/档案.png',
+    maintxt: `编号：${profile.value?.primary.businessLicenseNo || '--'}，到期：${profile.value?.primary.businessLicenseDue || '--'}`,
+  });
+  arr.push({
+    id: 'archive-2',
+    title: '特行许可',
+    docNo: profile.value?.primary?.specialLicenseNo || '',
+    dueDate: profile.value?.primary?.specialLicenseDue || '',
+    note: '',
+    photos: [],
+    img: '/static/venue/档案.png',
+    maintxt: `编号：${profile.value?.primary.specialLicenseNo || '--'}，到期：${profile.value?.primary.specialLicenseDue || '--'}`,
+  });
+  arr.push({
+    id: 'archive-3',
+    title: '消防检查',
+    docNo: '',
+    dueDate: profile.value?.primary?.fireCheckDate || '',
+    note: '',
+    photos: [],
+    img: '/static/venue/档案.png',
+    maintxt: `检查日期：${profile.value?.primary.fireCheckDate || '--'}`,
+  });
+  return arr;
+}
+
+function applyArchiveToPrimary(primary, payload) {
+  if (payload.docType === '营业执照') {
+    primary.businessLicenseNo = payload.docNo;
+    primary.businessLicenseDue = payload.dueDate;
+  }
+  if (payload.docType === '特行许可') {
+    primary.specialLicenseNo = payload.docNo;
+    primary.specialLicenseDue = payload.dueDate;
+  }
+  if (payload.docType === '消防检查') {
+    primary.fireCheckDate = payload.dueDate || primary.fireCheckDate || '';
+  }
 }
 
 function daysTo(dateStr) {
@@ -399,9 +819,9 @@ function dueClass(dateStr) {
 onLoad((query) => {
   placeId.value = query.placeId || '';
 });
+
 onShow(loadData);
 </script>
-
 <style lang="scss" scoped>
 .place-detail {
   min-height: 100vh;
@@ -467,19 +887,6 @@ onShow(loadData);
 }
 .value.link {
   color: #0f75ff;
-}
-.chips {
-  margin-top: 12rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-}
-.chip {
-  padding: 6rpx 12rpx;
-  border-radius: 12rpx;
-  background: #f4f6f8;
-  font-size: 22rpx;
-  color: #344150;
 }
 .tab-bar {
   display: flex;
@@ -595,5 +1002,82 @@ onShow(loadData);
   background: linear-gradient(90deg, #0f75ff, #56a0ff);
   color: #fff;
   border-radius: 12rpx;
+}
+
+.modalMask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modalCard {
+  width: 640rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.modalTitle {
+  font-size: 32rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+}
+
+.formRow {
+  margin-bottom: 12rpx;
+}
+
+.formLabel {
+  font-size: 24rpx;
+  color: #6b7785;
+  margin-bottom: 6rpx;
+  display: block;
+}
+
+.formInput {
+  width: 100%;
+  background: #f4f6f8;
+  border-radius: 12rpx;
+  padding: 12rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+}
+
+.textarea {
+  min-height: 120rpx;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.btnCancel {
+  background: #f4f6f8;
+  color: #1f2b3a;
+  border-radius: 12rpx;
+  padding: 8rpx 24rpx;
+}
+
+.btnSave {
+  background: linear-gradient(90deg, #0f75ff, #56a0ff);
+  color: #fff;
+  border-radius: 12rpx;
+  padding: 8rpx 24rpx;
 }
 </style>
