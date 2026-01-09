@@ -79,6 +79,13 @@
 				url: '/pages/analysis/analysis'
 			})
 		}
+	else if (e === 'e') {
+			
+			uni.navigateTo({
+				url: '/pages/person/index'
+			})
+		}
+	
 
 	}
 </script>
