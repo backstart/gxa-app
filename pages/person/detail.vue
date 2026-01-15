@@ -35,7 +35,7 @@
       <view v-if="activeTab === 0">
         <view class="panel-title">回访记录</view>
         <view v-if="visits.length === 0" class="empty">暂无回访记录</view>
-        <view v-for="item in visits" :key="item.id" class="record" @click="openVisitAction(item)">
+        <view v-for="item in visits" :key="item.id" class="record" @click="goVisitDetail(item)">
           <view class="record-top">
             <text>{{ item.visitType }}</text>
             <text>{{ item.visitAt }}</text>
@@ -44,6 +44,9 @@
           <view class="record-meta">
             <text>民警：{{ item.officerName || '-' }}</text>
             <text>下次回访：{{ item.nextVisitDue || '-' }}</text>
+          </view>
+          <view class="record-actions">
+            <text class="action-link" @click.stop="openVisitAction(item)">更多</text>
           </view>
         </view>
       </view>
@@ -221,14 +224,15 @@ function goEditProfile() {
 }
 
 // 回访记录操作（编辑/删除）
+function goVisitDetail(item) {
+  uni.navigateTo({ url: `/pages/person/visit/detail?personId=${personId.value}&visitId=${item.id}` });
+}
+
 function openVisitAction(item) {
   uni.showActionSheet({
-    itemList: ['编辑', '删除', '取消'],
+    itemList: ['删除', '取消'],
     success: (res) => {
-      if (res.tapIndex === 0) {
-        uni.navigateTo({ url: `/pages/person/visit/edit?personId=${personId.value}&visitId=${item.id}&mode=edit` });
-      }
-      if (res.tapIndex === 1) confirmDeleteVisit(item);
+      if (res.tapIndex === 0) confirmDeleteVisit(item);
     },
   });
 }
@@ -451,13 +455,22 @@ onShow(loadAll);
         font-size: 26rpx;
         color: #4f5a68;
       }
-      .record-meta {
-        margin-top: 6rpx;
-        display: flex;
-        justify-content: space-between;
-        font-size: 24rpx;
-        color: #6e7a89;
-      }
+    .record-meta {
+      margin-top: 6rpx;
+      display: flex;
+      justify-content: space-between;
+      font-size: 24rpx;
+      color: #6e7a89;
+    }
+    .record-actions {
+      margin-top: 6rpx;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .action-link {
+      color: #0f75ff;
+      font-size: 24rpx;
+    }
     }
     .info-grid {
       display: grid;

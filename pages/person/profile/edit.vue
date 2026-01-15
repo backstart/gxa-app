@@ -105,6 +105,16 @@ function load() {
     form.riskFactors = profile.riskFactors ? [...profile.riskFactors] : [];
     form.idCardPhotos = profile.idCardPhotos ? [...profile.idCardPhotos] : [];
     form.portraitPhotos = profile.portraitPhotos ? [...profile.portraitPhotos] : [];
+  } else {
+    form.gender = '未知';
+    form.birthday = '';
+    form.idNoFull = '';
+    form.domicile = '';
+    form.job = '';
+    form.phoneFull = '';
+    form.riskFactors = [];
+    form.idCardPhotos = [];
+    form.portraitPhotos = [];
   }
 }
 

@@ -26,6 +26,7 @@
     {"path":"pages/person/list","style":{"navigationBarTitleText":"重点人员列表","navigationStyle":"custom"}},
     {"path":"pages/person/detail","style":{"navigationBarTitleText":"重点人员详情","navigationStyle":"custom"}},
     {"path":"pages/person/visit/add","style":{"navigationBarTitleText":"新增回访","navigationStyle":"custom"}},
+    {"path":"pages/person/visit/detail","style":{"navigationBarTitleText":"回访详情","navigationStyle":"custom"}},
     {"path":"pages/person/visit/edit","style":{"navigationBarTitleText":"回访编辑","navigationStyle":"custom"}},
     {"path":"pages/person/profile/edit","style":{"navigationBarTitleText":"档案编辑","navigationStyle":"custom"}},
     {"path":"pages/person/measure/edit","style":{"navigationBarTitleText":"管控措施编辑","navigationStyle":"custom"}},

@@ -94,7 +94,7 @@ function load() {
       form.nextVisitDue = item.nextVisitDue || '';
       form.attachments = item.attachments ? [...item.attachments] : [];
       form.riskChanged = !!item.riskChanged;
-      form.riskLevel = person.value?.riskLevel || '中';
+      form.riskLevel = item.riskLevel || person.value?.riskLevel || '中';
     }
   } else {
     form.visitAt = formatDateTime(Date.now());
@@ -126,6 +126,7 @@ function save() {
       nextVisitDue: nextDue,
       attachments: [...form.attachments],
       riskChanged: form.riskChanged,
+      riskLevel: form.riskChanged ? form.riskLevel : '',
       createdAt: now,
       updatedAt: now,
     });
@@ -141,6 +142,7 @@ function save() {
         nextVisitDue: nextDue,
         attachments: [...form.attachments],
         riskChanged: form.riskChanged,
+        riskLevel: form.riskChanged ? form.riskLevel : list[idx].riskLevel,
         updatedAt: now,
       };
     }
