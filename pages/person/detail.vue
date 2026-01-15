@@ -4,11 +4,6 @@
 
     <view class="card overview">
       <view class="name">{{ maskName(person?.name) }}</view>
-      <view class="tags">
-        <view class="chip">{{ person?.personType }}</view>
-        <view :class="['chip', riskClass(person?.riskLevel)]">{{ person?.riskLevel }}</view>
-        <view :class="['chip', statusClass(person?.status)]">{{ person?.status }}</view>
-      </view>
       <view class="info">
         <view class="row"><text>责任民警</text><text>{{ person?.officerName || '-' }}</text></view>
         <view class="row"><text>电话</text><text>{{ maskPhone(person?.phone) }}</text></view>
@@ -19,14 +14,7 @@
           <text :class="dueClass(person?.nextVisitDue)">{{ dueText(person?.nextVisitDue) }}</text>
         </view>
       </view>
-      <view class="chip-row">
-        <view v-for="tag in person?.tags || []" :key="tag" class="tag">{{ tag }}</view>
-      </view>
-    </view>
-
-    <view class="quick-actions">
-      <button class="primary" size="mini" @click="dispatch">一键派单</button>
-      <button class="ghost" size="mini" @click="changeStatus">快速改状态</button>
+      <com-tag :taglist="tagList"></com-tag>
     </view>
 
     <view class="tabs">
@@ -44,10 +32,7 @@
 
     <view class="tab-panel card">
       <view v-if="activeTab === 0">
-        <view class="panel-head">
-          <view class="panel-title">回访记录</view>
-          <button class="primary" size="mini" @click="goAddVisit">新增回访</button>
-        </view>
+        <view class="panel-title">回访记录</view>
         <view v-if="visits.length === 0" class="empty">暂无回访记录</view>
         <view v-for="item in visits" :key="item.id" class="record">
           <view class="record-top">
@@ -113,11 +98,15 @@
         </view>
       </view>
     </view>
+
+    <view class="action-bar" v-if="actionVisible">
+      <button type="primary" class="action-btn" @click="handleAction">{{ actionLabel }}</button>
+    </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import {
   getKeyPersons,
@@ -143,6 +132,24 @@ const tabs = [
 ];
 
 const related = ref({ alerts: 2, disputes: 1, dispatches: 3 });
+const tagList = computed(() => {
+  const list = [];
+  if (person.value?.personType) list.push(person.value.personType);
+  if (person.value?.riskLevel) list.push(person.value.riskLevel);
+  if (person.value?.status) list.push(person.value.status);
+  (person.value?.tags || []).forEach((tag) => list.push(tag));
+  return list.map((tag) => ({ tag }));
+});
+
+const actionLabel = computed(() => {
+  if (activeTab.value === 0) return '新增回访';
+  if (activeTab.value === 1) return '新增档案';
+  if (activeTab.value === 2) return '新增关联';
+  if (activeTab.value === 3) return '新增措施';
+  return '';
+});
+
+const actionVisible = computed(() => !!actionLabel.value);
 
 function load() {
   person.value = getKeyPersonById(personId.value) || null;
@@ -225,6 +232,24 @@ function changeStatus() {
   });
 }
 
+function handleAction() {
+  if (activeTab.value === 0) {
+    goAddVisit();
+    return;
+  }
+  if (activeTab.value === 1) {
+    uni.showToast({ title: '新增档案', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 2) {
+    uni.showToast({ title: '新增关联', icon: 'none' });
+    return;
+  }
+  if (activeTab.value === 3) {
+    uni.showToast({ title: '新增措施', icon: 'none' });
+  }
+}
+
 onLoad((query) => {
   personId.value = query.personId || '';
 });
@@ -235,7 +260,7 @@ onShow(load);
 <style lang="scss" scoped>
 .person-detail {
   min-height: 100vh;
-  padding: 0 24rpx 40rpx;
+  padding: 0 24rpx 140rpx;
   .statuBar { height: 40rpx; }
   .card {
     background: rgba(255, 255, 255, 0.92);
@@ -250,23 +275,6 @@ onShow(load);
       font-weight: 700;
       color: #1f2b3a;
     }
-    .tags {
-      display: flex;
-      gap: 8rpx;
-      margin: 10rpx 0;
-      flex-wrap: wrap;
-    }
-    .chip {
-      padding: 6rpx 12rpx;
-      border-radius: 12rpx;
-      font-size: 24rpx;
-      background: #f6f8fb;
-      &.danger { background: #ffecec; color: #d64545; }
-      &.warn { background: #fff6e6; color: #c88719; }
-      &.low { background: #e6f7ed; color: #1b9d5d; }
-      &.ok { background: #eaf3ff; color: #0f75ff; }
-      &.muted { background: #f1f3f5; color: #6e7a89; }
-    }
     .info {
       .row {
         display: flex;
@@ -277,35 +285,6 @@ onShow(load);
         .danger { color: #d64545; }
         .warn { color: #c88719; }
       }
-    }
-    .chip-row {
-      margin-top: 8rpx;
-      display: flex;
-      gap: 8rpx;
-      flex-wrap: wrap;
-      .tag {
-        padding: 6rpx 12rpx;
-        border-radius: 12rpx;
-        font-size: 24rpx;
-        background: #eaf3ff;
-        color: #0f75ff;
-      }
-    }
-  }
-  .quick-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10rpx;
-    margin-bottom: 12rpx;
-    .primary {
-      background: #0f75ff;
-      color: #fff;
-      border: none;
-    }
-    .ghost {
-      background: #f6f8fb;
-      color: #0f75ff;
-      border: 1px solid #e1e8f0;
     }
   }
   .tabs {
@@ -415,6 +394,22 @@ onShow(load);
       text-align: center;
       color: #97a1ad;
     }
+  }
+  .action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12rpx 24rpx 24rpx;
+    background: #fff;
+    border-top: 1px solid #eef1f4;
+  }
+  .action-btn {
+    width: 100%;
+    height: 84rpx;
+    line-height: 84rpx;
+    border-radius: 16rpx;
+    font-size: 30rpx;
   }
 }
 </style>
