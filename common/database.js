@@ -15,6 +15,7 @@
   keyPersons: 'db_key_persons',
   keyPersonProfiles: 'db_key_person_profiles',
   keyPersonVisits: 'db_key_person_visits',
+  keyPersonMeasures: 'db_key_person_measures',
   patrolPoints: 'db_patrol_points',
   incidents: 'db_incidents',
   shifts: 'db_shifts',
@@ -729,6 +730,7 @@ const defaults = {
       attachments: [],
     },
   ],
+  keyPersonMeasures: [],
   patrolPoints: [
     { id: 'pt-1', name: '桂南路口卡点', address: '桂南片区', riskLevel: '中', url: '/pages/dispatch/detail' },
     { id: 'pt-2', name: '龙石广场', address: '龙石片区', riskLevel: '低', url: '/pages/dispatch/detail' },
@@ -1302,6 +1304,9 @@ export const saveKeyPersonProfiles = (list) => uni.setStorageSync(KEYS.keyPerson
 
 export const getKeyPersonVisits = () => ensure(KEYS.keyPersonVisits, defaults.keyPersonVisits);
 export const saveKeyPersonVisits = (list) => uni.setStorageSync(KEYS.keyPersonVisits, list);
+
+export const getKeyPersonMeasures = () => ensure(KEYS.keyPersonMeasures, defaults.keyPersonMeasures);
+export const saveKeyPersonMeasures = (list) => uni.setStorageSync(KEYS.keyPersonMeasures, list);
 
 export const getPatrolPoints = () => ensure(KEYS.patrolPoints, defaults.patrolPoints);
 export const savePatrolPoints = (list) => uni.setStorageSync(KEYS.patrolPoints, list);
