@@ -202,6 +202,7 @@ const mockRecords = [
 
 const recordList = computed(() => (visits.value.length ? visits.value : mockRecords));
 
+// 加载场所、档案、走访与关联警情数据
 function loadData() {
   place.value = getPlaces().find((p) => p.placeId === placeId.value) || null;
   profile.value = getPlaceProfiles().find((p) => p.placeId === placeId.value) || null;
@@ -216,11 +217,13 @@ watch(tabs, (list) => {
   }
 }, { immediate: true });
 
+// 映射模块类型到中文名称
 function moduleLabel(type) {
   const map = { BILLIARD: '台球', CHESS_CARD: '棋牌', NETBAR: '网吧', FOOTBATH: '足浴', KTV: 'KTV' };
   return map[type] || type;
 }
 
+// 生成模块摘要字段用于展示
 function moduleSummary(tabKey) {
   if (!tabKey.startsWith('module_')) return [];
   const type = tabKey.replace('module_', '');
@@ -233,6 +236,7 @@ function moduleSummary(tabKey) {
   return [];
 }
 
+// 跳转到对应模块详情页
 function goModule(tabKey) {
   if (!tabKey.startsWith('module_')) return;
   const type = tabKey.replace('module_', '');
@@ -250,6 +254,7 @@ function goModule(tabKey) {
   uni.navigateTo({ url: `${base}?placeId=${placeId.value}` });
 }
 
+// 底部主按钮动作分发
 function handleAction() {
   if (activeTab.value === 'rooms') {
     uni.showToast({ title: '新增房间', icon: 'none' });
@@ -272,11 +277,13 @@ function handleAction() {
   }
 }
 
+// 写回房间信息变更
 function updateRooms(roomsValue) {
   updateProfile(placeId.value, { primary: { rooms: roomsValue } });
   if (profile.value?.primary) profile.value.primary.rooms = roomsValue;
 }
 
+// 显示房间详情并允许快捷修改
 function showRoom(room) {
   uni.showActionSheet({
     itemList: ['切换入住状态', '切换登记状态'],
@@ -291,28 +298,34 @@ function showRoom(room) {
   });
 }
 
+// 跳转新增走访页面
 function goVisit() {
   uni.navigateTo({ url: `/pages/place/visit/add?placeId=${placeId.value}` });
 }
 
+// 跳转派单创建页并带入场所来源
 function goDispatch() {
   uni.navigateTo({ url: `/pages/dispatch/assign?sourceType=KEY_PLACE&sourceId=${placeId.value}` });
 }
 
+// 拨打电话
 function callPhone(phone) {
   if (!phone) return;
   uni.makePhoneCall({ phoneNumber: phone });
 }
 
+// 复制场所地址
 function copyAddress() {
   if (!place.value?.address) return;
   uni.setClipboardData({ data: place.value.address });
 }
 
+// 查看走访记录详情
 function openRecord(item) {
   uni.showModal({ title: '走访记录', content: item.content || '--', showCancel: false });
 }
 
+// 查看关联警情摘要
 function openIncident(item) {
   uni.showModal({ title: '关联警情', content: item.title || '--', showCancel: false });
 }

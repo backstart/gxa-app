@@ -213,6 +213,7 @@ const actionLabel = computed(() => {
 
 const actionVisible = computed(() => !!actionLabel.value);
 
+// 加载场所、档案、走访与关联警情数据
 function loadData() {
   place.value = getPlaces().find((p) => p.placeId === placeId.value) || null;
   profile.value = getPlaceProfiles().find((p) => p.placeId === placeId.value) || null;
@@ -227,11 +228,13 @@ watch(tabs, (list) => {
   }
 }, { immediate: true });
 
+// 映射模块类型到中文名称
 function moduleLabel(type) {
   const map = { BILLIARD: '台球', CHESS_CARD: '棋牌', NETBAR: '网吧', FOOTBATH: '足浴', KTV: 'KTV' };
   return map[type] || type;
 }
 
+// 生成模块摘要字段用于展示
 function moduleSummary(tabKey) {
   if (!tabKey.startsWith('module_')) return [];
   const type = tabKey.replace('module_', '');
@@ -244,6 +247,7 @@ function moduleSummary(tabKey) {
   return [];
 }
 
+// 跳转到对应模块详情页
 function goModule(tabKey) {
   if (!tabKey.startsWith('module_')) return;
   const type = tabKey.replace('module_', '');
@@ -261,6 +265,7 @@ function goModule(tabKey) {
   uni.navigateTo({ url: `${base}?placeId=${placeId.value}` });
 }
 
+// 底部主按钮动作分发
 function handleAction() {
   if (activeTab.value === 'records') {
     goVisit();
@@ -283,32 +288,39 @@ function handleAction() {
   }
 }
 
+// 跳转新增走访页面
 function goVisit() {
   uni.navigateTo({ url: `/pages/place/visit/add?placeId=${placeId.value}` });
 }
 
+// 跳转派单创建页并带入场所来源
 function goDispatch() {
   uni.navigateTo({ url: `/pages/dispatch/assign?sourceType=KEY_PLACE&sourceId=${placeId.value}` });
 }
 
+// 拨打电话
 function callPhone(phone) {
   if (!phone) return;
   uni.makePhoneCall({ phoneNumber: phone });
 }
 
+// 复制场所地址
 function copyAddress() {
   if (!place.value?.address) return;
   uni.setClipboardData({ data: place.value.address });
 }
 
+// 查看走访/检查记录详情
 function openRecord(item) {
   uni.showModal({ title: '检查记录', content: item.content || '--', showCancel: false });
 }
 
+// 查看关联警情摘要
 function openIncident(item) {
   uni.showModal({ title: '关联警情', content: item.title || '--', showCancel: false });
 }
 
+// 计算距离日期的天数
 function daysTo(dateStr) {
   if (!dateStr) return 999;
   const now = new Date();
@@ -317,6 +329,7 @@ function daysTo(dateStr) {
   return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
 
+// 返回到期时间的颜色样式
 function dueClass(dateStr) {
   const days = daysTo(dateStr);
   if (days <= 7) return 'danger';

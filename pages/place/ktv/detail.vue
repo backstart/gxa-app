@@ -533,6 +533,7 @@ const actionLabel = computed(() => {
 
 const actionVisible = computed(() => !!actionLabel.value);
 
+// 加载场所、档案、走访与关联警情数据
 function loadData() {
   place.value = getPlaces().find((p) => p.placeId === placeId.value) || null;
   profile.value = getPlaceProfiles().find((p) => p.placeId === placeId.value) || null;
@@ -540,6 +541,7 @@ function loadData() {
   incidents.value = getIncidents().slice(0, 4);
 }
 
+// 持久化当前场所档案并刷新视图
 function persistProfile() {
   const list = getPlaceProfiles();
   const current = profile.value || {
@@ -564,11 +566,13 @@ watch(tabs, (list) => {
   }
 }, { immediate: true });
 
+// 映射模块类型到中文名称
 function moduleLabel(type) {
   const map = { BILLIARD: '台球', CHESS_CARD: '棋牌', NETBAR: '网吧', FOOTBATH: '足浴', KTV: 'KTV' };
   return map[type] || type;
 }
 
+// 生成模块摘要字段用于展示
 function moduleSummary(tabKey) {
   if (!tabKey.startsWith('module_')) return [];
   const type = tabKey.replace('module_', '');
@@ -581,6 +585,7 @@ function moduleSummary(tabKey) {
   return [];
 }
 
+// 跳转到对应模块详情页
 function goModule(tabKey) {
   if (!tabKey.startsWith('module_')) return;
   const type = tabKey.replace('module_', '');
@@ -598,14 +603,17 @@ function goModule(tabKey) {
   uni.navigateTo({ url: `${base}?placeId=${placeId.value}` });
 }
 
+// 跳转新增走访页面
 function goVisit() {
   uni.navigateTo({ url: `/pages/place/visit/add?placeId=${placeId.value}` });
 }
 
+// 跳转派单创建页并带入场所来源
 function goDispatch() {
   uni.navigateTo({ url: `/pages/dispatch/assign?sourceType=KEY_PLACE&sourceId=${placeId.value}` });
 }
 
+// 底部主按钮动作分发
 function handleAction() {
   if (activeTab.value === 'records') {
     goVisit();
@@ -628,20 +636,24 @@ function handleAction() {
   }
 }
 
+// 拨打电话
 function callPhone(phone) {
   if (!phone) return;
   uni.makePhoneCall({ phoneNumber: phone });
 }
 
+// 复制场所地址
 function copyAddress() {
   if (!place.value?.address) return;
   uni.setClipboardData({ data: place.value.address });
 }
 
+// 查看走访/检查记录详情
 function openRecord(item) {
   uni.showModal({ title: item.title || '检查记录', content: item.maintxt || '--', showCancel: false });
 }
 
+// 打开人员操作菜单
 function openStaff(item) {
   uni.showActionSheet({
     itemList: ['查看详情', '编辑', '快速改状态', '删除', '取消'],
@@ -654,6 +666,7 @@ function openStaff(item) {
   });
 }
 
+// 打开档案操作菜单
 function openArchive(item) {
   uni.showActionSheet({
     itemList: ['查看/编辑', '删除', '复制摘要', '取消'],
@@ -665,10 +678,12 @@ function openArchive(item) {
   });
 }
 
+// 切换人员筛选下拉
 function toggleFilter(key) {
   filterOpen.value = filterOpen.value === key ? '' : key;
 }
 
+// 选择人员筛选项并关闭下拉
 function selectFilter(item) {
   if (filterOpen.value === 'type') {
     staffTypeFilter.value = item;
@@ -678,10 +693,12 @@ function selectFilter(item) {
   filterOpen.value = '';
 }
 
+// 查看关联警情摘要
 function openIncident(item) {
   uni.showModal({ title: '关联警情', content: item.title || '--', showCancel: false });
 }
 
+// 打开新增人员弹窗并初始化表单
 function openAddStaff() {
   staffFormMode.value = 'add';
   editingStaffId.value = '';
@@ -698,6 +715,7 @@ function openAddStaff() {
   staffFormVisible.value = true;
 }
 
+// 打开编辑人员弹窗并回填表单
 function openEditStaff(item) {
   ensureStaffMembersFromMock();
   staffFormMode.value = 'edit';
@@ -715,10 +733,12 @@ function openEditStaff(item) {
   staffFormVisible.value = true;
 }
 
+// 关闭人员表单弹窗
 function closeStaffForm() {
   staffFormVisible.value = false;
 }
 
+// 保存人员信息到档案
 function saveStaff() {
   if (!staffForm.name.trim()) {
     uni.showToast({ title: '请填写姓名', icon: 'none' });
@@ -772,6 +792,7 @@ function saveStaff() {
   uni.showToast({ title: '已保存', icon: 'success' });
 }
 
+// 确认并删除人员
 function confirmDeleteStaff(item) {
   ensureStaffMembersFromMock();
   uni.showModal({
@@ -789,6 +810,7 @@ function confirmDeleteStaff(item) {
   });
 }
 
+// 将 mock 人员转存到档案结构
 function ensureStaffMembersFromMock() {
   if (profile.value?.primary?.staffMembers?.length) return;
   const mock = staffList.value.map((staff) => ({
@@ -811,6 +833,7 @@ function ensureStaffMembersFromMock() {
   profile.value = current;
 }
 
+// 打开新增档案弹窗并初始化表单
 function openAddArchive() {
   archiveFormMode.value = 'add';
   editingArchiveId.value = '';
@@ -822,6 +845,7 @@ function openAddArchive() {
   archiveFormVisible.value = true;
 }
 
+// 打开编辑档案弹窗并回填表单
 function openEditArchive(item) {
   ensureArchivesFromFallback();
   archiveFormMode.value = 'edit';
@@ -835,10 +859,12 @@ function openEditArchive(item) {
   archiveFormVisible.value = true;
 }
 
+// 关闭档案弹窗
 function closeArchiveForm() {
   archiveFormVisible.value = false;
 }
 
+// 保存档案并同步主档案字段
 function saveArchive() {
   if (!archiveForm.docType) {
     uni.showToast({ title: '请选择档案类型', icon: 'none' });
@@ -869,6 +895,7 @@ function saveArchive() {
   uni.showToast({ title: '已保存', icon: 'success' });
 }
 
+// 确认并删除档案
 function confirmDeleteArchive(item) {
   ensureArchivesFromFallback();
   uni.showModal({
@@ -894,6 +921,7 @@ function confirmDeleteArchive(item) {
   });
 }
 
+// 将 fallback 档案转存到档案结构
 function ensureArchivesFromFallback() {
   if (profile.value?.primary?.archives?.length) return;
   const current = profile.value || { placeId: placeId.value, primaryType: place.value?.primaryType || 'KTV', primary: {}, modules: {} };
@@ -910,10 +938,12 @@ function ensureArchivesFromFallback() {
   profile.value = current;
 }
 
+// 按 id 查找档案
 function findArchiveById(id) {
   return profile.value?.primary?.archives?.find((m) => m.id === id);
 }
 
+// 快速切换档案示例图片
 function toggleArchivePhoto(enable) {
   if (enable && archiveForm.photos.length === 0) {
     archiveForm.photos.push('/static/venue/档案.png');
@@ -923,6 +953,7 @@ function toggleArchivePhoto(enable) {
   }
 }
 
+// 添加身份证示例图片
 function addIdPhoto(type) {
   if (type === 'front') {
     staffForm.idCardPhotos = ['/static/mock/id_front.png', staffForm.idCardPhotos[1]].filter(Boolean);
@@ -931,15 +962,18 @@ function addIdPhoto(type) {
   }
 }
 
+// 添加个人示例照片
 function addPortrait() {
   staffForm.portraitPhotos = [...staffForm.portraitPhotos, '/static/mock/portrait.png'];
 }
 
+// 打开人员详情弹窗
 function openStaffDetail(item) {
   staffDetail.value = item;
   staffDetailVisible.value = true;
 }
 
+// 快速更新人员状态
 function quickUpdateStaffStatus(item) {
   const options = staffStatusOptions.slice(1);
   uni.showActionSheet({
@@ -960,6 +994,7 @@ function quickUpdateStaffStatus(item) {
   });
 }
 
+// 构建档案摘要文案
 function buildArchiveSummary(item) {
   const parts = [];
   if (item.docNo) parts.push(`编号：${item.docNo}`);
@@ -968,6 +1003,7 @@ function buildArchiveSummary(item) {
   return parts.join('，') || '暂无摘要';
 }
 
+// 生成 fallback 档案列表
 function buildFallbackArchives() {
   const arr = [];
   arr.push({
@@ -1006,6 +1042,7 @@ function buildFallbackArchives() {
   return arr;
 }
 
+// 将档案字段同步到主档案信息
 function applyArchiveToPrimary(primary, payload) {
   if (payload.docType === '营业执照') {
     primary.businessLicenseNo = payload.docNo;
@@ -1020,6 +1057,7 @@ function applyArchiveToPrimary(primary, payload) {
   }
 }
 
+// 身份证号脱敏
 function maskIdNo(idNo) {
   if (!idNo) return '';
   const clean = idNo.trim();
@@ -1027,6 +1065,7 @@ function maskIdNo(idNo) {
   return `${clean.slice(0, 4)}********${clean.slice(-4)}`;
 }
 
+// 返回状态标签样式
 function statusTagClass(status) {
   if (status === '在岗') return 'placeTagNormal';
   if (status === '离职') return 'placeTagWarning';
@@ -1034,6 +1073,7 @@ function statusTagClass(status) {
   return 'placeTagWarning';
 }
 
+// 复制档案摘要
 function copyArchiveSummary(item) {
   const docNo = item.raw?.docNo || '';
   const due = item.raw?.dueDate || '';
@@ -1041,6 +1081,7 @@ function copyArchiveSummary(item) {
   uni.setClipboardData({ data: text });
 }
 
+// 计算距离日期的天数
 function daysTo(dateStr) {
   if (!dateStr) return 999;
   const now = new Date();
@@ -1049,6 +1090,7 @@ function daysTo(dateStr) {
   return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
 
+// 返回到期时间的颜色样式
 function dueClass(dateStr) {
   const days = daysTo(dateStr);
   if (days <= 7) return 'infoValueDanger';
