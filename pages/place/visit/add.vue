@@ -116,7 +116,7 @@ function toggleIssue(val) {
 }
 
 function addAttachment() {
-  attachments.value.push(`附件${attachments.value.length + 1}.jpg`);
+  attachments.value.push('/static/logo.png');
 }
 
 function addDays(dateStr, days) {

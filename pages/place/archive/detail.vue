@@ -101,10 +101,27 @@ function buildArchiveItems() {
     rightText: '',
     status: '',
     payload: {
-      roomCount: primary.roomCount,
+      boxCount: primary.boxCount ?? primary.roomCount,
       securityCount: primary.securityCount,
       businessHours: primary.businessHours,
-      fireCheckDate: primary.fireCheckDate,
+      riskFlags: primary.riskFlags || [],
+      landlordName: primary.landlordName || primary.landlord,
+      landlordPhone: primary.landlordPhone,
+      recordStatus: primary.recordStatus,
+      building: primary.building,
+      unit: primary.unit,
+      floor: primary.floor,
+      roomsCount: primary.roomsCount,
+      seatCount: primary.seatCount,
+      realNameSystem: primary.realNameSystem,
+      minorControl: primary.minorControl,
+      hasCCTV: primary.hasCCTV,
+      roomCount: primary.roomCount,
+      staffCount: primary.staffCount,
+      riskPornFlag: primary.riskPornFlag,
+      mahjongTableCount: primary.mahjongTableCount,
+      chessRoomCount: primary.chessRoomCount,
+      riskGambleFlag: primary.riskGambleFlag,
     },
   });
 
@@ -142,14 +159,6 @@ function buildFallbackArchives() {
     title: '特行许可',
     docNo: profile.value?.primary?.specialLicenseNo || '',
     dueDate: profile.value?.primary?.specialLicenseDue || '',
-    note: '',
-    photos: [],
-  });
-  arr.push({
-    id: 'archive-3',
-    title: '消防检查',
-    docNo: '',
-    dueDate: profile.value?.primary?.fireCheckDate || '',
     note: '',
     photos: [],
   });
@@ -233,29 +242,42 @@ const basicRows = computed(() => {
     if (value === undefined || value === null || value === '') return;
     rows.push({ label, value });
   };
-  const isRental = !!(p.recordStatus || p.landlord || p.building);
-  const isNetbar = p.seatCount !== undefined || p.realNameSystem;
-  const isFootbath = p.staffCount !== undefined || p.riskPornFlag !== undefined;
-  const isChess = p.mahjongTableCount !== undefined || p.chessRoomCount !== undefined || p.riskGambleFlag !== undefined;
-  const isKtv = p.securityCount !== undefined || (!isRental && !isNetbar && !isFootbath && !isChess);
-
-  if (isKtv) pushRow('包厢数', p.roomCount);
-  if (isRental) pushRow('房间数', p.roomCount);
-  if (isFootbath) pushRow('包间数', p.roomCount);
-  pushRow('安保人数', p.securityCount);
-  pushRow('营业时间', p.businessHours);
-  pushRow('消防检查', p.fireCheckDate);
-  pushRow('备案状态', p.recordStatus);
-  pushRow('房东信息', p.landlord);
-  pushRow('楼栋单元', p.building);
-  pushRow('机位数', p.seatCount);
-  pushRow('实名系统', p.realNameSystem);
-  pushRow('未成年人管控', p.minorControl);
-  pushRow('从业人数', p.staffCount);
-  if (p.riskPornFlag !== undefined) pushRow('涉黄风险', p.riskPornFlag ? '是' : '否');
-  if (p.riskGambleFlag !== undefined) pushRow('涉赌风险', p.riskGambleFlag ? '是' : '否');
-  pushRow('麻将台数', p.mahjongTableCount);
-  pushRow('棋牌包间', p.chessRoomCount);
+  const type = place.value?.primaryType || 'KTV';
+  if (type === 'KTV') {
+    pushRow('营业时间', p.businessHours);
+    pushRow('包厢数', p.boxCount ?? p.roomCount);
+    pushRow('安保人数', p.securityCount);
+    if (p.riskFlags && p.riskFlags.length) pushRow('风险标签', p.riskFlags.join(' / '));
+  }
+  if (type === 'RENTAL') {
+    pushRow('房东姓名', p.landlordName);
+    pushRow('房东电话', p.landlordPhone);
+    pushRow('备案状态', p.recordStatus);
+    pushRow('楼栋', p.building);
+    pushRow('单元', p.unit);
+    pushRow('楼层', p.floor);
+    pushRow('房间数', p.roomsCount);
+  }
+  if (type === 'NETBAR') {
+    pushRow('机位数', p.seatCount);
+    pushRow('实名系统', p.realNameSystem);
+    pushRow('未成年人管控', p.minorControl);
+    pushRow('营业时间', p.businessHours);
+    if (p.hasCCTV !== undefined) pushRow('视频监控', p.hasCCTV ? '是' : '否');
+  }
+  if (type === 'FOOTBATH') {
+    pushRow('包间数', p.roomCount);
+    pushRow('从业人数', p.staffCount);
+    if (p.riskPornFlag !== undefined) pushRow('涉黄风险', p.riskPornFlag ? '是' : '否');
+    pushRow('营业时间', p.businessHours);
+    if (p.hasCCTV !== undefined) pushRow('视频监控', p.hasCCTV ? '是' : '否');
+  }
+  if (type === 'CHESS_CARD') {
+    pushRow('麻将台数', p.mahjongTableCount);
+    pushRow('棋牌包间', p.chessRoomCount);
+    if (p.riskGambleFlag !== undefined) pushRow('涉赌风险', p.riskGambleFlag ? '是' : '否');
+    pushRow('营业时间', p.businessHours);
+  }
   return rows;
 });
 

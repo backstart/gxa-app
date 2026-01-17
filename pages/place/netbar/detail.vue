@@ -70,7 +70,7 @@
       <view v-if="activeTab === 'records'">
         <view v-if="recordList.length === 0" class="empty">暂无检查记录</view>
         <view v-for="item in recordList" :key="item.visitId" class="list-item" @click="openRecord(item)">
-          <view class="thumb"></view>
+          <image class="thumb" src="/static/logo.png" mode="aspectFill"></image>
           <view class="list-body">
             <view class="list-title">{{ item.content }}</view>
             <view class="list-sub">类型：{{ item.visitType || '检查' }}</view>
@@ -121,7 +121,7 @@
       <view v-else-if="activeTab === 'incidents'">
         <view v-if="incidents.length === 0" class="empty">暂无关联警情</view>
         <view v-for="item in incidents" :key="item.id" class="list-item" @click="openIncident(item)">
-          <view class="thumb"></view>
+          <image class="thumb" src="/static/logo.png" mode="aspectFill"></image>
           <view class="list-body">
             <view class="list-title">{{ item.title }}</view>
             <view class="list-sub">{{ item.address }}</view>
@@ -164,7 +164,7 @@ const staffList = computed(() => {
     status: item.status || '在岗',
     phone: item.phone || '',
     idNoMasked: item.idNoMasked || '',
-    thumb: (item.portraitPhotos && item.portraitPhotos[0]) || '/static/venue/人员信息.png',
+    thumb: (item.portraitPhotos && item.portraitPhotos[0]) || '/static/logo.png',
   }));
 });
 const staffStats = computed(() => ({
@@ -280,6 +280,7 @@ function buildArchiveItems() {
       realNameSystem: primary.realNameSystem,
       minorControl: primary.minorControl,
       businessHours: primary.businessHours,
+      hasCCTV: primary.hasCCTV,
     },
   });
 
@@ -340,14 +341,6 @@ function buildFallbackArchives() {
     title: '特行许可',
     docNo: profile.value?.primary?.specialLicenseNo || '',
     dueDate: profile.value?.primary?.specialLicenseDue || '',
-    note: '',
-    photos: [],
-  });
-  arr.push({
-    id: 'archive-3',
-    title: '消防检查',
-    docNo: '',
-    dueDate: profile.value?.primary?.fireCheckDate || '',
     note: '',
     photos: [],
   });
@@ -442,6 +435,10 @@ function openIncident(item) {
 }
 
 function openArchive(item) {
+  if (item.itemType === 'BASIC') {
+    uni.navigateTo({ url: `/pages/place/basic/detail?placeId=${placeId.value}` });
+    return;
+  }
   uni.navigateTo({ url: `/pages/place/archive/detail?placeId=${placeId.value}&itemId=${item.id}` });
 }
 
@@ -732,3 +729,4 @@ onShow(loadData);
   padding: 20rpx 0;
 }
 </style>
+

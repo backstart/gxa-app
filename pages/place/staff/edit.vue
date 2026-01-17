@@ -112,16 +112,16 @@ function load() {
 
 function addIdPhoto(type) {
   if (type === 'front') {
-    const next = ['/static/mock/id_front.png', form.idCardPhotos[1]].filter(Boolean);
+    const next = ['/static/logo.png', form.idCardPhotos[1]].filter(Boolean);
     form.idCardPhotos = next;
   } else {
-    const next = [form.idCardPhotos[0], '/static/mock/id_back.png'].filter(Boolean);
+    const next = [form.idCardPhotos[0], '/static/logo.png'].filter(Boolean);
     form.idCardPhotos = next;
   }
 }
 
 function addPortrait() {
-  form.portraitPhotos = [...form.portraitPhotos, '/static/mock/portrait.png'];
+  form.portraitPhotos = [...form.portraitPhotos, '/static/logo.png'];
 }
 
 function save() {
@@ -259,3 +259,4 @@ onLoad((query) => {
   color: #fff;
 }
 </style>
+

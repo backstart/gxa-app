@@ -1,4 +1,4 @@
-﻿
+
 <template>
   <view class="place-detail pageBg">
     <view class="statuBar"></view>
@@ -143,7 +143,7 @@
       <view v-else-if="activeTab === 'incidents'">
         <view v-if="incidents.length === 0" class="empty">暂无关联警情</view>
         <view v-for="item in incidents" :key="item.id" class="listItem" @click="openIncident(item)">
-          <image class="listItemImage" src="/static/venue/关联警情.png" mode="aspectFill"></image>
+          <image class="listItemImage" src="/static/logo.png" mode="aspectFill"></image>
           <view class="listItemContent">
             <view class="listItemTitle">{{ item.title }}</view>
             <view class="listItemMeta">{{ item.address }}</view>
@@ -202,7 +202,7 @@ const staffList = computed(() => {
     portraitPhotos: item.portraitPhotos || [],
     remark: item.remark || '',
     time: item.updatedAt ? new Date(item.updatedAt).toISOString().slice(0, 10) : new Date(item.createdAt || Date.now()).toISOString().slice(0, 10),
-    thumb: (item.portraitPhotos && item.portraitPhotos[0]) || '/static/venue/人员信息.png',
+    thumb: (item.portraitPhotos && item.portraitPhotos[0]) || '/static/logo.png',
   }));
 });
 
@@ -239,7 +239,7 @@ const recordList = computed(() =>
     id: item.visitId || `record-${idx}`,
     title: item.title || '检查记录',
     maintxt: item.content || '暂无描述',
-    img: '/static/venue/检查记录.png',
+    img: '/static/logo.png',
     time: item.visitAt || '--',
     inspector: item.visitorName || '--',
   }))
@@ -372,6 +372,10 @@ function openStaff(item) {
 
 // 打开档案操作菜单
 function openArchive(item) {
+  if (item.itemType === 'BASIC') {
+    uni.navigateTo({ url: `/pages/place/basic/detail?placeId=${placeId.value}` });
+    return;
+  }
   uni.navigateTo({ url: `/pages/place/archive/detail?placeId=${placeId.value}&itemId=${item.id}` });
 }
 
@@ -423,14 +427,14 @@ function buildArchiveItems() {
     id: 'basic_info',
     itemType: 'BASIC',
     title: '基础信息',
-    subTitle: `包厢 ${primary.roomCount || '--'}｜安保 ${primary.securityCount || '--'}｜营业 ${primary.businessHours || '--'}`,
+    subTitle: `包厢 ${primary.boxCount ?? primary.roomCount ?? '--'}｜安保 ${primary.securityCount || '--'}｜营业 ${primary.businessHours || '--'}`,
     rightText: '',
     status: '',
     payload: {
-      roomCount: primary.roomCount,
+      boxCount: primary.boxCount ?? primary.roomCount,
       securityCount: primary.securityCount,
       businessHours: primary.businessHours,
-      fireCheckDate: primary.fireCheckDate,
+      riskFlags: primary.riskFlags || [],
     },
   });
 
@@ -496,8 +500,6 @@ function buildFallbackArchives() {
     dueDate: profile.value?.primary?.businessLicenseDue || '',
     note: '',
     photos: [],
-    img: '/static/venue/档案.png',
-    maintxt: `编号：${profile.value?.primary.businessLicenseNo || '--'}，到期：${profile.value?.primary.businessLicenseDue || '--'}`,
     docNoText: profile.value?.primary.businessLicenseNo ? `编号：${profile.value?.primary.businessLicenseNo}` : '编号：--',
   });
   arr.push({
@@ -507,20 +509,7 @@ function buildFallbackArchives() {
     dueDate: profile.value?.primary?.specialLicenseDue || '',
     note: '',
     photos: [],
-    img: '/static/venue/档案.png',
-    maintxt: `编号：${profile.value?.primary.specialLicenseNo || '--'}，到期：${profile.value?.primary.specialLicenseDue || '--'}`,
     docNoText: profile.value?.primary.specialLicenseNo ? `编号：${profile.value?.primary.specialLicenseNo}` : '编号：--',
-  });
-  arr.push({
-    id: 'archive-3',
-    title: '消防检查',
-    docNo: '',
-    dueDate: profile.value?.primary?.fireCheckDate || '',
-    note: '',
-    photos: [],
-    img: '/static/venue/档案.png',
-    maintxt: `检查日期：${profile.value?.primary.fireCheckDate || '--'}`,
-    docNoText: '编号：--',
   });
   return arr;
 }
@@ -888,3 +877,4 @@ onShow(loadData);
 }
 
 </style>
+

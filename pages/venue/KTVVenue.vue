@@ -42,10 +42,10 @@
 
     <view class="body">
       <l-grid :inset="true">
-        <l-grid-item @click="lgClick('a')" text="检查记录" badge="15" image="/static/venue/检查记录.png" />
-        <l-grid-item @click="lgClick('b')" text="从业人员" image="/static/venue/人员信息.png" />
-        <l-grid-item @click="lgClick('c')" text="档案" badge="5" image="/static/venue/档案.png" />
-        <l-grid-item @click="lgClick('d')" text="关联警情" badge="New" image="/static/venue/关联警情.png" />
+        <l-grid-item @click="lgClick('a')" text="检查记录" badge="15" image="/static/logo.png" />
+        <l-grid-item @click="lgClick('b')" text="从业人员" image="/static/logo.png" />
+        <l-grid-item @click="lgClick('c')" text="档案" badge="5" image="/static/logo.png" />
+        <l-grid-item @click="lgClick('d')" text="关联警情" badge="New" image="/static/logo.png" />
       </l-grid>
     </view>
 
@@ -199,3 +199,4 @@ onShow(loadData);
   width: 100%;
 }
 </style>
+

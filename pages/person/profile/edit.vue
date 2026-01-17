@@ -128,14 +128,14 @@ function toggleRiskFactor(item) {
 
 function addIdPhoto(type) {
   if (type === 'front') {
-    form.idCardPhotos = ['/static/mock/id_front.png', form.idCardPhotos[1]].filter(Boolean);
+    form.idCardPhotos = ['/static/logo.png', form.idCardPhotos[1]].filter(Boolean);
   } else {
-    form.idCardPhotos = [form.idCardPhotos[0], '/static/mock/id_back.png'].filter(Boolean);
+    form.idCardPhotos = [form.idCardPhotos[0], '/static/logo.png'].filter(Boolean);
   }
 }
 
 function addPortraitPhoto() {
-  form.portraitPhotos = [...form.portraitPhotos, '/static/mock/portrait.png'];
+  form.portraitPhotos = [...form.portraitPhotos, '/static/logo.png'];
 }
 
 function save() {
@@ -289,3 +289,4 @@ onLoad((query) => {
   font-size: 30rpx;
 }
 </style>
+

@@ -103,8 +103,8 @@ function load() {
 }
 
 function addAttachment(type) {
-  if (type === 'image') form.attachments.push('/static/mock/visit_photo.png');
-  else form.attachments.push('/static/mock/visit_audio.mp3');
+  if (type === 'image') form.attachments.push('/static/logo.png');
+  else form.attachments.push('/static/logo.png');
 }
 
 function save() {
@@ -271,3 +271,4 @@ onLoad((query) => {
   font-size: 30rpx;
 }
 </style>
+

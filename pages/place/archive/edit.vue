@@ -53,7 +53,7 @@ const mode = ref('add');
 const place = ref(null);
 const profile = ref(null);
 
-const docTypeOptions = ['营业执照', '特行许可', '消防检查', '其他'];
+const docTypeOptions = ['营业执照', '特行许可', '其他'];
 
 const form = reactive({
   docType: '',
@@ -80,7 +80,7 @@ function load() {
 }
 
 function addPhoto() {
-  form.photos = [...form.photos, '/static/venue/档案.png'];
+  form.photos = [...form.photos, '/static/logo.png'];
 }
 
 function applyArchiveToPrimary(primary, payload) {
@@ -91,9 +91,6 @@ function applyArchiveToPrimary(primary, payload) {
   if (payload.docType === '特行许可') {
     primary.specialLicenseNo = payload.docNo;
     primary.specialLicenseDue = payload.dueDate;
-  }
-  if (payload.docType === '消防检查') {
-    primary.fireCheckDate = payload.dueDate || primary.fireCheckDate || '';
   }
 }
 
@@ -226,3 +223,4 @@ onLoad((query) => {
   color: #fff;
 }
 </style>
+
