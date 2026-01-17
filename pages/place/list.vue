@@ -34,20 +34,20 @@
     <view class="card">
       <view v-if="filtered.length === 0" class="empty">暂无数据</view>
       <view v-for="place in filtered" :key="place.placeId" class="place-card" @click="goDetail(place)">
-        <view class="place-head">
-          <view>
+        <image class="placeListCover" :src="place.frontPhoto || '/static/logo.png'" mode="aspectFill"></image>
+        <view class="placeListInfo">
+          <view class="place-head">
             <view class="place-title">{{ place.name }}</view>
-            <view class="place-meta">{{ place.address }}</view>
+            <text :class="['badge', riskClass(place.riskLevel)]">{{ place.riskLevel }}</text>
           </view>
-          <text :class="['badge', riskClass(place.riskLevel)]">{{ place.riskLevel }}</text>
-        </view>
-        <view class="place-tags">
-          <text class="tag type">{{ typeLabel(place.primaryType) }}</text>
-          <text v-for="m in place.modules" :key="m" class="tag module">{{ moduleLabel(m) }}</text>
-        </view>
-        <view class="place-foot">
-          <text :class="['due', dueClass(place.nextVisitDue)]">{{ dueText(place.nextVisitDue) }}</text>
-          <button size="mini" class="ghost-btn" @click.stop="callOwner(place)">拨号</button>
+          <view class="place-meta">{{ place.address }}</view>
+          <view class="place-tags">
+            <text class="tag type">{{ typeLabel(place.primaryType) }}</text>
+            <text v-for="m in place.modules" :key="m" class="tag module">{{ moduleLabel(m) }}</text>
+          </view>
+          <view class="place-foot">
+            <text :class="['due', dueClass(place.nextVisitDue)]">{{ dueText(place.nextVisitDue) }}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -161,14 +161,6 @@ function goDetail(place) {
   uni.navigateTo({ url: `${base}?placeId=${place.placeId}` });
 }
 
-function callOwner(place) {
-  if (!place.ownerPhone) {
-    uni.showToast({ title: '暂无电话', icon: 'none' });
-    return;
-  }
-  uni.makePhoneCall({ phoneNumber: place.ownerPhone });
-}
-
 onLoad((query) => {
   filterType.value = query.filterType || '';
 });
@@ -233,11 +225,24 @@ onShow(loadData);
   color: #fff;
 }
 .place-card {
+  display: flex;
+  gap: 14rpx;
   padding: 16rpx;
   border-radius: 14rpx;
   background: #f6f8fb;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
   margin-bottom: 12rpx;
+}
+.placeListCover {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 14rpx;
+  background: #e9edf2;
+  flex-shrink: 0;
+}
+.placeListInfo {
+  flex: 1;
+  min-width: 0;
 }
 .place-head {
   display: flex;
@@ -253,6 +258,9 @@ onShow(loadData);
   margin-top: 4rpx;
   font-size: 24rpx;
   color: #6e7a89;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .badge {
   padding: 6rpx 12rpx;
@@ -293,7 +301,6 @@ onShow(loadData);
 .place-foot {
   margin-top: 10rpx;
   display: flex;
-  justify-content: space-between;
   align-items: center;
 }
 .due {
@@ -305,12 +312,6 @@ onShow(loadData);
 }
 .due.overdue {
   color: #d64545;
-}
-.ghost-btn {
-  border: 1px solid #d0d6de;
-  background: #fff;
-  color: #1f2b3a;
-  border-radius: 12rpx;
 }
 .empty {
   text-align: center;

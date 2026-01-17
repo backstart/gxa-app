@@ -3,42 +3,47 @@
     <view class="statuBar"></view>
 
     <view class="card header-card" v-if="place">
-      <view class="header-top">
-        <view>
-          <view class="place-name">{{ place.name }}</view>
-          <view class="place-sub">足浴</view>
-        </view>
-      </view>
+      <view class="placeHeaderMain">
+        <image src="/static/logo.png" class="placeCover" mode="aspectFill"></image>
+        <view class="placeHeaderInfo">
+          <view class="header-top">
+            <view>
+              <view class="place-name">{{ place.name }}</view>
+              <view class="place-sub">足浴</view>
+            </view>
+          </view>
 
-      <view class="info-grid">
-        <view class="info-item">
-          <text class="label">负责人</text>
-          <text class="value">{{ place.ownerName || '--' }}</text>
-        </view>
-        <view class="info-item">
-          <text class="label">电话</text>
-          <text class="value link" @click="callPhone(place.ownerPhone)">{{ place.ownerPhone || '--' }}</text>
-        </view>
-        <view class="info-item" v-if="managerName">
-          <text class="label">管理员</text>
-          <text class="value">{{ managerName }}</text>
-        </view>
-        <view class="info-item" v-if="managerPhone">
-          <text class="label">电话</text>
-          <text class="value link" @click="callPhone(managerPhone)">{{ managerPhone }}</text>
-        </view>
-      </view>
+          <view class="info-grid">
+            <view class="info-item">
+              <text class="label">负责人</text>
+              <text class="value">{{ place.ownerName || '--' }}</text>
+            </view>
+            <view class="info-item">
+              <text class="label">电话</text>
+              <text class="value link" @click="callPhone(place.ownerPhone)">{{ place.ownerPhone || '--' }}</text>
+            </view>
+            <view class="info-item" v-if="managerName">
+              <text class="label">管理员</text>
+              <text class="value">{{ managerName }}</text>
+            </view>
+            <view class="info-item" v-if="managerPhone">
+              <text class="label">电话</text>
+              <text class="value link" @click="callPhone(managerPhone)">{{ managerPhone }}</text>
+            </view>
+          </view>
 
-      <view class="info-line">
-        <text class="label">地址</text>
-        <text class="value link" @click="copyAddress">{{ place.address }}</text>
-      </view>
-      <view class="info-line">
-        <text class="label">最近走访</text>
-        <text class="value">{{ place.lastVisitAt || '暂无记录' }}</text>
-      </view>
+          <view class="info-line">
+            <text class="label">地址</text>
+            <text class="value link" @click="copyAddress">{{ place.address }}</text>
+          </view>
+          <view class="info-line">
+            <text class="label">最近走访</text>
+            <text class="value">{{ place.lastVisitAt || '暂无记录' }}</text>
+          </view>
 
-      <com-tag :taglist="tagList"></com-tag>
+          <com-tag :taglist="tagList"></com-tag>
+        </view>
+      </view>
     </view>
 
     <view v-if="!isTabScrollable" class="iconTabs">
@@ -477,6 +482,21 @@ onShow(loadData);
 }
 .header-card {
   padding: 20rpx;
+}
+.placeHeaderMain {
+  display: flex;
+  gap: 16rpx;
+}
+.placeCover {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 16rpx;
+  background: #e9edf2;
+  flex-shrink: 0;
+}
+.placeHeaderInfo {
+  flex: 1;
+  min-width: 0;
 }
 .header-top {
   display: flex;
