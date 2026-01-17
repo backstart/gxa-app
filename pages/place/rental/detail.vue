@@ -41,18 +41,30 @@
       <com-tag :taglist="tagList"></com-tag>
     </view>
 
-    <view class="tab-bar">
+    <view v-if="!isTabScrollable" class="iconTabs">
       <view
         v-for="tab in tabs"
         :key="tab.key"
-        :class="['tab-item', activeTab === tab.key ? 'active' : '']"
+        :class="['iconTabItem', activeTab === tab.key ? 'iconTabActive' : '']"
         @click="activeTab = tab.key"
       >
-        <text class="tab-icon">{{ tab.icon }}</text>
-        <text class="tab-label">{{ tab.label }}</text>
-        <text v-if="tab.badge" class="badge">{{ tab.badge }}</text>
+        <text class="iconTabIcon">{{ tab.icon }}</text>
+        <text class="iconTabLabel">{{ tab.label }}</text>
+        <text v-if="tab.badge" class="iconTabBadge">{{ tab.badge }}</text>
       </view>
     </view>
+    <scroll-view v-else class="iconTabsScroll" scroll-x>
+      <view
+        v-for="tab in tabs"
+        :key="tab.key"
+        :class="['iconTabItemFixed', activeTab === tab.key ? 'iconTabActive' : '']"
+        @click="activeTab = tab.key"
+      >
+        <text class="iconTabIcon">{{ tab.icon }}</text>
+        <text class="iconTabLabel">{{ tab.label }}</text>
+        <text v-if="tab.badge" class="iconTabBadge">{{ tab.badge }}</text>
+      </view>
+    </scroll-view>
 
     <view class="card tab-card">
       <view v-if="activeTab === 'rooms'">
@@ -84,12 +96,18 @@
       </view>
 
       <view v-else-if="activeTab === 'archive'">
-        <view class="info-card">
-          <view class="info-row"><text class="label">房东</text><text class="value">{{ profile?.primary.landlord || '--' }}</text></view>
-          <view class="info-row"><text class="label">备案状态</text><text class="value">{{ profile?.primary.recordStatus || '--' }}</text></view>
-          <view class="info-row"><text class="label">楼栋</text><text class="value">{{ profile?.primary.building || '--' }}</text></view>
-          <view class="info-row"><text class="label">房间数</text><text class="value">{{ rooms.length }}</text></view>
-          <view class="info-row"><text class="label">重点标记</text><text class="value">{{ place?.focusLevel || '--' }}</text></view>
+        <view v-if="archiveItems.length === 0" class="empty">暂无档案</view>
+        <view v-for="item in archiveItems" :key="item.id" class="listItem" @click="openArchive(item)">
+          <view class="listItemContent">
+            <view class="listItemTitle">
+              <text>{{ item.title }}</text>
+              <text v-if="item.itemType === 'MODULE'" class="placeTag placeTagPrimary">模块</text>
+            </view>
+            <view class="listItemMeta">
+              <text>{{ item.subTitle }}</text>
+              <text v-if="item.rightText" :class="['infoValue', dueClass(item.rightText)]">{{ item.rightText }}</text>
+            </view>
+          </view>
         </view>
       </view>
 
@@ -106,16 +124,7 @@
       </view>
 
       <view v-else>
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn" @click="goModule(activeTab)">进入模块详情</button>
-        </view>
-        <view class="info-card">
-          <view class="info-row" v-for="row in moduleSummary(activeTab)" :key="row.label">
-            <text class="label">{{ row.label }}</text>
-            <text class="value">{{ row.value }}</text>
-          </view>
-        </view>
-        <view v-if="moduleSummary(activeTab).length === 0" class="empty">请完善模块信息</view>
+        <view class="empty">暂无内容</view>
       </view>
     </view>
 
@@ -154,7 +163,6 @@ const actionLabel = computed(() => {
   if (activeTab.value === 'records') return '新增走访';
   if (activeTab.value === 'archive') return '新增档案';
   if (activeTab.value === 'incidents') return '新增关联警情';
-  if (activeTab.value.startsWith('module_')) return '完善模块信息';
   return '';
 });
 
@@ -167,14 +175,10 @@ const tabs = computed(() => {
     { key: 'archive', label: '档案', icon: '📁', badge: '' },
     { key: 'incidents', label: '关联警情', icon: '📌', badge: incidents.value.length || '' },
   ];
-  const moduleTabs = (place.value?.modules || []).map((m) => ({
-    key: `module_${m}`,
-    label: moduleLabel(m),
-    icon: '🧩',
-    badge: '',
-  }));
-  return [...base, ...moduleTabs];
+  return base;
 });
+
+const isTabScrollable = computed(() => tabs.value.length > 4);
 
 const mockRecords = [
   {
@@ -201,6 +205,7 @@ const mockRecords = [
 ];
 
 const recordList = computed(() => (visits.value.length ? visits.value : mockRecords));
+const archiveItems = computed(() => buildArchiveItems());
 
 // 加载场所、档案、走访与关联警情数据
 function loadData() {
@@ -221,6 +226,112 @@ watch(tabs, (list) => {
 function moduleLabel(type) {
   const map = { BILLIARD: '台球', CHESS_CARD: '棋牌', NETBAR: '网吧', FOOTBATH: '足浴', KTV: 'KTV' };
   return map[type] || type;
+}
+
+function buildArchiveItems() {
+  const items = [];
+  const primary = profile.value?.primary || {};
+  const archives = primary.archives || [];
+  const licenseItems = archives.length ? archives.map((item) => ({
+    id: item.id,
+    itemType: 'LICENSE',
+    title: item.docType || '证照',
+    subTitle: `编号：${item.docNo || '—'}`,
+    rightText: item.dueDate || '',
+    payload: item,
+  })) : buildFallbackArchives().map((item) => ({
+    id: item.id,
+    itemType: 'LICENSE',
+    title: item.title,
+    subTitle: item.docNo ? `编号：${item.docNo}` : '编号：—',
+    rightText: item.dueDate || '',
+    payload: item,
+  }));
+  items.push(...licenseItems);
+
+  items.push({
+    id: 'basic_info',
+    itemType: 'BASIC',
+    title: '基础信息',
+    subTitle: `房间 ${rooms.value.length}｜备案 ${primary.recordStatus || '--'}｜房东 ${primary.landlord || '--'}｜楼栋 ${primary.building || '--'}`,
+    rightText: '',
+    payload: {
+      recordStatus: primary.recordStatus,
+      landlord: primary.landlord,
+      building: primary.building,
+      roomCount: rooms.value.length,
+    },
+  });
+
+  const moduleKeys = new Set([
+    ...((place.value?.modules || []) || []),
+    ...Object.keys(profile.value?.modules || {}),
+  ]);
+  Array.from(moduleKeys).forEach((type) => {
+    const data = profile.value?.modules?.[type] || {};
+    items.push({
+      id: `module_${type}`,
+      itemType: 'MODULE',
+      title: `${moduleLabel(type)}模块`,
+      subTitle: moduleSubTitle(type, data),
+      rightText: '',
+      payload: data,
+    });
+  });
+  return items;
+}
+
+function moduleSubTitle(type, data) {
+  if (!data || Object.keys(data).length === 0) return '待完善';
+  if (type === 'CHESS_CARD') return `麻将台 ${data.mahjongTableCount ?? '--'}｜棋牌包间 ${data.chessRoomCount ?? '--'}`;
+  if (type === 'BILLIARD') return `台球桌 ${data.tableCount ?? '--'}`;
+  if (type === 'NETBAR') return `机位 ${data.seatCount ?? '--'}`;
+  if (type === 'FOOTBATH') return `包间 ${data.roomCount ?? '--'}｜从业 ${data.staffCount ?? '--'}`;
+  return '待完善';
+}
+
+function daysTo(dateStr) {
+  if (!dateStr) return 999;
+  const now = new Date();
+  const target = new Date(`${dateStr} 00:00:00`);
+  const ms = target.getTime() - now.getTime();
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
+
+function dueClass(dateStr) {
+  const days = daysTo(dateStr);
+  if (days <= 7) return 'infoValueDanger';
+  if (days <= 30) return 'infoValueWarning';
+  return '';
+}
+
+function buildFallbackArchives() {
+  const arr = [];
+  arr.push({
+    id: 'archive-1',
+    title: '营业执照',
+    docNo: profile.value?.primary?.businessLicenseNo || '',
+    dueDate: profile.value?.primary?.businessLicenseDue || '',
+    note: '',
+    photos: [],
+  });
+  arr.push({
+    id: 'archive-2',
+    title: '特行许可',
+    docNo: profile.value?.primary?.specialLicenseNo || '',
+    dueDate: profile.value?.primary?.specialLicenseDue || '',
+    note: '',
+    photos: [],
+  });
+  arr.push({
+    id: 'archive-3',
+    title: '消防检查',
+    docNo: '',
+    dueDate: profile.value?.primary?.fireCheckDate || '',
+    note: '',
+    photos: [],
+  });
+  return arr;
 }
 
 // 生成模块摘要字段用于展示
@@ -271,9 +382,6 @@ function handleAction() {
   if (activeTab.value === 'incidents') {
     uni.showToast({ title: '新增关联警情', icon: 'none' });
     return;
-  }
-  if (activeTab.value.startsWith('module_')) {
-    goModule(activeTab.value);
   }
 }
 
@@ -328,6 +436,10 @@ function openRecord(item) {
 // 查看关联警情摘要
 function openIncident(item) {
   uni.showModal({ title: '关联警情', content: item.title || '--', showCancel: false });
+}
+
+function openArchive(item) {
+  uni.navigateTo({ url: `/pages/place/archive/detail?placeId=${placeId.value}&itemId=${item.id}` });
 }
 
 onLoad((query) => {
@@ -415,36 +527,52 @@ onShow(loadData);
   font-size: 22rpx;
   color: #344150;
 }
-.tab-bar {
+.iconTabs {
   display: flex;
   gap: 12rpx;
   padding: 6rpx 6rpx 12rpx;
-  overflow-x: auto;
 }
-.tab-item {
-  min-width: 140rpx;
+.iconTabsScroll {
+  padding: 6rpx 6rpx 12rpx;
+  white-space: nowrap;
+}
+.iconTabItem,
+.iconTabItemFixed {
   background: #f6f8fb;
   border-radius: 16rpx;
   padding: 12rpx;
   text-align: center;
   position: relative;
 }
-.tab-item.active {
+.iconTabItem {
+  flex: 1;
+  min-width: 0;
+}
+.iconTabItemFixed {
+  display: inline-block;
+  width: 180rpx;
+  margin-right: 12rpx;
+}
+.iconTabActive {
   background: #eaf3ff;
   color: #0f75ff;
 }
-.tab-icon {
+.iconTabIcon {
   font-size: 32rpx;
   display: block;
 }
-.tab-label {
+.iconTabLabel {
   font-size: 24rpx;
   margin-top: 4rpx;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.badge {
+.iconTabBadge {
   position: absolute;
-  top: 6rpx;
-  right: 10rpx;
+  top: -6rpx;
+  right: 18rpx;
   background: #ff4d4f;
   color: #fff;
   font-size: 20rpx;
@@ -517,6 +645,33 @@ onShow(loadData);
 .list-item:last-child {
   border-bottom: none;
 }
+.listItem {
+  display: flex;
+  gap: 12rpx;
+  padding: 12rpx 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+.listItem:last-child {
+  border-bottom: none;
+}
+.listItemContent {
+  flex: 1;
+}
+.listItemTitle {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2b3a;
+  display: flex;
+  gap: 8rpx;
+  align-items: center;
+}
+.listItemMeta {
+  margin-top: 4rpx;
+  font-size: 24rpx;
+  color: #6e7a89;
+  display: flex;
+  justify-content: space-between;
+}
 .thumb {
   width: 90rpx;
   height: 90rpx;
@@ -550,6 +705,16 @@ onShow(loadData);
   display: flex;
   justify-content: space-between;
   margin-bottom: 8rpx;
+}
+.infoValue {
+  color: #1f2b3a;
+  font-size: 24rpx;
+}
+.infoValueWarning {
+  color: #c88719;
+}
+.infoValueDanger {
+  color: #d64545;
 }
 .empty {
   text-align: center;

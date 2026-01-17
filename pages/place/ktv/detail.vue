@@ -126,18 +126,16 @@
 
       <view v-else-if="activeTab === 'archive'">
         <view v-if="archiveItems.length === 0" class="empty">暂无档案</view>
-        <view v-for="item in archiveItems" :key="item.id" class="listItem archiveItem" @click="openArchive(item)">
+        <view v-for="item in archiveItems" :key="item.id" class="listItem" @click="openArchive(item)">
           <view class="listItemContent">
-            <view class="listItemTitle archiveTitle">
-              <view class="archiveTitleLeft">
-                <text>{{ item.title }}</text>
-                <text v-if="item.itemType === 'MODULE'" class="placeTag placeTagPrimary">模块</text>
-              </view>
-              <text v-if="item.rightText" :class="['archiveRight', archiveStatusClass(item.status)]">
-                {{ item.rightText }}
-              </text>
+            <view class="listItemTitle">
+              <text>{{ item.title }}</text>
+              <text v-if="item.itemType === 'MODULE'" class="placeTag placeTagPrimary">模块</text>
             </view>
-            <view class="listItemMeta">{{ item.subTitle }}</view>
+            <view class="listItemMeta">
+              <text>{{ item.subTitle }}</text>
+              <text v-if="item.rightText" :class="['infoValue', dueClass(item.rightText)]">{{ item.rightText }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -1039,11 +1037,6 @@ function dueStatus(dateStr) {
   return '';
 }
 
-function archiveStatusClass(status) {
-  if (status === 'danger') return 'archiveDanger';
-  if (status === 'warn') return 'archiveWarn';
-  return '';
-}
 
 // 生成 fallback 档案列表
 function buildFallbackArchives() {
@@ -1413,29 +1406,6 @@ onShow(loadData);
   display: flex;
   gap: 8rpx;
   align-items: center;
-}
-.archiveItem {
-  align-items: flex-start;
-}
-.archiveTitle {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.archiveTitleLeft {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-.archiveRight {
-  font-size: 24rpx;
-}
-.archiveWarn {
-  color: #c88719;
-}
-.archiveDanger {
-  color: #d64545;
 }
 .listItemMeta {
   margin-top: 4rpx;
