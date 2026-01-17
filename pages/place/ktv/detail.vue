@@ -42,18 +42,30 @@
       <com-tag :taglist="tagList"></com-tag>
     </view>
 
-    <view class="tab-bar">
+    <view v-if="!isTabScrollable" class="iconTabs">
       <view
         v-for="tab in tabs"
         :key="tab.key"
-        :class="['tab-item', activeTab === tab.key ? 'active' : '']"
+        :class="['iconTabItem', activeTab === tab.key ? 'iconTabActive' : '']"
         @click="activeTab = tab.key"
       >
-        <text class="tab-icon">{{ tab.icon }}</text>
-        <text class="tab-label">{{ tab.label }}</text>
-        <text v-if="tab.badge" class="badge">{{ tab.badge }}</text>
+        <text class="iconTabIcon">{{ tab.icon }}</text>
+        <text class="iconTabLabel">{{ tab.label }}</text>
+        <text v-if="tab.badge" class="iconTabBadge">{{ tab.badge }}</text>
       </view>
     </view>
+    <scroll-view v-else class="iconTabsScroll" scroll-x>
+      <view
+        v-for="tab in tabs"
+        :key="tab.key"
+        :class="['iconTabItemFixed', activeTab === tab.key ? 'iconTabActive' : '']"
+        @click="activeTab = tab.key"
+      >
+        <text class="iconTabIcon">{{ tab.icon }}</text>
+        <text class="iconTabLabel">{{ tab.label }}</text>
+        <text v-if="tab.badge" class="iconTabBadge">{{ tab.badge }}</text>
+      </view>
+    </scroll-view>
 
     <view class="card tab-card">
       <view v-if="activeTab === 'records'">
@@ -113,37 +125,19 @@
       </view>
 
       <view v-else-if="activeTab === 'archive'">
-        <view class="sectionCard infoGrid">
-          <view class="infoItem">
-            <text class="infoLabel">营业执照</text>
-            <text class="infoValue">{{ profile?.primary.businessLicenseNo || '--' }}</text>
-            <text :class="['infoValue', dueClass(profile?.primary.businessLicenseDue)]">{{ profile?.primary.businessLicenseDue || '--' }}</text>
-          </view>
-          <view class="infoItem">
-            <text class="infoLabel">特行许可</text>
-            <text class="infoValue">{{ profile?.primary.specialLicenseNo || '--' }}</text>
-            <text :class="['infoValue', dueClass(profile?.primary.specialLicenseDue)]">{{ profile?.primary.specialLicenseDue || '--' }}</text>
-          </view>
-          <view class="infoItem">
-            <text class="infoLabel">消防检查</text>
-            <text class="infoValue">{{ profile?.primary.fireCheckDate || '--' }}</text>
-          </view>
-          <view class="infoItem">
-            <text class="infoLabel">基础信息</text>
-            <text class="infoValue">包厢 {{ profile?.primary.roomCount || '--' }}</text>
-            <text class="infoValue">安保 {{ profile?.primary.securityCount || '--' }}</text>
-          </view>
-        </view>
-
-        <view v-if="archiveList.length === 0" class="empty">暂无档案</view>
-        <view v-for="item in archiveList" :key="item.id" class="listItem" @click="openArchive(item)">
-          <image class="listItemImage" :src="item.img" mode="aspectFill"></image>
+        <view v-if="archiveItems.length === 0" class="empty">暂无档案</view>
+        <view v-for="item in archiveItems" :key="item.id" class="listItem archiveItem" @click="openArchive(item)">
           <view class="listItemContent">
-            <view class="listItemTitle">{{ item.title }}</view>
-            <view class="listItemMeta">
-              <text>{{ item.docNoText }}</text>
-              <text :class="['infoValue', dueClass(item.dueDate)]">{{ item.dueDate || '--' }}</text>
+            <view class="listItemTitle archiveTitle">
+              <view class="archiveTitleLeft">
+                <text>{{ item.title }}</text>
+                <text v-if="item.itemType === 'MODULE'" class="placeTag placeTagPrimary">模块</text>
+              </view>
+              <text v-if="item.rightText" :class="['archiveRight', archiveStatusClass(item.status)]">
+                {{ item.rightText }}
+              </text>
             </view>
+            <view class="listItemMeta">{{ item.subTitle }}</view>
           </view>
         </view>
       </view>
@@ -161,16 +155,7 @@
       </view>
 
       <view v-else>
-        <view class="tab-actions">
-          <button size="mini" class="ghost-btn" @click="goModule(activeTab)">进入模块详情</button>
-        </view>
-        <view class="info-card">
-          <view class="info-row" v-for="row in moduleSummary(activeTab)" :key="row.label">
-            <text class="label">{{ row.label }}</text>
-            <text class="value">{{ row.value }}</text>
-          </view>
-        </view>
-        <view v-if="moduleSummary(activeTab).length === 0" class="empty">请完善模块信息</view>
+        <view class="empty">暂无内容</view>
       </view>
     </view>
 
@@ -485,21 +470,7 @@ const mockRecords = [
   },
 ];
 
-const archiveList = computed(() => {
-  const archives = profile.value?.primary?.archives || [];
-  if (archives.length) {
-    return archives.map((item) => ({
-      id: item.id,
-      title: item.docType,
-      maintxt: buildArchiveSummary(item),
-      docNoText: item.docNo ? `编号：${item.docNo}` : '编号：--',
-      dueDate: item.dueDate || '',
-      img: item.photos?.[0] || '/static/venue/档案.png',
-      raw: item,
-    }));
-  }
-  return buildFallbackArchives();
-});
+const archiveItems = computed(() => buildArchiveItems());
 
 const tabs = computed(() => {
   const base = [
@@ -508,26 +479,20 @@ const tabs = computed(() => {
     { key: 'archive', label: '档案', icon: '📁', badge: expiringCount.value || '' },
     { key: 'incidents', label: '关联警情', icon: '📌', badge: incidents.value.length || '' },
   ];
-  const moduleTabs = (place.value?.modules || []).map((m) => ({
-    key: `module_${m}`,
-    label: moduleLabel(m),
-    icon: '🧩',
-    badge: '',
-  }));
-  return [...base, ...moduleTabs];
+  return base;
 });
 
 const expiringCount = computed(() => {
-  const dates = [profile.value?.primary?.businessLicenseDue, profile.value?.primary?.specialLicenseDue].filter(Boolean);
-  return dates.filter((d) => daysTo(d) <= 30).length;
+  return archiveItems.value.filter((item) => item.itemType === 'LICENSE' && daysTo(item.rightText) <= 30).length;
 });
+
+const isTabScrollable = computed(() => tabs.value.length > 4);
 
 const actionLabel = computed(() => {
   if (activeTab.value === 'records') return '新增走访';
   if (activeTab.value === 'staff') return '新增从业人员';
   if (activeTab.value === 'archive') return '新增档案';
   if (activeTab.value === 'incidents') return '新增关联警情';
-  if (activeTab.value.startsWith('module_')) return '完善模块信息';
   return '';
 });
 
@@ -631,9 +596,6 @@ function handleAction() {
     uni.showToast({ title: '新增关联警情', icon: 'none' });
     return;
   }
-  if (activeTab.value.startsWith('module_')) {
-    goModule(activeTab.value);
-  }
 }
 
 // 拨打电话
@@ -668,14 +630,7 @@ function openStaff(item) {
 
 // 打开档案操作菜单
 function openArchive(item) {
-  uni.showActionSheet({
-    itemList: ['查看/编辑', '删除', '复制摘要', '取消'],
-    success: (res) => {
-      if (res.tapIndex === 0) openEditArchive(item);
-      if (res.tapIndex === 1) confirmDeleteArchive(item);
-      if (res.tapIndex === 2) copyArchiveSummary(item);
-    },
-  });
+  uni.navigateTo({ url: `/pages/place/archive/detail?placeId=${placeId.value}&itemId=${item.id}` });
 }
 
 // 切换人员筛选下拉
@@ -994,13 +949,100 @@ function quickUpdateStaffStatus(item) {
   });
 }
 
-// 构建档案摘要文案
-function buildArchiveSummary(item) {
-  const parts = [];
-  if (item.docNo) parts.push(`编号：${item.docNo}`);
-  if (item.dueDate) parts.push(`到期：${item.dueDate}`);
-  if (item.note) parts.push(item.note);
-  return parts.join('，') || '暂无摘要';
+// 构建档案列表项
+function buildArchiveItems() {
+  const items = [];
+  const primary = profile.value?.primary || {};
+  const archives = primary.archives || [];
+  const licenseItems = archives.length ? archives.map((item) => ({
+    id: item.id,
+    itemType: 'LICENSE',
+    title: item.docType || '证照',
+    subTitle: `编号：${item.docNo || '—'}`,
+    rightText: item.dueDate || '',
+    status: dueStatus(item.dueDate),
+    payload: item,
+  })) : buildFallbackArchives().map((item) => ({
+    id: item.id,
+    itemType: 'LICENSE',
+    title: item.title,
+    subTitle: item.docNo ? `编号：${item.docNo}` : '编号：—',
+    rightText: item.dueDate || '',
+    status: dueStatus(item.dueDate),
+    payload: item,
+  }));
+  items.push(...licenseItems);
+
+  items.push({
+    id: 'basic_info',
+    itemType: 'BASIC',
+    title: '基础信息',
+    subTitle: `包厢 ${primary.roomCount || '--'}｜安保 ${primary.securityCount || '--'}｜营业 ${primary.businessHours || '--'}`,
+    rightText: '',
+    status: '',
+    payload: {
+      roomCount: primary.roomCount,
+      securityCount: primary.securityCount,
+      businessHours: primary.businessHours,
+      fireCheckDate: primary.fireCheckDate,
+    },
+  });
+
+  const moduleKeys = new Set([
+    ...((place.value?.modules || []) || []),
+    ...Object.keys(profile.value?.modules || {}),
+  ]);
+  const moduleList = Array.from(moduleKeys);
+  moduleList.forEach((type) => {
+    const data = profile.value?.modules?.[type] || {};
+    items.push({
+      id: `module_${type}`,
+      itemType: 'MODULE',
+      title: `${moduleLabel(type)}模块`,
+      subTitle: moduleSubTitle(type, data),
+      rightText: '',
+      status: '',
+      payload: data,
+    });
+  });
+  return items;
+}
+
+function moduleSubTitle(type, data) {
+  if (!data || Object.keys(data).length === 0) return '待完善';
+  if (type === 'CHESS_CARD') {
+    const mahjong = data.mahjongTableCount ?? '--';
+    const chess = data.chessRoomCount ?? '--';
+    return `麻将台 ${mahjong}｜棋牌包间 ${chess}`;
+  }
+  if (type === 'BILLIARD') {
+    const count = data.tableCount ?? '--';
+    return `台球桌 ${count}`;
+  }
+  if (type === 'NETBAR') {
+    const count = data.seatCount ?? '--';
+    return `机位 ${count}`;
+  }
+  if (type === 'FOOTBATH') {
+    const rooms = data.roomCount ?? '--';
+    const staff = data.staffCount ?? '--';
+    return `包间 ${rooms}｜从业 ${staff}`;
+  }
+  return '待完善';
+}
+
+function dueStatus(dateStr) {
+  if (!dateStr) return '';
+  const days = daysTo(dateStr);
+  if (days <= 7) return 'danger';
+  if (days <= 30) return 'warn';
+  return '';
+}
+
+function archiveStatusClass(status) {
+  if (status === 'danger') return 'archiveDanger';
+  if (status === 'warn') return 'archiveWarn';
+  return '';
 }
 
 // 生成 fallback 档案列表
@@ -1203,36 +1245,52 @@ onShow(loadData);
 .infoValueDanger {
   color: #d64545;
 }
-.tab-bar {
+.iconTabs {
   display: flex;
   gap: 12rpx;
   padding: 6rpx 6rpx 12rpx;
-  overflow-x: auto;
 }
-.tab-item {
-  min-width: 140rpx;
+.iconTabsScroll {
+  padding: 6rpx 6rpx 12rpx;
+  white-space: nowrap;
+}
+.iconTabItem,
+.iconTabItemFixed {
   background: #f6f8fb;
   border-radius: 16rpx;
   padding: 12rpx;
   text-align: center;
   position: relative;
 }
-.tab-item.active {
+.iconTabItem {
+  flex: 1;
+  min-width: 0;
+}
+.iconTabItemFixed {
+  display: inline-block;
+  width: 180rpx;
+  margin-right: 12rpx;
+}
+.iconTabActive {
   background: #eaf3ff;
   color: #0f75ff;
 }
-.tab-icon {
+.iconTabIcon {
   font-size: 32rpx;
   display: block;
 }
-.tab-label {
+.iconTabLabel {
   font-size: 24rpx;
   margin-top: 4rpx;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.badge {
+.iconTabBadge {
   position: absolute;
-  top: 6rpx;
-  right: 10rpx;
+  top: -6rpx;
+  right: 18rpx;
   background: #ff4d4f;
   color: #fff;
   font-size: 20rpx;
@@ -1355,6 +1413,29 @@ onShow(loadData);
   display: flex;
   gap: 8rpx;
   align-items: center;
+}
+.archiveItem {
+  align-items: flex-start;
+}
+.archiveTitle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.archiveTitleLeft {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.archiveRight {
+  font-size: 24rpx;
+}
+.archiveWarn {
+  color: #c88719;
+}
+.archiveDanger {
+  color: #d64545;
 }
 .listItemMeta {
   margin-top: 4rpx;
