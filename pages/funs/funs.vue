@@ -16,13 +16,14 @@
 	<view class="body">
 		<l-grid :inset="true">
 			<l-grid-item @click="lgClick('a')" text="娱乐场所" badge="15" image="/static/fun/娱乐场所.png" />
-			<l-grid-item @click="lgClick('b')" text="出租房" image="/static/fun/出租房屋.png" />
-			<l-grid-item @click="lgClick('c')" text="足浴" badge="5" image="/static/fun/足浴.png" />
-			<l-grid-item @click="lgClick('d')" text="走访" badge="New" image="/static/fun/走访记录.png" />
+			<!-- <l-grid-item @click="lgClick('b')" text="出租房" image="/static/fun/出租房屋.png" /> -->
+			<!-- <l-grid-item @click="lgClick('c')" text="足浴" badge="5" image="/static/fun/足浴.png" /> -->
 			<l-grid-item @click="lgClick('e')" text="重点人" badge="New" image="/static/fun/重点人.png" />
-			<l-grid-item @click="lgClick('f')" text="棋牌室" badge="New" image="/static/fun/棋牌室.png" />
+			<l-grid-item @click="lgClick('d')" text="走访" badge="New" image="/static/fun/走访记录.png" />
+			<!-- <l-grid-item @click="lgClick('f')" text="棋牌室" badge="New" image="/static/fun/棋牌室.png" /> -->
 			<l-grid-item @click="lgClick('g')" text="任务指派" badge="New" image="/static/fun/任务.png" />
 			<l-grid-item @click="lgClick('h')" text="数据分析" badge="New" image="/static/fun/分析.png" />
+			<l-grid-item @click="lgClick('h')" text="无人机平台" badge="New" image="/static/fun/无人机.png" />
 		</l-grid>
 	</view>
 
