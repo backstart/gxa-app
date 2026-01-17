@@ -80,13 +80,24 @@
       </view>
 
       <view v-else-if="activeTab === 'staff'">
-        <view v-if="staffList.length === 0" class="empty">暂无从业人员信息</view>
-        <view v-for="item in staffList" :key="item.id" class="list-item">
-          <view class="thumb"></view>
-          <view class="list-body">
-            <view class="list-title">{{ item.name }}</view>
-            <view class="list-sub">{{ item.role }}</view>
-            <view class="list-meta">登记时间：{{ item.time }}</view>
+        <view class="tabActionBar stats">
+          <text>总人数 {{ staffStats.total }}</text>
+          <text>在岗 {{ staffStats.onJob }}</text>
+          <text>离职 {{ staffStats.offJob }}</text>
+        </view>
+        <view v-if="staffList.length === 0" class="empty">暂无人员信息</view>
+        <view v-for="item in staffList" :key="item.id" class="listItem" @click="openStaff(item)">
+          <image class="thumb" :src="item.thumb" mode="aspectFill"></image>
+          <view class="listItemContent">
+            <view class="listItemTitle">
+              <text>{{ item.name }}</text>
+              <text class="placeTag placeTagPrimary">{{ item.staffType }}</text>
+              <text :class="['placeTag', statusTagClass(item.status)]">{{ item.status }}</text>
+            </view>
+            <view class="listItemMeta">
+              <text class="link" @click.stop="callPhone(item.phone)">{{ item.phone || '--' }}</text>
+              <text>证件 {{ item.idNoMasked || '--' }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -146,14 +157,22 @@ const managerName = computed(() => place.value?.managerName || place.value?.mana
 const managerPhone = computed(() => place.value?.managerPhone || place.value?.manager?.phone || '');
 
 const staffList = computed(() => {
-  const count = profile.value?.primary?.staffCount || 0;
-  const list = [];
-  const total = Math.min(count || 0, 6);
-  for (let i = 0; i < total; i += 1) {
-    list.push({ id: `staff-${i}`, name: `从业人员${i + 1}`, role: '技师', time: '2025-09-01' });
-  }
-  return list;
+  const members = profile.value?.primary?.staffMembers || [];
+  return members.map((item) => ({
+    id: item.id,
+    name: item.name,
+    staffType: item.staffType || '其他',
+    status: item.status || '在岗',
+    phone: item.phone || '',
+    idNoMasked: item.idNoMasked || '',
+    thumb: (item.portraitPhotos && item.portraitPhotos[0]) || '/static/venue/人员信息.png',
+  }));
 });
+const staffStats = computed(() => ({
+  total: staffList.value.length,
+  onJob: staffList.value.filter((s) => s.status === '在岗').length,
+  offJob: staffList.value.filter((s) => s.status === '离职').length,
+}));
 
 const tags = computed(() => {
   const list = [];
@@ -170,7 +189,7 @@ const expiringCount = computed(() => {
 
 const tabs = computed(() => ([
   { key: 'records', label: '检查记录', icon: '📋', badge: visits.value.length || '' },
-  { key: 'staff', label: '从业人员', icon: '👥', badge: staffList.value.length || '' },
+  { key: 'staff', label: '人员信息', icon: '👥', badge: staffList.value.length || '' },
   { key: 'archive', label: '档案', icon: '📁', badge: expiringCount.value || '' },
   { key: 'incidents', label: '关联警情', icon: '📌', badge: incidents.value.length || '' },
 ]));
@@ -364,11 +383,11 @@ function handleAction() {
     return;
   }
   if (activeTab.value === 'staff') {
-    uni.showToast({ title: '新增人员', icon: 'none' });
+    uni.navigateTo({ url: `/pages/place/staff/edit?placeId=${placeId.value}&mode=add` });
     return;
   }
   if (activeTab.value === 'archive') {
-    uni.showToast({ title: '新增档案', icon: 'none' });
+    uni.navigateTo({ url: `/pages/place/archive/edit?placeId=${placeId.value}&mode=add` });
     return;
   }
   if (activeTab.value === 'incidents') {
@@ -404,6 +423,10 @@ function openRecord(item) {
   uni.showModal({ title: '检查记录', content: item.content || '--', showCancel: false });
 }
 
+function openStaff(item) {
+  uni.navigateTo({ url: `/pages/place/staff/detail?placeId=${placeId.value}&staffId=${item.id}` });
+}
+
 // 查看关联警情摘要
 function openIncident(item) {
   uni.showModal({ title: '关联警情', content: item.title || '--', showCancel: false });
@@ -425,9 +448,16 @@ function daysTo(dateStr) {
 // 返回到期时间的颜色样式
 function dueClass(dateStr) {
   const days = daysTo(dateStr);
-  if (days <= 7) return 'danger';
-  if (days <= 30) return 'warn';
+  if (days <= 7) return 'infoValueDanger';
+  if (days <= 30) return 'infoValueWarning';
   return '';
+}
+
+function statusTagClass(status) {
+  if (status === '在岗') return 'placeTagNormal';
+  if (status === '离职') return 'placeTagWarning';
+  if (status === '请假') return 'placeTagPrimary';
+  return 'placeTagWarning';
 }
 
 onLoad((query) => {
@@ -502,6 +532,9 @@ onShow(loadData);
 .value.link {
   color: #0f75ff;
 }
+.link {
+  color: #0f75ff;
+}
 .chips {
   margin-top: 12rpx;
   display: flex;
@@ -570,6 +603,19 @@ onShow(loadData);
 .tab-card {
   padding: 10rpx 18rpx 18rpx;
 }
+.tabActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+  margin-bottom: 10rpx;
+}
+.tabActionBar.stats {
+  justify-content: flex-start;
+  color: #6e7a89;
+  font-size: 24rpx;
+  gap: 20rpx;
+}
 .tab-actions {
   display: flex;
   justify-content: flex-end;
@@ -626,6 +672,23 @@ onShow(loadData);
   color: #6e7a89;
   display: flex;
   justify-content: space-between;
+}
+.placeTag {
+  padding: 4rpx 10rpx;
+  border-radius: 10rpx;
+  font-size: 20rpx;
+}
+.placeTagPrimary {
+  background: #eaf3ff;
+  color: #0f75ff;
+}
+.placeTagNormal {
+  background: #e6f7ed;
+  color: #1b9d5d;
+}
+.placeTagWarning {
+  background: #fff6e6;
+  color: #c88719;
 }
 .thumb {
   width: 90rpx;

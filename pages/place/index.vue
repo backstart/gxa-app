@@ -30,9 +30,6 @@ const entries = ref([]);
 
 function getCount(list, filterType) {
   if (!filterType) return list.length;
-  if (filterType === 'COMPLEX') {
-    return list.filter((p) => (p.modules || []).length > 0).length;
-  }
   return list.filter((p) => p.primaryType === filterType).length;
 }
 
@@ -45,7 +42,6 @@ function loadData() {
     { key: 'netbar', title: '网吧', sub: '实名系统与未成年', emoji: '🕹️', filterType: 'NETBAR', count: getCount(list, 'NETBAR') },
     { key: 'footbath', title: '足浴', sub: '治安风险巡查', emoji: '💆', filterType: 'FOOTBATH', count: getCount(list, 'FOOTBATH') },
     { key: 'chess', title: '棋牌/麻将', sub: '涉赌风险排查', emoji: '🀄', filterType: 'CHESS_CARD', count: getCount(list, 'CHESS_CARD') },
-    { key: 'complex', title: '复合业态', sub: '多模块经营场所', emoji: '🏬', filterType: 'COMPLEX', count: getCount(list, 'COMPLEX') },
   ];
 }
 

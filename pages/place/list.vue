@@ -74,7 +74,6 @@ const dueOptions = [
 
 const headerSub = computed(() => {
   if (!filterType.value) return '全部重点场所';
-  if (filterType.value === 'COMPLEX') return '复合业态场所';
   return typeLabel(filterType.value);
 });
 
@@ -82,8 +81,7 @@ const filtered = computed(() => {
   const key = searchKey.value.trim();
   return list.value.filter((p) => {
     if (filterType.value) {
-      if (filterType.value === 'COMPLEX' && (p.modules || []).length === 0) return false;
-      if (filterType.value !== 'COMPLEX' && p.primaryType !== filterType.value) return false;
+      if (p.primaryType !== filterType.value) return false;
     }
     if (riskFilter.value !== '全部' && p.riskLevel !== riskFilter.value) return false;
     if (dueFilter.value !== 'ALL') {
@@ -132,7 +130,6 @@ function typeLabel(type) {
     NETBAR: '网吧',
     FOOTBATH: '足浴',
     CHESS_CARD: '棋牌/麻将',
-    COMPLEX: '复合业态',
   };
   return map[type] || type;
 }

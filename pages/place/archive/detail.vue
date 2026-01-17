@@ -27,10 +27,11 @@
       </view>
 
       <view v-else-if="item.itemType === 'BASIC'" class="section">
-        <view class="row"><text>包厢数</text><text>{{ item.payload?.roomCount || '--' }}</text></view>
-        <view class="row"><text>安保人数</text><text>{{ item.payload?.securityCount || '--' }}</text></view>
-        <view class="row"><text>营业时间</text><text>{{ item.payload?.businessHours || '--' }}</text></view>
-        <view class="row"><text>消防检查</text><text>{{ item.payload?.fireCheckDate || '--' }}</text></view>
+        <view v-if="basicRows.length === 0" class="empty">暂无基础信息</view>
+        <view v-for="row in basicRows" :key="row.label" class="row">
+          <text>{{ row.label }}</text>
+          <text>{{ row.value }}</text>
+        </view>
       </view>
 
       <view v-else class="section">
@@ -224,8 +225,53 @@ const hasModuleData = computed(() => {
   return item.value?.itemType === 'MODULE' && Object.keys(item.value.payload || {}).length > 0;
 });
 
+const basicRows = computed(() => {
+  if (!item.value || item.value.itemType !== 'BASIC') return [];
+  const p = item.value.payload || {};
+  const rows = [];
+  const pushRow = (label, value) => {
+    if (value === undefined || value === null || value === '') return;
+    rows.push({ label, value });
+  };
+  const isRental = !!(p.recordStatus || p.landlord || p.building);
+  const isNetbar = p.seatCount !== undefined || p.realNameSystem;
+  const isFootbath = p.staffCount !== undefined || p.riskPornFlag !== undefined;
+  const isChess = p.mahjongTableCount !== undefined || p.chessRoomCount !== undefined || p.riskGambleFlag !== undefined;
+  const isKtv = p.securityCount !== undefined || (!isRental && !isNetbar && !isFootbath && !isChess);
+
+  if (isKtv) pushRow('包厢数', p.roomCount);
+  if (isRental) pushRow('房间数', p.roomCount);
+  if (isFootbath) pushRow('包间数', p.roomCount);
+  pushRow('安保人数', p.securityCount);
+  pushRow('营业时间', p.businessHours);
+  pushRow('消防检查', p.fireCheckDate);
+  pushRow('备案状态', p.recordStatus);
+  pushRow('房东信息', p.landlord);
+  pushRow('楼栋单元', p.building);
+  pushRow('机位数', p.seatCount);
+  pushRow('实名系统', p.realNameSystem);
+  pushRow('未成年人管控', p.minorControl);
+  pushRow('从业人数', p.staffCount);
+  if (p.riskPornFlag !== undefined) pushRow('涉黄风险', p.riskPornFlag ? '是' : '否');
+  if (p.riskGambleFlag !== undefined) pushRow('涉赌风险', p.riskGambleFlag ? '是' : '否');
+  pushRow('麻将台数', p.mahjongTableCount);
+  pushRow('棋牌包间', p.chessRoomCount);
+  return rows;
+});
+
 function edit() {
-  uni.showToast({ title: '编辑功能待接入', icon: 'none' });
+  if (!item.value) return;
+  if (item.value.itemType !== 'LICENSE') {
+    uni.showToast({ title: '仅证照档案支持编辑', icon: 'none' });
+    return;
+  }
+  const archives = profile.value?.primary?.archives || [];
+  const hasArchive = archives.some((a) => a.id === item.value.id);
+  const mode = hasArchive ? 'edit' : 'add';
+  const url = hasArchive
+    ? `/pages/place/archive/edit?placeId=${placeId.value}&mode=edit&archiveId=${item.value.id}`
+    : `/pages/place/archive/edit?placeId=${placeId.value}&mode=add`;
+  uni.navigateTo({ url });
 }
 
 onLoad((query) => {
