@@ -1,46 +1,49 @@
 <template>
-  <view class="place-list pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">重点场所列表</view>
-        <view class="sub">{{ headerSub }}</view>
+  <AppPage>
+    <view class="place-list pageBg">
+      <view class="header">
+        <view>
+          <view class="title">重点场所列表</view>
+          <view class="sub">{{ headerSub }}</view>
+        </view>
       </view>
-    </view>
 
-    <view class="card filter-card">
-      <view class="filter-row">
-        <text class="label">搜索</text>
-        <input class="input" v-model="searchKey" placeholder="名称/地址/负责人" />
-      </view>
-      <view class="filter-row">
-        <text class="label">风险</text>
-        <view class="chips">
-          <view v-for="r in riskOptions" :key="r" :class="['chip', riskFilter === r ? 'active' : '']" @click="riskFilter = r">
-            {{ r }}
+      <view class="card filter-card">
+        <view class="filter-row">
+          <text class="label">搜索</text>
+          <input class="input" v-model="searchKey" placeholder="名称/地址/负责人" />
+        </view>
+        <view class="filter-row">
+          <text class="label">风险</text>
+          <view class="chips">
+            <view v-for="r in riskOptions" :key="r" :class="['chip', riskFilter === r ? 'active' : '']" @click="riskFilter = r">
+              {{ r }}
+            </view>
+          </view>
+        </view>
+        <view class="filter-row">
+          <text class="label">到期</text>
+          <view class="chips">
+            <view v-for="d in dueOptions" :key="d.value" :class="['chip', dueFilter === d.value ? 'active' : '']" @click="dueFilter = d.value">
+              {{ d.label }}
+            </view>
           </view>
         </view>
       </view>
-      <view class="filter-row">
-        <text class="label">到期</text>
-        <view class="chips">
-          <view v-for="d in dueOptions" :key="d.value" :class="['chip', dueFilter === d.value ? 'active' : '']" @click="dueFilter = d.value">
-            {{ d.label }}
-          </view>
-        </view>
-      </view>
-    </view>
 
-    <view class="card">
-      <view v-if="filtered.length === 0" class="empty">暂无数据</view>
-      <view v-for="place in filtered" :key="place.placeId" class="place-card" @click="goDetail(place)">
-        <image class="placeListCover" :src="place.frontPhoto || '/static/logo.png'" mode="aspectFill"></image>
-        <view class="placeListInfo">
-          <view class="place-head">
-            <view class="place-title">{{ place.name }}</view>
+      <view class="card">
+        <AppEmpty v-if="filtered.length === 0" text="暂无数据" />
+        <AppListItem
+          v-for="place in filtered"
+          :key="place.placeId"
+          :title="place.name"
+          :subTitle="place.address"
+          :leftImage="place.frontPhoto || '/static/logo.png'"
+          @click="goDetail(place)"
+        >
+          <template #titleExtra>
             <text :class="['badge', riskClass(place.riskLevel)]">{{ place.riskLevel }}</text>
-          </view>
-          <view class="place-meta">{{ place.address }}</view>
+          </template>
           <view class="place-tags">
             <text class="tag type">{{ typeLabel(place.primaryType) }}</text>
             <text v-for="m in place.modules" :key="m" class="tag module">{{ moduleLabel(m) }}</text>
@@ -48,16 +51,19 @@
           <view class="place-foot">
             <text :class="['due', dueClass(place.nextVisitDue)]">{{ dueText(place.nextVisitDue) }}</text>
           </view>
-        </view>
+        </AppListItem>
       </view>
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppListItem from '@/components/app/AppListItem.vue';
+import AppEmpty from '@/components/app/AppEmpty.vue';
 
 const filterType = ref('');
 const searchKey = ref('');
@@ -168,8 +174,8 @@ onShow(loadData);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .place-list {
-  min-height: 100vh;
   padding: 0 24rpx 40rpx;
 }
 .header {
@@ -224,44 +230,6 @@ onShow(loadData);
   background: #0f75ff;
   color: #fff;
 }
-.place-card {
-  display: flex;
-  gap: 14rpx;
-  padding: 16rpx;
-  border-radius: 14rpx;
-  background: #f6f8fb;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-  margin-bottom: 12rpx;
-}
-.placeListCover {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 14rpx;
-  background: #e9edf2;
-  flex-shrink: 0;
-}
-.placeListInfo {
-  flex: 1;
-  min-width: 0;
-}
-.place-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.place-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2b3a;
-}
-.place-meta {
-  margin-top: 4rpx;
-  font-size: 24rpx;
-  color: #6e7a89;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .badge {
   padding: 6rpx 12rpx;
   border-radius: 12rpx;
@@ -285,7 +253,7 @@ onShow(loadData);
   display: flex;
   flex-wrap: wrap;
   gap: 8rpx;
-  margin-top: 8rpx;
+  margin-top: 10rpx;
 }
 .tag {
   padding: 6rpx 12rpx;
@@ -299,7 +267,7 @@ onShow(loadData);
   color: #344150;
 }
 .place-foot {
-  margin-top: 10rpx;
+  margin-top: 8rpx;
   display: flex;
   align-items: center;
 }
@@ -312,10 +280,5 @@ onShow(loadData);
 }
 .due.overdue {
   color: #d64545;
-}
-.empty {
-  text-align: center;
-  color: #97a1ad;
-  padding: 20rpx 0;
 }
 </style>

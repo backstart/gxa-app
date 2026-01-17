@@ -1,61 +1,62 @@
 <template>
-  <view class="archive-detail pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">档案详情</view>
-      <view class="sub">{{ place?.name || '重点场所' }}</view>
-    </view>
+  <AppPage>
+    <view class="archive-detail pageBg">
+      <view class="header">
+        <view class="title">档案详情</view>
+        <view class="sub">{{ place?.name || '重点场所' }}</view>
+      </view>
 
-    <view v-if="!item" class="card empty">未找到档案信息</view>
+      <view v-if="!item" class="card empty">未找到档案信息</view>
 
-    <view v-else class="card">
-      <view v-if="item.itemType === 'LICENSE'" class="section">
-        <view class="row"><text>类型</text><text>{{ item.title }}</text></view>
-        <view class="row"><text>编号</text><text>{{ item.payload?.docNo || '—' }}</text></view>
-        <view class="row">
-          <text>到期时间</text>
-          <text :class="dueClass(item.payload?.dueDate)">{{ item.payload?.dueDate || '—' }}</text>
-        </view>
-        <view class="row"><text>备注</text><text>{{ item.payload?.note || '—' }}</text></view>
-        <view class="row photos">
-          <text>照片</text>
-          <view class="photoRow">
-            <image v-for="(img, idx) in (item.payload?.photos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
-            <text v-if="!(item.payload?.photos || []).length">—</text>
+      <view v-else class="card">
+        <view v-if="item.itemType === 'LICENSE'" class="section">
+          <view class="row"><text>类型</text><text>{{ item.title }}</text></view>
+          <view class="row"><text>编号</text><text>{{ item.payload?.docNo || '—' }}</text></view>
+          <view class="row">
+            <text>到期时间</text>
+            <text :class="dueClass(item.payload?.dueDate)">{{ item.payload?.dueDate || '—' }}</text>
+          </view>
+          <view class="row"><text>备注</text><text>{{ item.payload?.note || '—' }}</text></view>
+          <view class="row photos">
+            <text>照片</text>
+            <view class="photoRow">
+              <image v-for="(img, idx) in (item.payload?.photos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+              <text v-if="!(item.payload?.photos || []).length">—</text>
+            </view>
           </view>
         </view>
-      </view>
 
-      <view v-else-if="item.itemType === 'BASIC'" class="section">
-        <view v-if="basicRows.length === 0" class="empty">暂无基础信息</view>
-        <view v-for="row in basicRows" :key="row.label" class="row">
-          <text>{{ row.label }}</text>
-          <text>{{ row.value }}</text>
-        </view>
-      </view>
-
-      <view v-else class="section">
-        <view class="row"><text>模块类型</text><text>{{ item.title }}</text></view>
-        <view v-if="!hasModuleData" class="empty">暂无模块信息</view>
-        <view v-else>
-          <view v-for="row in moduleRows" :key="row.label" class="row">
+        <view v-else-if="item.itemType === 'BASIC'" class="section">
+          <view v-if="basicRows.length === 0" class="empty">暂无基础信息</view>
+          <view v-for="row in basicRows" :key="row.label" class="row">
             <text>{{ row.label }}</text>
             <text>{{ row.value }}</text>
           </view>
         </view>
-      </view>
-    </view>
 
-    <view class="footer">
-      <button class="ghost" @click="edit">完善信息 / 编辑</button>
+        <view v-else class="section">
+          <view class="row"><text>模块类型</text><text>{{ item.title }}</text></view>
+          <view v-if="!hasModuleData" class="empty">暂无模块信息</view>
+          <view v-else>
+            <view v-for="row in moduleRows" :key="row.label" class="row">
+              <text>{{ row.label }}</text>
+              <text>{{ row.value }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <AppBottomBar label="完善信息 / 编辑" @click="edit" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const itemId = ref('');
@@ -305,10 +306,9 @@ onShow(load);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .archive-detail {
-  min-height: 100vh;
   padding: 0 24rpx 80rpx;
-  .statuBar { height: 40rpx; }
   .header {
     padding: 10rpx 0 14rpx;
     .title { font-size: 44rpx; font-weight: 700; color: #1f2b3a; }
@@ -345,20 +345,6 @@ onShow(load);
   .empty {
     text-align: center;
     color: #97a1ad;
-  }
-  .footer {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 20rpx;
-    padding: 0 24rpx;
-    .ghost {
-      width: 100%;
-      background: #f6f8fb;
-      color: #1f2b3a;
-      border: 1px solid #d0d6de;
-      border-radius: 12rpx;
-    }
   }
 }
 </style>

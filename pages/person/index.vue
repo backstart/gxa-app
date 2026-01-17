@@ -1,34 +1,36 @@
 <template>
-  <view class="person-index pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">重点人员</view>
-        <view class="sub">分类统计与临期回访</view>
+  <AppPage>
+    <view class="person-index pageBg">
+      <view class="header">
+        <view>
+          <view class="title">重点人员</view>
+          <view class="sub">分类统计与临期回访</view>
+        </view>
       </view>
-    </view>
 
-    <view class="card grid">
-      <view class="grid-item" @click="goList('all')">
-        <view class="count">{{ total }}</view>
-        <view class="label">全部重点人</view>
-      </view>
-      <view class="grid-item warn" @click="goList('due')">
-        <view class="count">{{ dueCount }}</view>
-        <view class="label">临期回访</view>
-      </view>
-      <view v-for="item in typeCounts" :key="item.type" class="grid-item" @click="goList(`type:${item.type}`)">
-        <view class="count">{{ item.count }}</view>
-        <view class="label">{{ item.type }}</view>
+      <view class="card grid">
+        <view class="grid-item" @click="goList('all')">
+          <view class="count">{{ total }}</view>
+          <view class="label">全部重点人</view>
+        </view>
+        <view class="grid-item warn" @click="goList('due')">
+          <view class="count">{{ dueCount }}</view>
+          <view class="label">临期回访</view>
+        </view>
+        <view v-for="item in typeCounts" :key="item.type" class="grid-item" @click="goList(`type:${item.type}`)">
+          <view class="count">{{ item.count }}</view>
+          <view class="label">{{ item.type }}</view>
+        </view>
       </view>
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { getKeyPersons, syncKeyPersonTodos } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
 
 const persons = ref([]);
 const types = ['涉毒', '涉稳', '精神障碍', '刑释解教', '未保对象'];
@@ -68,12 +70,9 @@ onShow(load);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .person-index {
-  min-height: 100vh;
   padding: 0 24rpx 40rpx;
-  .statuBar {
-    height: 40rpx;
-  }
   .header {
     padding: 10rpx 0 16rpx;
     .title {

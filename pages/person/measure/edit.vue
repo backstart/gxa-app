@@ -1,56 +1,56 @@
 <template>
-  <view class="pageBg form-page">
-    <view class="statuBar"></view>
-
-    <view class="card">
-      <view class="section-title">管控措施</view>
-      <view class="formRow">
-        <text class="formLabel">措施类型</text>
-        <view class="chips">
-          <view
-            v-for="item in measureTypeOptions"
-            :key="item"
-            :class="['chip', form.types.includes(item) ? 'active' : '']"
-            @click="toggleMeasureType(item)"
-          >
-            {{ item }}
+  <AppPage>
+    <view class="pageBg form-page">
+      <view class="card">
+        <view class="section-title">管控措施</view>
+        <view class="formRow">
+          <text class="formLabel">措施类型</text>
+          <view class="chips">
+            <view
+              v-for="item in measureTypeOptions"
+              :key="item"
+              :class="['chip', form.types.includes(item) ? 'active' : '']"
+              @click="toggleMeasureType(item)"
+            >
+              {{ item }}
+            </view>
           </view>
         </view>
+        <view class="formRow">
+          <text class="formLabel">状态</text>
+          <picker :range="measureStatusOptions" @change="(e)=> form.status = measureStatusOptions[e.detail.value]">
+            <view class="formInput">{{ form.status }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">开始时间</text>
+          <picker mode="date" @change="(e)=> form.startDate = e.detail.value">
+            <view class="formInput">{{ form.startDate || '--' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">结束时间</text>
+          <picker mode="date" @change="(e)=> form.endDate = e.detail.value">
+            <view class="formInput">{{ form.endDate || '--' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">备注</text>
+          <textarea class="formInput" v-model="form.remark" placeholder="可选"></textarea>
+        </view>
       </view>
-      <view class="formRow">
-        <text class="formLabel">状态</text>
-        <picker :range="measureStatusOptions" @change="(e)=> form.status = measureStatusOptions[e.detail.value]">
-          <view class="formInput">{{ form.status }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">开始时间</text>
-        <picker mode="date" @change="(e)=> form.startDate = e.detail.value">
-          <view class="formInput">{{ form.startDate || '--' }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">结束时间</text>
-        <picker mode="date" @change="(e)=> form.endDate = e.detail.value">
-          <view class="formInput">{{ form.endDate || '--' }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">备注</text>
-        <textarea class="formInput" v-model="form.remark" placeholder="可选"></textarea>
-      </view>
-    </view>
 
-    <view class="action-bar">
-      <button type="primary" class="action-btn" @click="save">保存</button>
+      <AppBottomBar label="保存" @click="save" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getKeyPersonMeasures, saveKeyPersonMeasures } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const personId = ref('');
 const measureId = ref('');
@@ -133,8 +133,8 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .form-page {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
 }
 .card {
@@ -182,21 +182,5 @@ onLoad((query) => {
 .chip.active {
   background: #eaf3ff;
   color: #0f75ff;
-}
-.action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 12rpx 24rpx 24rpx;
-  background: #fff;
-  border-top: 1px solid #eef1f4;
-}
-.action-btn {
-  width: 100%;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 16rpx;
-  font-size: 30rpx;
 }
 </style>

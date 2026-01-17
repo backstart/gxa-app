@@ -1,10 +1,10 @@
 <template>
-  <view class="basic-edit pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">编辑基础信息</view>
-      <view class="sub">{{ place?.name || '重点场所' }}</view>
-    </view>
+  <AppPage>
+    <view class="basic-edit pageBg">
+      <view class="header">
+        <view class="title">编辑基础信息</view>
+        <view class="sub">{{ place?.name || '重点场所' }}</view>
+      </view>
 
     <view class="card" v-if="type === 'KTV'">
       <view class="formRow">
@@ -136,16 +136,17 @@
       </view>
     </view>
 
-    <view class="footer">
-      <button type="primary" class="primary" @click="save">保存</button>
+      <AppBottomBar label="保存" @click="save" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, savePlaceProfiles } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const place = ref(null);
@@ -274,8 +275,8 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .basic-edit {
-  min-height: 100vh;
   padding: 0 24rpx 120rpx;
 }
 .header {
@@ -333,19 +334,6 @@ onLoad((query) => {
 }
 .chip.active {
   background: #0f75ff;
-  color: #fff;
-}
-.footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 20rpx;
-  padding: 0 24rpx;
-}
-.primary {
-  width: 100%;
-  border-radius: 12rpx;
-  background: linear-gradient(90deg, #0f75ff, #56a0ff);
   color: #fff;
 }
 </style>

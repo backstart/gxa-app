@@ -1,90 +1,91 @@
 <template>
-  <view class="place-visit pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">新增走访</view>
-        <view class="sub">{{ place?.name || '场所走访记录' }}</view>
+  <AppPage>
+    <view class="place-visit pageBg">
+      <view class="header">
+        <view>
+          <view class="title">新增走访</view>
+          <view class="sub">{{ place?.name || '场所走访记录' }}</view>
+        </view>
       </view>
-    </view>
 
-    <view class="card summary" v-if="place">
-      <view class="row">
-        <text class="label">地址</text>
-        <text class="value">{{ place.address }}</text>
+      <view class="card summary" v-if="place">
+        <view class="row">
+          <text class="label">地址</text>
+          <text class="value">{{ place.address }}</text>
+        </view>
+        <view class="row">
+          <text class="label">类型</text>
+          <text class="value">{{ typeLabel(place.primaryType) }}</text>
+        </view>
+        <view class="row">
+          <text class="label">风险</text>
+          <text class="value">{{ place.riskLevel }}</text>
+        </view>
+        <view class="row">
+          <text class="label">下次走访</text>
+          <text class="value">{{ place.nextVisitDue }}</text>
+        </view>
       </view>
-      <view class="row">
-        <text class="label">类型</text>
-        <text class="value">{{ typeLabel(place.primaryType) }}</text>
-      </view>
-      <view class="row">
-        <text class="label">风险</text>
-        <text class="value">{{ place.riskLevel }}</text>
-      </view>
-      <view class="row">
-        <text class="label">下次走访</text>
-        <text class="value">{{ place.nextVisitDue }}</text>
-      </view>
-    </view>
 
-    <view class="card">
-      <view class="form-row">
-        <text class="label">走访时间</text>
-        <picker mode="datetime" @change="(e)=> visitAt = e.detail.value">
-          <view class="picker">{{ visitAt }}</view>
-        </picker>
-      </view>
-      <view class="form-row">
-        <text class="label">走访类型</text>
-        <view class="chips">
-          <view v-for="t in visitTypes" :key="t" :class="['chip', visitType === t ? 'active' : '']" @click="visitType = t">
-            {{ t }}
+      <view class="card">
+        <view class="form-row">
+          <text class="label">走访时间</text>
+          <picker mode="datetime" @change="(e)=> visitAt = e.detail.value">
+            <view class="picker">{{ visitAt }}</view>
+          </picker>
+        </view>
+        <view class="form-row">
+          <text class="label">走访类型</text>
+          <view class="chips">
+            <view v-for="t in visitTypes" :key="t" :class="['chip', visitType === t ? 'active' : '']" @click="visitType = t">
+              {{ t }}
+            </view>
           </view>
         </view>
-      </view>
-      <view class="form-row column">
-        <text class="label">走访内容</text>
-        <textarea class="textarea" v-model="content" placeholder="必填" />
-      </view>
-      <view class="form-row switch-row">
-        <text class="label">发现问题</text>
-        <switch :checked="issuesFound" @change="(e)=> issuesFound = e.detail.value" />
-      </view>
-      <view class="form-row column">
-        <text class="label">问题类型</text>
-        <view class="chips">
-          <view v-for="i in issueOptions" :key="i" :class="['chip', issueTypes.includes(i) ? 'active' : '']" @click="toggleIssue(i)">
-            {{ i }}
+        <view class="form-row column">
+          <text class="label">走访内容</text>
+          <textarea class="textarea" v-model="content" placeholder="必填" />
+        </view>
+        <view class="form-row switch-row">
+          <text class="label">发现问题</text>
+          <switch :checked="issuesFound" @change="(e)=> issuesFound = e.detail.value" />
+        </view>
+        <view class="form-row column">
+          <text class="label">问题类型</text>
+          <view class="chips">
+            <view v-for="i in issueOptions" :key="i" :class="['chip', issueTypes.includes(i) ? 'active' : '']" @click="toggleIssue(i)">
+              {{ i }}
+            </view>
           </view>
         </view>
-      </view>
-      <view class="form-row column">
-        <text class="label">整改情况</text>
-        <textarea class="textarea" v-model="rectification" placeholder="可选" />
-      </view>
-      <view class="form-row switch-row">
-        <text class="label">需要复访</text>
-        <switch :checked="needRevisit" @change="(e)=> needRevisit = e.detail.value" />
-      </view>
-      <view class="form-row column">
-        <text class="label">附件</text>
-        <view class="attachments">
-          <view v-for="(a, idx) in attachments" :key="idx" class="attach">{{ a }}</view>
+        <view class="form-row column">
+          <text class="label">整改情况</text>
+          <textarea class="textarea" v-model="rectification" placeholder="可选" />
         </view>
-        <button size="mini" class="ghost-btn" @click="addAttachment">添加附件(模拟)</button>
+        <view class="form-row switch-row">
+          <text class="label">需要复访</text>
+          <switch :checked="needRevisit" @change="(e)=> needRevisit = e.detail.value" />
+        </view>
+        <view class="form-row column">
+          <text class="label">附件</text>
+          <view class="attachments">
+            <view v-for="(a, idx) in attachments" :key="idx" class="attach">{{ a }}</view>
+          </view>
+          <button size="mini" class="ghost-btn" @click="addAttachment">添加附件(模拟)</button>
+        </view>
       </view>
-    </view>
 
-    <view class="action-bar">
-      <button type="primary" class="submit-btn" @click="submit">提交走访</button>
+      <AppBottomBar label="提交走访" @click="submit" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, savePlaces, getPlaceVisits, savePlaceVisits } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const place = ref(null);
@@ -164,8 +165,8 @@ onShow(loadPlace);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .place-visit {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
 }
 .header {
@@ -262,21 +263,6 @@ onShow(loadPlace);
   border: 1px solid #d0d6de;
   background: #fff;
   color: #1f2b3a;
-  border-radius: 12rpx;
-}
-.action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 10rpx 20rpx 20rpx;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 -6rpx 16rpx rgba(0, 0, 0, 0.08);
-}
-.submit-btn {
-  width: 100%;
-  background: linear-gradient(90deg, #0f75ff, #56a0ff);
-  color: #fff;
   border-radius: 12rpx;
 }
 </style>

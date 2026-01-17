@@ -1,8 +1,7 @@
 <template>
-  <view class="pageBg form-page">
-    <view class="statuBar"></view>
-
-    <view class="card">
+  <AppPage>
+    <view class="pageBg form-page">
+      <view class="card">
       <view class="section-title">档案信息</view>
       <view class="formRow">
         <text class="formLabel">性别</text>
@@ -66,16 +65,17 @@
       </view>
     </view>
 
-    <view class="action-bar">
-      <button type="primary" class="action-btn" @click="save">保存</button>
+      <AppBottomBar label="保存" @click="save" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getKeyPersonProfiles, saveKeyPersonProfiles, getKeyPersons, saveKeyPersons } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const personId = ref('');
 const genderOptions = ['男', '女', '未知'];
@@ -201,8 +201,8 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .form-page {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
 }
 .card {
@@ -271,22 +271,6 @@ onLoad((query) => {
   background: #fff;
   color: #1f2b3a;
   border-radius: 12rpx;
-}
-.action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 12rpx 24rpx 24rpx;
-  background: #fff;
-  border-top: 1px solid #eef1f4;
-}
-.action-btn {
-  width: 100%;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 16rpx;
-  font-size: 30rpx;
 }
 </style>
 

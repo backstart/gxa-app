@@ -1,51 +1,52 @@
 <template>
-  <view class="archive-edit pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">{{ mode === 'edit' ? '编辑档案' : '新增档案' }}</view>
-      <view class="sub">{{ place?.name || '重点场所' }}</view>
-    </view>
+  <AppPage>
+    <view class="archive-edit pageBg">
+      <view class="header">
+        <view class="title">{{ mode === 'edit' ? '编辑档案' : '新增档案' }}</view>
+        <view class="sub">{{ place?.name || '重点场所' }}</view>
+      </view>
 
-    <view class="card">
-      <view class="formRow">
-        <text class="formLabel">档案类型</text>
-        <picker :range="docTypeOptions" @change="(e)=> form.docType = docTypeOptions[e.detail.value]">
-          <view class="formInput">{{ form.docType || '请选择' }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">编号</text>
-        <input class="formInput" v-model="form.docNo" placeholder="可选" />
-      </view>
-      <view class="formRow">
-        <text class="formLabel">到期/检查日期</text>
-        <picker mode="date" @change="(e)=> form.dueDate = e.detail.value">
-          <view class="formInput">{{ form.dueDate || '请选择' }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">备注</text>
-        <textarea class="formInput textarea" v-model="form.note" placeholder="可选"></textarea>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">照片</text>
-        <view class="photoRow">
-          <image v-for="(img, idx) in form.photos" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
-          <button size="mini" class="ghost" @click="addPhoto">添加示例</button>
+      <view class="card">
+        <view class="formRow">
+          <text class="formLabel">档案类型</text>
+          <picker :range="docTypeOptions" @change="(e)=> form.docType = docTypeOptions[e.detail.value]">
+            <view class="formInput">{{ form.docType || '请选择' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">编号</text>
+          <input class="formInput" v-model="form.docNo" placeholder="可选" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">到期/检查日期</text>
+          <picker mode="date" @change="(e)=> form.dueDate = e.detail.value">
+            <view class="formInput">{{ form.dueDate || '请选择' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">备注</text>
+          <textarea class="formInput textarea" v-model="form.note" placeholder="可选"></textarea>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">照片</text>
+          <view class="photoRow">
+            <image v-for="(img, idx) in form.photos" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+            <button size="mini" class="ghost" @click="addPhoto">添加示例</button>
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="footer">
-      <button type="primary" class="primary" @click="save">保存</button>
+      <AppBottomBar label="保存" @click="save" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, savePlaceProfiles } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const archiveId = ref('');
@@ -148,8 +149,8 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .archive-edit {
-  min-height: 100vh;
   padding: 0 24rpx 120rpx;
 }
 .header {
@@ -208,19 +209,6 @@ onLoad((query) => {
   border: 1px solid #d0d6de;
   color: #1f2b3a;
   border-radius: 12rpx;
-}
-.footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 20rpx;
-  padding: 0 24rpx;
-}
-.primary {
-  width: 100%;
-  border-radius: 12rpx;
-  background: linear-gradient(90deg, #0f75ff, #56a0ff);
-  color: #fff;
 }
 </style>
 

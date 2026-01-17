@@ -1,76 +1,85 @@
 <template>
-  <view class="person-list pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">重点人员列表</view>
-      <view class="sub">支持搜索、筛选与排序</view>
-    </view>
+  <AppPage>
+    <view class="person-list pageBg">
+      <view class="header">
+        <view class="title">重点人员列表</view>
+        <view class="sub">支持搜索、筛选与排序</view>
+      </view>
 
-    <view class="card filters">
-      <input v-model="keyword" placeholder="搜索姓名/证件后四位/地址" />
+      <view class="card filters">
+        <input v-model="keyword" placeholder="搜索姓名/证件后四位/地址" />
 
-      <view class="chip-row">
-        <view
-          v-for="type in typeOptions"
-          :key="type"
-          :class="['chip', selectedTypes.includes(type) ? 'active' : '']"
-          @click="toggleType(type)"
-        >
-          {{ type }}
+        <view class="chip-row">
+          <view
+            v-for="type in typeOptions"
+            :key="type"
+            :class="['chip', selectedTypes.includes(type) ? 'active' : '']"
+            @click="toggleType(type)"
+          >
+            {{ type }}
+          </view>
+        </view>
+
+        <view class="filter-row">
+          <view class="label">风险等级</view>
+          <picker :range="riskOptions" @change="onRiskChange">
+            <view class="picker">{{ selectedRisk || '全部' }}</view>
+          </picker>
+        </view>
+        <view class="filter-row">
+          <view class="label">状态</view>
+          <picker :range="statusOptions" @change="onStatusChange">
+            <view class="picker">{{ selectedStatus || '全部' }}</view>
+          </picker>
+        </view>
+        <view class="filter-row">
+          <view class="label">警务区</view>
+          <picker :range="areaOptions" @change="onAreaChange">
+            <view class="picker">{{ selectedArea || '全部' }}</view>
+          </picker>
+        </view>
+        <view class="filter-row">
+          <view class="label">排序</view>
+          <picker :range="sortOptions" range-key="label" @change="onSortChange">
+            <view class="picker">{{ sortLabel }}</view>
+          </picker>
         </view>
       </view>
 
-      <view class="filter-row">
-        <view class="label">风险等级</view>
-        <picker :range="riskOptions" @change="onRiskChange">
-          <view class="picker">{{ selectedRisk || '全部' }}</view>
-        </picker>
-      </view>
-      <view class="filter-row">
-        <view class="label">状态</view>
-        <picker :range="statusOptions" @change="onStatusChange">
-          <view class="picker">{{ selectedStatus || '全部' }}</view>
-        </picker>
-      </view>
-      <view class="filter-row">
-        <view class="label">警务区</view>
-        <picker :range="areaOptions" @change="onAreaChange">
-          <view class="picker">{{ selectedArea || '全部' }}</view>
-        </picker>
-      </view>
-      <view class="filter-row">
-        <view class="label">排序</view>
-        <picker :range="sortOptions" range-key="label" @change="onSortChange">
-          <view class="picker">{{ sortLabel }}</view>
-        </picker>
-      </view>
+      <AppEmpty v-if="displayList.length === 0" text="暂无数据" />
+
+      <AppListItem
+        v-for="item in displayList"
+        :key="item.personId"
+        :title="maskName(item.name)"
+        leftImage="/static/logo.png"
+        @click="goDetail(item)"
+      >
+        <template #titleExtra>
+          <text class="tag">{{ item.personType }}</text>
+          <text :class="['badge', riskClass(item.riskLevel)]">{{ item.riskLevel }}</text>
+          <text :class="['badge', statusClass(item.status)]">{{ item.status }}</text>
+        </template>
+        <view class="row"><text>责任民警</text><text>{{ item.officerName }}</text></view>
+        <view class="row"><text>居住地</text><text>{{ item.address }}</text></view>
+        <view class="row">
+          <text>下次回访</text>
+          <text :class="dueTextClass(item.nextVisitDue)">{{ dueText(item.nextVisitDue) }}</text>
+        </view>
+      </AppListItem>
+
+      <view class="float-btn" @click="addPerson">新增重点人</view>
     </view>
-
-    <view v-if="displayList.length === 0" class="empty card">暂无数据</view>
-
-    <view v-for="item in displayList" :key="item.personId" class="card person-card" @click="goDetail(item)">
-      <view class="top">
-        <view class="name">{{ maskName(item.name) }}</view>
-        <view class="tag">{{ item.personType }}</view>
-        <view :class="['badge', riskClass(item.riskLevel)]">{{ item.riskLevel }}</view>
-        <view :class="['badge', statusClass(item.status)]">{{ item.status }}</view>
-      </view>
-      <view class="row"><text>责任民警</text><text>{{ item.officerName }}</text></view>
-      <view class="row"><text>居住地</text><text>{{ item.address }}</text></view>
-      <view class="row">
-        <text>下次回访</text>
-        <text :class="dueTextClass(item.nextVisitDue)">{{ dueText(item.nextVisitDue) }}</text>
-      </view>
-    </view>
-
-    <view class="float-btn" @click="addPerson">新增重点人</view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getKeyPersons, syncKeyPersonTodos } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppListItem from '@/components/app/AppListItem.vue';
+import AppEmpty from '@/components/app/AppEmpty.vue';
 
 const persons = ref([]);
 const keyword = ref('');
@@ -218,12 +227,9 @@ onShow(load);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .person-list {
-  min-height: 100vh;
   padding: 0 24rpx 80rpx;
-  .statuBar {
-    height: 40rpx;
-  }
   .header {
     padding: 10rpx 0 14rpx;
     .title {

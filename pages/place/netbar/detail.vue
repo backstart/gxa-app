@@ -1,155 +1,107 @@
 <template>
-  <view class="place-detail pageBg">
-    <view class="statuBar"></view>
+  <AppPage>
+    <view class="place-detail pageBg">
+      <AppHeaderCard
+        v-if="place"
+        :title="place.name"
+        subTitle="网吧"
+        :infoRows="headerInfoRows"
+        :tags="tags"
+      />
 
-    <view class="card header-card" v-if="place">
-      <view class="placeHeaderMain">
-        <image src="/static/logo.png" class="placeCover" mode="aspectFill"></image>
-        <view class="placeHeaderInfo">
-          <view class="header-top">
-            <view>
-              <view class="place-name">{{ place.name }}</view>
-              <view class="place-sub">网吧</view>
-            </view>
-          </view>
+      <AppIconTabs :tabs="tabs" v-model:activeKey="activeTab" />
 
-          <view class="info-grid">
-            <view class="info-item">
-              <text class="label">负责人</text>
-              <text class="value">{{ place.ownerName || '--' }}</text>
-            </view>
-            <view class="info-item">
-              <text class="label">电话</text>
-              <text class="value link" @click="callPhone(place.ownerPhone)">{{ place.ownerPhone || '--' }}</text>
-            </view>
-            <view class="info-item" v-if="managerName">
-              <text class="label">管理员</text>
-              <text class="value">{{ managerName }}</text>
-            </view>
-            <view class="info-item" v-if="managerPhone">
-              <text class="label">电话</text>
-              <text class="value link" @click="callPhone(managerPhone)">{{ managerPhone }}</text>
-            </view>
-          </view>
-
-          <view class="info-line">
-            <text class="label">地址</text>
-            <text class="value link" @click="copyAddress">{{ place.address }}</text>
-          </view>
-          <view class="info-line">
-            <text class="label">最近走访</text>
-            <text class="value">{{ place.lastVisitAt || '暂无记录' }}</text>
-          </view>
-
-          <com-tag :taglist="tagList"></com-tag>
+      <view class="card tab-card">
+        <view v-if="activeTab === 'records'">
+          <AppEmpty v-if="recordList.length === 0" text="暂无检查记录" />
+          <AppListItem
+            v-for="item in recordList"
+            :key="item.visitId"
+            :title="item.content"
+            :subTitle="`类型：${item.visitType || '检查'}`"
+            :meta="`${item.visitAt} · ${item.visitorName || '--'}`"
+            leftImage="/static/logo.png"
+            @click="openRecord(item)"
+          />
         </view>
-      </view>
-    </view>
 
-    <view v-if="!isTabScrollable" class="iconTabs">
-      <view
-        v-for="tab in tabs"
-        :key="tab.key"
-        :class="['iconTabItem', activeTab === tab.key ? 'iconTabActive' : '']"
-        @click="activeTab = tab.key"
-      >
-        <text class="iconTabIcon">{{ tab.icon }}</text>
-        <text class="iconTabLabel">{{ tab.label }}</text>
-        <text v-if="tab.badge" class="iconTabBadge">{{ tab.badge }}</text>
-      </view>
-    </view>
-    <scroll-view v-else class="iconTabsScroll" scroll-x>
-      <view
-        v-for="tab in tabs"
-        :key="tab.key"
-        :class="['iconTabItemFixed', activeTab === tab.key ? 'iconTabActive' : '']"
-        @click="activeTab = tab.key"
-      >
-        <text class="iconTabIcon">{{ tab.icon }}</text>
-        <text class="iconTabLabel">{{ tab.label }}</text>
-        <text v-if="tab.badge" class="iconTabBadge">{{ tab.badge }}</text>
-      </view>
-    </scroll-view>
-
-    <view class="card tab-card">
-      <view v-if="activeTab === 'records'">
-        <view v-if="recordList.length === 0" class="empty">暂无检查记录</view>
-        <view v-for="item in recordList" :key="item.visitId" class="list-item" @click="openRecord(item)">
-          <image class="thumb" src="/static/logo.png" mode="aspectFill"></image>
-          <view class="list-body">
-            <view class="list-title">{{ item.content }}</view>
-            <view class="list-sub">类型：{{ item.visitType || '检查' }}</view>
-            <view class="list-meta">{{ item.visitAt }} · {{ item.visitorName || '--' }}</view>
+        <view v-else-if="activeTab === 'staff'">
+          <view class="tabActionBar stats">
+            <text>总人数 {{ staffStats.total }}</text>
+            <text>在岗 {{ staffStats.onJob }}</text>
+            <text>离职 {{ staffStats.offJob }}</text>
           </view>
-        </view>
-      </view>
-
-      <view v-else-if="activeTab === 'staff'">
-        <view class="tabActionBar stats">
-          <text>总人数 {{ staffStats.total }}</text>
-          <text>在岗 {{ staffStats.onJob }}</text>
-          <text>离职 {{ staffStats.offJob }}</text>
-        </view>
-        <view v-if="staffList.length === 0" class="empty">暂无人员信息</view>
-        <view v-for="item in staffList" :key="item.id" class="listItem" @click="openStaff(item)">
-          <image class="thumb" :src="item.thumb" mode="aspectFill"></image>
-          <view class="listItemContent">
-            <view class="listItemTitle">
-              <text>{{ item.name }}</text>
+          <AppEmpty v-if="staffList.length === 0" text="暂无人员信息" />
+          <AppListItem
+            v-for="item in staffList"
+            :key="item.id"
+            :title="item.name"
+            :leftImage="item.thumb"
+            @click="openStaff(item)"
+          >
+            <template #titleExtra>
               <text class="placeTag placeTagPrimary">{{ item.staffType }}</text>
               <text :class="['placeTag', statusTagClass(item.status)]">{{ item.status }}</text>
-            </view>
+            </template>
             <view class="listItemMeta">
               <text class="link" @click.stop="callPhone(item.phone)">{{ item.phone || '--' }}</text>
               <text>证件 {{ item.idNoMasked || '--' }}</text>
             </view>
-          </view>
+          </AppListItem>
         </view>
-      </view>
 
-      <view v-else-if="activeTab === 'archive'">
-        <view v-if="archiveItems.length === 0" class="empty">暂无档案</view>
-        <view v-for="item in archiveItems" :key="item.id" class="listItem" @click="openArchive(item)">
-          <view class="listItemContent">
-            <view class="listItemTitle">
-              <text>{{ item.title }}</text>
+        <view v-else-if="activeTab === 'archive'">
+          <AppEmpty v-if="archiveItems.length === 0" text="暂无档案" />
+          <AppListItem
+            v-for="item in archiveItems"
+            :key="item.id"
+            :title="item.title"
+            :showLeftImage="false"
+            @click="openArchive(item)"
+          >
+            <template #titleExtra>
               <text v-if="item.itemType === 'MODULE'" class="placeTag placeTagPrimary">模块</text>
-            </view>
+            </template>
             <view class="listItemMeta">
               <text>{{ item.subTitle }}</text>
               <text v-if="item.rightText" :class="['infoValue', dueClass(item.rightText)]">{{ item.rightText }}</text>
             </view>
-          </view>
+          </AppListItem>
+        </view>
+
+        <view v-else-if="activeTab === 'incidents'">
+          <AppEmpty v-if="incidents.length === 0" text="暂无关联警情" />
+          <AppListItem
+            v-for="item in incidents"
+            :key="item.id"
+            :title="item.title"
+            :subTitle="item.address"
+            :meta="`${item.time || '--'} · ${item.riskLevel || '--'}`"
+            leftImage="/static/logo.png"
+            @click="openIncident(item)"
+          />
+        </view>
+
+        <view v-else>
+          <AppEmpty text="暂无内容" />
         </view>
       </view>
 
-      <view v-else-if="activeTab === 'incidents'">
-        <view v-if="incidents.length === 0" class="empty">暂无关联警情</view>
-        <view v-for="item in incidents" :key="item.id" class="list-item" @click="openIncident(item)">
-          <image class="thumb" src="/static/logo.png" mode="aspectFill"></image>
-          <view class="list-body">
-            <view class="list-title">{{ item.title }}</view>
-            <view class="list-sub">{{ item.address }}</view>
-            <view class="list-meta">{{ item.time || '--' }} · {{ item.riskLevel || '--' }}</view>
-          </view>
-        </view>
-      </view>
-
-      <view v-else>
-        <view class="empty">暂无内容</view>
-      </view>
+      <AppBottomBar v-if="actionVisible" :label="actionLabel" @click="handleAction" />
     </view>
-
-    <view class="action-bar" v-if="actionVisible">
-      <button type="primary" class="action-btn" @click="handleAction">{{ actionLabel }}</button>
-    </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, getPlaceVisits, getIncidents } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppHeaderCard from '@/components/app/AppHeaderCard.vue';
+import AppIconTabs from '@/components/app/AppIconTabs.vue';
+import AppListItem from '@/components/app/AppListItem.vue';
+import AppEmpty from '@/components/app/AppEmpty.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const place = ref(null);
@@ -184,7 +136,17 @@ const tags = computed(() => {
   (place.value?.modules || []).forEach((m) => list.push(moduleLabel(m)));
   return Array.from(new Set(list));
 });
-const tagList = computed(() => tags.value.map((t) => ({ tag: t })));
+const headerInfoRows = computed(() => {
+  const rows = [
+    { label: '负责人', value: place.value?.ownerName || '--' },
+    { label: '电话', value: place.value?.ownerPhone || '--' },
+  ];
+  if (managerName.value) rows.push({ label: '管理员', value: managerName.value });
+  if (managerPhone.value) rows.push({ label: '电话', value: managerPhone.value });
+  rows.push({ label: '地址', value: place.value?.address || '--' });
+  rows.push({ label: '最近走访', value: place.value?.lastVisitAt || '暂无记录' });
+  return rows;
+});
 
 const actionLabel = computed(() => {
   if (activeTab.value === 'records') return '新增走访';
@@ -202,8 +164,6 @@ const tabs = computed(() => ([
   { key: 'archive', label: '档案', icon: '📁', badge: '' },
   { key: 'incidents', label: '关联警情', icon: '📌', badge: incidents.value.length || '' },
 ]));
-
-const isTabScrollable = computed(() => tabs.value.length > 4);
 
 const mockRecords = [
   {
@@ -419,12 +379,6 @@ function callPhone(phone) {
   uni.makePhoneCall({ phoneNumber: phone });
 }
 
-// 复制场所地址
-function copyAddress() {
-  if (!place.value?.address) return;
-  uni.setClipboardData({ data: place.value.address });
-}
-
 // 查看走访/检查记录详情
 function openRecord(item) {
   uni.showModal({ title: '检查记录', content: item.content || '--', showCancel: false });
@@ -461,8 +415,8 @@ onShow(loadData);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .place-detail {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
 }
 .card {
@@ -472,142 +426,8 @@ onShow(loadData);
   box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.06);
   margin-bottom: 16rpx;
 }
-.header-card {
-  padding: 20rpx;
-}
-.placeHeaderMain {
-  display: flex;
-  gap: 16rpx;
-}
-.placeCover {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 16rpx;
-  background: #e9edf2;
-  flex-shrink: 0;
-}
-.placeHeaderInfo {
-  flex: 1;
-  min-width: 0;
-}
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12rpx;
-}
-.place-name {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #1f2b3a;
-}
-.place-sub {
-  margin-top: 6rpx;
-  color: #6e7a89;
-  font-size: 24rpx;
-}
-.header-actions {
-  display: flex;
-  gap: 8rpx;
-}
-.ghost-btn {
-  border: 1px solid #d0d6de;
-  background: #fff;
-  color: #1f2b3a;
-  border-radius: 12rpx;
-}
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10rpx 20rpx;
-}
-.info-item {
-  display: flex;
-  flex-direction: column;
-}
-.info-line {
-  margin-top: 8rpx;
-  display: flex;
-  justify-content: space-between;
-}
-.label {
-  color: #6b7785;
-  font-size: 24rpx;
-}
-.value {
-  color: #1f2b3a;
-  font-size: 26rpx;
-}
-.value.link {
-  color: #0f75ff;
-}
 .link {
   color: #0f75ff;
-}
-.chips {
-  margin-top: 12rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-}
-.chip {
-  padding: 6rpx 12rpx;
-  border-radius: 12rpx;
-  background: #f4f6f8;
-  font-size: 22rpx;
-  color: #344150;
-}
-.iconTabs {
-  display: flex;
-  gap: 12rpx;
-  padding: 6rpx 6rpx 12rpx;
-}
-.iconTabsScroll {
-  padding: 6rpx 6rpx 12rpx;
-  white-space: nowrap;
-}
-.iconTabItem,
-.iconTabItemFixed {
-  background: #f6f8fb;
-  border-radius: 16rpx;
-  padding: 12rpx;
-  text-align: center;
-  position: relative;
-}
-.iconTabItem {
-  flex: 1;
-  min-width: 0;
-}
-.iconTabItemFixed {
-  display: inline-block;
-  width: 180rpx;
-  margin-right: 12rpx;
-}
-.iconTabActive {
-  background: #eaf3ff;
-  color: #0f75ff;
-}
-.iconTabIcon {
-  font-size: 32rpx;
-  display: block;
-}
-.iconTabLabel {
-  font-size: 24rpx;
-  margin-top: 4rpx;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.iconTabBadge {
-  position: absolute;
-  top: -6rpx;
-  right: 18rpx;
-  background: #ff4d4f;
-  color: #fff;
-  font-size: 20rpx;
-  border-radius: 12rpx;
-  padding: 2rpx 8rpx;
 }
 .tab-card {
   padding: 10rpx 18rpx 18rpx;
@@ -625,63 +445,6 @@ onShow(loadData);
   font-size: 24rpx;
   gap: 20rpx;
 }
-.tab-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10rpx;
-}
-.action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 12rpx 24rpx 24rpx;
-  background: #fff;
-  border-top: 1px solid #eef1f4;
-}
-.action-btn {
-  width: 100%;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 16rpx;
-  font-size: 30rpx;
-}
-.list-item {
-  display: flex;
-  gap: 12rpx;
-  padding: 12rpx 0;
-  border-bottom: 1px solid #f1f3f5;
-}
-.list-item:last-child {
-  border-bottom: none;
-}
-.listItem {
-  display: flex;
-  gap: 12rpx;
-  padding: 12rpx 0;
-  border-bottom: 1px solid #f1f3f5;
-}
-.listItem:last-child {
-  border-bottom: none;
-}
-.listItemContent {
-  flex: 1;
-}
-.listItemTitle {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1f2b3a;
-  display: flex;
-  gap: 8rpx;
-  align-items: center;
-}
-.listItemMeta {
-  margin-top: 4rpx;
-  font-size: 24rpx;
-  color: #6e7a89;
-  display: flex;
-  justify-content: space-between;
-}
 .placeTag {
   padding: 4rpx 10rpx;
   border-radius: 10rpx;
@@ -698,30 +461,6 @@ onShow(loadData);
 .placeTagWarning {
   background: #fff6e6;
   color: #c88719;
-}
-.thumb {
-  width: 90rpx;
-  height: 90rpx;
-  border-radius: 12rpx;
-  background: #e9edf2;
-}
-.list-body {
-  flex: 1;
-}
-.list-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1f2b3a;
-}
-.list-sub {
-  margin-top: 4rpx;
-  font-size: 24rpx;
-  color: #6e7a89;
-}
-.list-meta {
-  margin-top: 4rpx;
-  font-size: 22rpx;
-  color: #9aa3af;
 }
 .info-card {
   background: #f6f8fb;
@@ -742,11 +481,6 @@ onShow(loadData);
 }
 .infoValueDanger {
   color: #d64545;
-}
-.empty {
-  text-align: center;
-  color: #97a1ad;
-  padding: 20rpx 0;
 }
 </style>
 

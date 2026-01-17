@@ -1,12 +1,12 @@
 <template>
-  <view class="module-page pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">棋牌模块</view>
-        <view class="sub">{{ place?.name || '' }}</view>
+  <AppPage>
+    <view class="module-page pageBg">
+      <view class="header">
+        <view>
+          <view class="title">棋牌模块</view>
+          <view class="sub">{{ place?.name || '' }}</view>
+        </view>
       </view>
-    </view>
 
     <view class="card" v-if="place">
       <view class="row"><text class="label">地址</text><text class="value">{{ place.address }}</text></view>
@@ -39,17 +39,19 @@
       </view>
     </view>
 
-    <view class="action-bar">
-      <button type="primary" class="submit-btn" @click="save">保存</button>
-      <button class="ghost-btn" @click="goDispatch">生成棋牌专项派单</button>
+      <view class="action-bar">
+        <button type="primary" class="submit-btn" @click="save">保存</button>
+        <button class="ghost-btn" @click="goDispatch">生成棋牌专项派单</button>
+      </view>
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, updateProfile } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
 
 const placeId = ref('');
 const place = ref(null);
@@ -81,8 +83,8 @@ onShow(loadData);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .module-page {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
 }
 .header {

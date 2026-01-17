@@ -1,67 +1,67 @@
 <template>
-  <view class="pageBg form-page">
-    <view class="statuBar"></view>
-
-    <view class="card">
-      <view class="section-title">回访信息</view>
-      <view class="formRow">
-        <text class="formLabel">回访类型</text>
-        <picker :range="visitTypeOptions" @change="(e)=> form.visitType = visitTypeOptions[e.detail.value]">
-          <view class="formInput">{{ form.visitType }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">回访时间</text>
-        <picker mode="datetime" @change="(e)=> form.visitAt = e.detail.value">
-          <view class="formInput">{{ form.visitAt }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">内容</text>
-        <textarea class="formInput" v-model="form.content" placeholder="必填"></textarea>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">民警</text>
-        <input class="formInput" v-model="form.officerName" />
-      </view>
-      <view class="formRow">
-        <text class="formLabel">下次回访</text>
-        <picker mode="date" @change="(e)=> form.nextVisitDue = e.detail.value">
-          <view class="formInput">{{ form.nextVisitDue || '自动计算' }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">风险变化</text>
-        <switch :checked="form.riskChanged" @change="(e)=> form.riskChanged = e.detail.value"></switch>
-      </view>
-      <view class="formRow" v-if="form.riskChanged">
-        <text class="formLabel">风险等级</text>
-        <picker :range="riskOptions" @change="(e)=> form.riskLevel = riskOptions[e.detail.value]">
-          <view class="formInput">{{ form.riskLevel }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">附件</text>
-        <view class="photoRow">
-          <button size="mini" class="ghost-btn" @click="addAttachment('image')">示例图片</button>
-          <button size="mini" class="ghost-btn" @click="addAttachment('audio')">示例音频</button>
+  <AppPage>
+    <view class="pageBg form-page">
+      <view class="card">
+        <view class="section-title">回访信息</view>
+        <view class="formRow">
+          <text class="formLabel">回访类型</text>
+          <picker :range="visitTypeOptions" @change="(e)=> form.visitType = visitTypeOptions[e.detail.value]">
+            <view class="formInput">{{ form.visitType }}</view>
+          </picker>
         </view>
-        <view class="photoRow">
-          <text v-for="(item, idx) in form.attachments" :key="idx">{{ item }}</text>
+        <view class="formRow">
+          <text class="formLabel">回访时间</text>
+          <picker mode="datetime" @change="(e)=> form.visitAt = e.detail.value">
+            <view class="formInput">{{ form.visitAt }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">内容</text>
+          <textarea class="formInput" v-model="form.content" placeholder="必填"></textarea>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">民警</text>
+          <input class="formInput" v-model="form.officerName" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">下次回访</text>
+          <picker mode="date" @change="(e)=> form.nextVisitDue = e.detail.value">
+            <view class="formInput">{{ form.nextVisitDue || '自动计算' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">风险变化</text>
+          <switch :checked="form.riskChanged" @change="(e)=> form.riskChanged = e.detail.value"></switch>
+        </view>
+        <view class="formRow" v-if="form.riskChanged">
+          <text class="formLabel">风险等级</text>
+          <picker :range="riskOptions" @change="(e)=> form.riskLevel = riskOptions[e.detail.value]">
+            <view class="formInput">{{ form.riskLevel }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">附件</text>
+          <view class="photoRow">
+            <button size="mini" class="ghost-btn" @click="addAttachment('image')">示例图片</button>
+            <button size="mini" class="ghost-btn" @click="addAttachment('audio')">示例音频</button>
+          </view>
+          <view class="photoRow">
+            <text v-for="(item, idx) in form.attachments" :key="idx">{{ item }}</text>
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="action-bar">
-      <button type="primary" class="action-btn" @click="save">保存</button>
+      <AppBottomBar label="保存" @click="save" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getKeyPersonVisits, saveKeyPersonVisits, getKeyPersons, saveKeyPersons, getKeyPersonById } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const personId = ref('');
 const visitId = ref('');
@@ -204,8 +204,8 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .form-page {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
 }
 .card {
@@ -253,22 +253,6 @@ onLoad((query) => {
   background: #fff;
   color: #1f2b3a;
   border-radius: 12rpx;
-}
-.action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 12rpx 24rpx 24rpx;
-  background: #fff;
-  border-top: 1px solid #eef1f4;
-}
-.action-btn {
-  width: 100%;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 16rpx;
-  font-size: 30rpx;
 }
 </style>
 

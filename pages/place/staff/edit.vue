@@ -1,67 +1,68 @@
 <template>
-  <view class="staff-edit pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">{{ mode === 'edit' ? '编辑人员' : '新增人员' }}</view>
-      <view class="sub">{{ place?.name || '重点场所' }}</view>
-    </view>
+  <AppPage>
+    <view class="staff-edit pageBg">
+      <view class="header">
+        <view class="title">{{ mode === 'edit' ? '编辑人员' : '新增人员' }}</view>
+        <view class="sub">{{ place?.name || '重点场所' }}</view>
+      </view>
 
-    <view class="card">
-      <view class="formRow">
-        <text class="formLabel">姓名</text>
-        <input class="formInput" v-model="form.name" placeholder="必填" />
-      </view>
-      <view class="formRow">
-        <text class="formLabel">人员类型</text>
-        <picker :range="staffTypeOptions" @change="(e)=> form.staffType = staffTypeOptions[e.detail.value]">
-          <view class="formInput">{{ form.staffType || '请选择' }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">状态</text>
-        <picker :range="statusOptions" @change="(e)=> form.status = statusOptions[e.detail.value]">
-          <view class="formInput">{{ form.status || '请选择' }}</view>
-        </picker>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">联系电话</text>
-        <input class="formInput" v-model="form.phone" placeholder="可选" />
-      </view>
-      <view class="formRow">
-        <text class="formLabel">身份证号</text>
-        <input class="formInput" v-model="form.idNoFull" placeholder="可选，仅存后四位" />
-      </view>
-      <view class="formRow">
-        <text class="formLabel">身份证照片</text>
-        <view class="photoRow">
-          <image v-for="(img, idx) in form.idCardPhotos" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
-          <button size="mini" class="ghost" @click="addIdPhoto('front')">正面示例</button>
-          <button size="mini" class="ghost" @click="addIdPhoto('back')">反面示例</button>
+      <view class="card">
+        <view class="formRow">
+          <text class="formLabel">姓名</text>
+          <input class="formInput" v-model="form.name" placeholder="必填" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">人员类型</text>
+          <picker :range="staffTypeOptions" @change="(e)=> form.staffType = staffTypeOptions[e.detail.value]">
+            <view class="formInput">{{ form.staffType || '请选择' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">状态</text>
+          <picker :range="statusOptions" @change="(e)=> form.status = statusOptions[e.detail.value]">
+            <view class="formInput">{{ form.status || '请选择' }}</view>
+          </picker>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">联系电话</text>
+          <input class="formInput" v-model="form.phone" placeholder="可选" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">身份证号</text>
+          <input class="formInput" v-model="form.idNoFull" placeholder="可选，仅存后四位" />
+        </view>
+        <view class="formRow">
+          <text class="formLabel">身份证照片</text>
+          <view class="photoRow">
+            <image v-for="(img, idx) in form.idCardPhotos" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+            <button size="mini" class="ghost" @click="addIdPhoto('front')">正面示例</button>
+            <button size="mini" class="ghost" @click="addIdPhoto('back')">反面示例</button>
+          </view>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">人像照片</text>
+          <view class="photoRow">
+            <image v-for="(img, idx) in form.portraitPhotos" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+            <button size="mini" class="ghost" @click="addPortrait">添加示例</button>
+          </view>
+        </view>
+        <view class="formRow">
+          <text class="formLabel">备注</text>
+          <textarea class="formInput textarea" v-model="form.remark" placeholder="可选"></textarea>
         </view>
       </view>
-      <view class="formRow">
-        <text class="formLabel">人像照片</text>
-        <view class="photoRow">
-          <image v-for="(img, idx) in form.portraitPhotos" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
-          <button size="mini" class="ghost" @click="addPortrait">添加示例</button>
-        </view>
-      </view>
-      <view class="formRow">
-        <text class="formLabel">备注</text>
-        <textarea class="formInput textarea" v-model="form.remark" placeholder="可选"></textarea>
-      </view>
-    </view>
 
-    <view class="footer">
-      <button type="primary" class="primary" @click="save">保存</button>
+      <AppBottomBar label="保存" @click="save" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, savePlaceProfiles } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const staffId = ref('');
@@ -184,8 +185,8 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .staff-edit {
-  min-height: 100vh;
   padding: 0 24rpx 120rpx;
 }
 .header {
@@ -244,19 +245,6 @@ onLoad((query) => {
   border: 1px solid #d0d6de;
   color: #1f2b3a;
   border-radius: 12rpx;
-}
-.footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 20rpx;
-  padding: 0 24rpx;
-}
-.primary {
-  width: 100%;
-  border-radius: 12rpx;
-  background: linear-gradient(90deg, #0f75ff, #56a0ff);
-  color: #fff;
 }
 </style>
 

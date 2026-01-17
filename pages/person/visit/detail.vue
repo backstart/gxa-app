@@ -1,16 +1,12 @@
 <template>
-  <view class="pageBg detail-page">
-    <view class="statuBar"></view>
-
-    <view class="card">
-      <view class="name">{{ maskName(person?.name) }}</view>
-      <view class="info">
-        <view class="row"><text>类别</text><text>{{ person?.personType || '-' }}</text></view>
-        <view class="row"><text>风险</text><text>{{ person?.riskLevel || '-' }}</text></view>
-        <view class="row"><text>责任民警</text><text>{{ person?.officerName || '-' }}</text></view>
-        <view class="row"><text>电话</text><text>{{ maskPhone(person?.phone) }}</text></view>
-      </view>
-    </view>
+  <AppPage>
+    <view class="pageBg detail-page">
+      <AppHeaderCard
+        :title="maskName(person?.name)"
+        :subTitle="person?.personType || '重点人员'"
+        :infoRows="headerInfoRows"
+        :tags="[]"
+      />
 
     <view class="card sectionCard">
       <view class="section-title">回访详情</view>
@@ -35,16 +31,18 @@
       </view>
     </view>
 
-    <view class="action-bar">
-      <button type="primary" class="action-btn" @click="goEdit">编辑回访</button>
+      <AppBottomBar label="编辑回访" @click="goEdit" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { getKeyPersonById, getKeyPersonVisits } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppHeaderCard from '@/components/app/AppHeaderCard.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const personId = ref('');
 const visitId = ref('');
@@ -70,6 +68,12 @@ function maskPhone(phone) {
   return `${String(phone).slice(0, 3)}****${String(phone).slice(-4)}`;
 }
 
+const headerInfoRows = computed(() => ([
+  { label: '风险', value: person.value?.riskLevel || '-' },
+  { label: '责任民警', value: person.value?.officerName || '-' },
+  { label: '电话', value: maskPhone(person.value?.phone) },
+]));
+
 onLoad((query) => {
   personId.value = query.personId || '';
   visitId.value = query.visitId || '';
@@ -78,8 +82,8 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .detail-page {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
 }
 .card {
@@ -88,21 +92,6 @@ onLoad((query) => {
   padding: 18rpx;
   box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08);
   margin-bottom: 16rpx;
-}
-.name {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #1f2b3a;
-}
-.info {
-  margin-top: 8rpx;
-}
-.row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 24rpx;
-  color: #4f5a68;
-  margin-top: 6rpx;
 }
 .sectionCard {
   background: #f6f8fb;
@@ -144,21 +133,5 @@ onLoad((query) => {
   height: 80rpx;
   border-radius: 10rpx;
   background: #e9edf2;
-}
-.action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 12rpx 24rpx 24rpx;
-  background: #fff;
-  border-top: 1px solid #eef1f4;
-}
-.action-btn {
-  width: 100%;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 16rpx;
-  font-size: 30rpx;
 }
 </style>

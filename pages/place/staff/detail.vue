@@ -1,49 +1,50 @@
 <template>
-  <view class="staff-detail pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">人员详情</view>
-      <view class="sub">{{ place?.name || '重点场所' }}</view>
-    </view>
+  <AppPage>
+    <view class="staff-detail pageBg">
+      <view class="header">
+        <view class="title">人员详情</view>
+        <view class="sub">{{ place?.name || '重点场所' }}</view>
+      </view>
 
-    <view v-if="!staff" class="card empty">未找到人员信息</view>
-    <view v-else class="card">
-      <view class="row"><text>姓名</text><text>{{ staff.name }}</text></view>
-      <view class="row"><text>人员类型</text><text>{{ staff.staffType || '其他' }}</text></view>
-      <view class="row"><text>状态</text><text>{{ staff.status || '在岗' }}</text></view>
-      <view class="row">
-        <text>电话</text>
-        <text class="link" @click="callPhone(staff.phone)">{{ staff.phone || '--' }}</text>
-      </view>
-      <view class="row"><text>证件后四位</text><text>{{ staff.idNoMasked || '--' }}</text></view>
-      <view class="row photos">
-        <text>身份证照片</text>
-        <view class="photoRow">
-          <image v-for="(img, idx) in (staff.idCardPhotos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
-          <text v-if="!(staff.idCardPhotos || []).length">—</text>
+      <view v-if="!staff" class="card empty">未找到人员信息</view>
+      <view v-else class="card">
+        <view class="row"><text>姓名</text><text>{{ staff.name }}</text></view>
+        <view class="row"><text>人员类型</text><text>{{ staff.staffType || '其他' }}</text></view>
+        <view class="row"><text>状态</text><text>{{ staff.status || '在岗' }}</text></view>
+        <view class="row">
+          <text>电话</text>
+          <text class="link" @click="callPhone(staff.phone)">{{ staff.phone || '--' }}</text>
         </view>
-      </view>
-      <view class="row photos">
-        <text>人像照片</text>
-        <view class="photoRow">
-          <image v-for="(img, idx) in (staff.portraitPhotos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
-          <text v-if="!(staff.portraitPhotos || []).length">—</text>
+        <view class="row"><text>证件后四位</text><text>{{ staff.idNoMasked || '--' }}</text></view>
+        <view class="row photos">
+          <text>身份证照片</text>
+          <view class="photoRow">
+            <image v-for="(img, idx) in (staff.idCardPhotos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+            <text v-if="!(staff.idCardPhotos || []).length">—</text>
+          </view>
         </view>
+        <view class="row photos">
+          <text>人像照片</text>
+          <view class="photoRow">
+            <image v-for="(img, idx) in (staff.portraitPhotos || [])" :key="idx" class="photoThumb" :src="img" mode="aspectFill"></image>
+            <text v-if="!(staff.portraitPhotos || []).length">—</text>
+          </view>
+        </view>
+        <view class="row"><text>备注</text><text>{{ staff.remark || '--' }}</text></view>
+        <button class="ghost" @click="confirmDelete">删除人员</button>
       </view>
-      <view class="row"><text>备注</text><text>{{ staff.remark || '--' }}</text></view>
-    </view>
 
-    <view class="footer">
-      <button class="ghost" @click="confirmDelete">删除人员</button>
-      <button type="primary" class="primary" @click="edit">编辑</button>
+      <AppBottomBar label="编辑" @click="edit" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles, savePlaceProfiles } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const staffId = ref('');
@@ -93,8 +94,8 @@ onShow(load);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .staff-detail {
-  min-height: 100vh;
   padding: 0 24rpx 120rpx;
 }
 .header {
@@ -144,26 +145,11 @@ onShow(load);
   text-align: center;
   color: #97a1ad;
 }
-.footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 20rpx;
-  padding: 0 24rpx;
-  display: flex;
-  gap: 12rpx;
-}
 .ghost {
-  flex: 1;
+  margin-top: 12rpx;
   background: #fff;
   border: 1px solid #d0d6de;
   color: #1f2b3a;
   border-radius: 12rpx;
-}
-.primary {
-  flex: 1;
-  border-radius: 12rpx;
-  background: linear-gradient(90deg, #0f75ff, #56a0ff);
-  color: #fff;
 }
 </style>

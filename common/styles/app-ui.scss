@@ -1,0 +1,71 @@
+.pageRoot {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f6f7fb;
+}
+
+.pageScroll {
+  flex: 1;
+}
+
+.safeSpacer {
+  width: 100%;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 18rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+}
+
+.listItem {
+  display: flex;
+  gap: 12rpx;
+  padding: 12rpx 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+.listItem:last-child {
+  border-bottom: none;
+}
+.listItemImage {
+  width: 90rpx;
+  height: 90rpx;
+  border-radius: 12rpx;
+  background: #e9edf2;
+  flex-shrink: 0;
+}
+.listItemContent {
+  flex: 1;
+  min-width: 0;
+}
+.listItemTitle {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2b3a;
+}
+.listItemMeta {
+  margin-top: 4rpx;
+  font-size: 24rpx;
+  color: #6e7a89;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bottomBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12rpx 24rpx 24rpx;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -6rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+.bottomBarBtn {
+  width: 100%;
+  border-radius: 12rpx;
+  background: linear-gradient(90deg, #0f75ff, #56a0ff);
+  color: #fff;
+}

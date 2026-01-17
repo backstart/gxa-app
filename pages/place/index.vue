@@ -1,30 +1,32 @@
 <template>
-  <view class="place-index pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">重点场所</view>
-        <view class="sub">类型/模块入口与统计概览</view>
-      </view>
-    </view>
-
-    <view class="card grid">
-      <view class="grid-item" v-for="item in entries" :key="item.key" @click="goList(item)">
-        <view class="grid-top">
-          <text class="emoji">{{ item.emoji }}</text>
-          <text class="count">{{ item.count }}</text>
+  <AppPage>
+    <view class="place-index pageBg">
+      <view class="header">
+        <view>
+          <view class="title">重点场所</view>
+          <view class="sub">类型/模块入口与统计概览</view>
         </view>
-        <view class="grid-title">{{ item.title }}</view>
-        <view class="grid-sub">{{ item.sub }}</view>
+      </view>
+
+      <view class="card grid">
+        <view class="grid-item" v-for="item in entries" :key="item.key" @click="goList(item)">
+          <view class="grid-top">
+            <text class="emoji">{{ item.emoji }}</text>
+            <text class="count">{{ item.count }}</text>
+          </view>
+          <view class="grid-title">{{ item.title }}</view>
+          <view class="grid-sub">{{ item.sub }}</view>
+        </view>
       </view>
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { getPlaces } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
 
 const entries = ref([]);
 
@@ -54,8 +56,8 @@ onShow(loadData);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .place-index {
-  min-height: 100vh;
   padding: 0 24rpx 40rpx;
 }
 .header {

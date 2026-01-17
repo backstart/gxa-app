@@ -1,29 +1,30 @@
 <template>
-  <view class="basic-detail pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">基础信息</view>
-      <view class="sub">{{ place?.name || '重点场所' }}</view>
-    </view>
-
-    <view class="card" v-if="rows.length">
-      <view v-for="row in rows" :key="row.label" class="row">
-        <text>{{ row.label }}</text>
-        <text>{{ row.value }}</text>
+  <AppPage>
+    <view class="basic-detail pageBg">
+      <view class="header">
+        <view class="title">基础信息</view>
+        <view class="sub">{{ place?.name || '重点场所' }}</view>
       </view>
-    </view>
-    <view v-else class="card empty">暂无基础信息</view>
 
-    <view class="footer">
-      <button type="primary" class="primary" @click="edit">编辑基础信息</button>
+      <view class="card" v-if="rows.length">
+        <view v-for="row in rows" :key="row.label" class="row">
+          <text>{{ row.label }}</text>
+          <text>{{ row.value }}</text>
+        </view>
+      </view>
+      <view v-else class="card empty">暂无基础信息</view>
+
+      <AppBottomBar label="编辑基础信息" @click="edit" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getPlaces, getPlaceProfiles } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const placeId = ref('');
 const place = ref(null);
@@ -92,8 +93,8 @@ onShow(load);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .basic-detail {
-  min-height: 100vh;
   padding: 0 24rpx 120rpx;
 }
 .header {
@@ -125,18 +126,5 @@ onShow(load);
 .empty {
   text-align: center;
   color: #97a1ad;
-}
-.footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 20rpx;
-  padding: 0 24rpx;
-}
-.primary {
-  width: 100%;
-  border-radius: 12rpx;
-  background: linear-gradient(90deg, #0f75ff, #56a0ff);
-  color: #fff;
 }
 </style>

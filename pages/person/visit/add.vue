@@ -1,10 +1,10 @@
 <template>
-  <view class="person-visit pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view class="title">新增回访</view>
-      <view class="sub">{{ person?.name || '-' }}（{{ person?.personType || '-' }}）</view>
-    </view>
+  <AppPage>
+    <view class="person-visit pageBg">
+      <view class="header">
+        <view class="title">新增回访</view>
+        <view class="sub">{{ person?.name || '-' }}（{{ person?.personType || '-' }}）</view>
+      </view>
 
     <view class="card summary">
       <view class="row"><text>责任民警</text><text>{{ person?.officerName || '-' }}</text></view>
@@ -62,10 +62,9 @@
       </view>
     </view>
 
-    <view class="footer">
-      <button class="primary" @click="submit">提交回访</button>
+      <AppBottomBar label="提交回访" @click="submit" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
@@ -79,6 +78,8 @@ import {
   getKeyPersonById,
   syncKeyPersonTodos,
 } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const personId = ref('');
 const person = ref(null);
@@ -123,7 +124,7 @@ function onRiskChange(e) {
 }
 
 function addAttachment() {
-  form.value.attachments = [...form.value.attachments, `附件${form.value.attachments.length + 1}`];
+  form.value.attachments = [...form.value.attachments, '/static/logo.png'];
 }
 
 function calcNextDue(base) {
@@ -188,10 +189,9 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .person-visit {
-  min-height: 100vh;
   padding: 0 24rpx 120rpx;
-  .statuBar { height: 40rpx; }
   .header {
     padding: 10rpx 0 14rpx;
     .title { font-size: 44rpx; font-weight: 700; color: #1f2b3a; }
@@ -255,22 +255,6 @@ onLoad((query) => {
       background: #f6f8fb;
       color: #0f75ff;
       border: 1px solid #e1e8f0;
-    }
-  }
-  .footer {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 20rpx;
-    padding: 0 24rpx;
-    .primary {
-      width: 100%;
-      background: #0f75ff;
-      color: #fff;
-      border: none;
-      border-radius: 14rpx;
-      font-size: 30rpx;
-      padding: 16rpx 0;
     }
   }
 }

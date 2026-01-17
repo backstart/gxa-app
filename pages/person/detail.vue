@@ -1,129 +1,113 @@
 <template>
-  <view class="person-detail pageBg">
-    <view class="statuBar"></view>
+  <AppPage>
+    <view class="person-detail pageBg">
+      <AppHeaderCard
+        :title="maskName(person?.name)"
+        :subTitle="person?.personType || '重点人员'"
+        :infoRows="headerInfoRows"
+        :tags="tags"
+      />
 
-    <view class="card overview">
-      <view class="name">{{ maskName(person?.name) }}</view>
-      <view class="info">
-        <view class="row"><text>责任民警</text><text>{{ person?.officerName || '-' }}</text></view>
-        <view class="row"><text>电话</text><text>{{ maskPhone(person?.phone) }}</text></view>
-        <view class="row"><text>地址</text><text>{{ person?.address || '-' }}</text></view>
-        <view class="row"><text>最近回访</text><text>{{ person?.lastVisitAt || '-' }}</text></view>
-        <view class="row">
-          <text>下次回访</text>
-          <text :class="dueClass(person?.nextVisitDue)">{{ dueText(person?.nextVisitDue) }}</text>
-        </view>
-      </view>
-      <com-tag :taglist="tagList"></com-tag>
-    </view>
+      <AppIconTabs :tabs="tabs" v-model:activeKey="activeTab" />
 
-    <view class="tabs">
-      <view
-        v-for="(tab, idx) in tabs"
-        :key="tab.key"
-        :class="['tab', activeTab === idx ? 'active' : '']"
-        @click="activeTab = idx"
-      >
-        <text class="icon">{{ tab.icon }}</text>
-        <text>{{ tab.label }}</text>
-        <text v-if="tab.key === 'visits'" class="badge">{{ visits.length }}</text>
-        <text v-if="tab.key === 'control' && measures.length" class="badge">{{ measures.length }}</text>
-      </view>
-    </view>
-
-    <view class="tab-panel card">
-      <view v-if="activeTab === 0">
-        <view class="panel-title">回访记录</view>
-        <view v-if="visits.length === 0" class="empty">暂无回访记录</view>
-        <view v-for="item in visits" :key="item.id" class="record" @click="goVisitDetail(item)">
-          <view class="record-top">
-            <text>{{ item.visitType }}</text>
-            <text>{{ item.visitAt }}</text>
-          </view>
-          <view class="record-content">{{ item.content }}</view>
-          <view class="record-meta">
-            <text>民警：{{ item.officerName || '-' }}</text>
-            <text>下次回访：{{ item.nextVisitDue || '-' }}</text>
-          </view>
-          <view class="record-actions">
-            <text class="action-link" @click.stop="openVisitAction(item)">更多</text>
-          </view>
-        </view>
-      </view>
-
-      <view v-else-if="activeTab === 1">
-        <view class="panel-head">
-          <view class="panel-title">档案信息</view>
-          <text class="edit-btn" @click="goEditProfile">编辑</text>
-        </view>
-        <view class="sectionCard">
-          <view class="info-grid">
-            <view class="item"><text>性别</text><text>{{ profile?.basic?.gender || '-' }}</text></view>
-            <view class="item"><text>出生日期</text><text>{{ profile?.basic?.birthday || '-' }}</text></view>
-            <view class="item"><text>身份证</text><text>{{ profile?.basic?.idNoMasked || '-' }}</text></view>
-            <view class="item"><text>户籍地</text><text>{{ profile?.basic?.domicile || '-' }}</text></view>
-            <view class="item"><text>职业</text><text>{{ profile?.basic?.job || '-' }}</text></view>
-          </view>
-          <view class="section">
-            <view class="section-title">风险因素</view>
-            <view class="chips">
-              <view v-for="item in profile?.riskFactors || []" :key="item" class="chip">{{ item }}</view>
-              <view v-if="!(profile?.riskFactors || []).length" class="empty">暂无</view>
+      <view class="tab-panel card">
+        <view v-if="activeTab === 'visits'">
+          <view class="panel-title">回访记录</view>
+          <AppEmpty v-if="visits.length === 0" text="暂无回访记录" />
+          <AppListItem
+            v-for="item in visits"
+            :key="item.id"
+            :title="item.visitType"
+            :subTitle="item.content"
+            :meta="`时间：${item.visitAt}`"
+            leftImage="/static/logo.png"
+            @click="goVisitDetail(item)"
+          >
+            <view class="listItemMeta">
+              <text>民警：{{ item.officerName || '-' }}</text>
+              <text>下次回访：{{ item.nextVisitDue || '-' }}</text>
             </view>
-          </view>
-          <view class="section">
-            <view class="section-title">证件照片</view>
-            <view class="photo-row">
-              <image v-for="(img, idx) in profile?.idCardPhotos || []" :key="`id-${idx}`" class="photo-thumb" :src="img" mode="aspectFill"></image>
-              <text v-if="!(profile?.idCardPhotos || []).length">--</text>
+            <view class="record-actions">
+              <text class="action-link" @click.stop="openVisitAction(item)">更多</text>
             </view>
-            <view class="section-title">人像照片</view>
-            <view class="photo-row">
-              <image v-for="(img, idx) in profile?.portraitPhotos || []" :key="`pt-${idx}`" class="photo-thumb" :src="img" mode="aspectFill"></image>
-              <text v-if="!(profile?.portraitPhotos || []).length">--</text>
+          </AppListItem>
+        </view>
+
+        <view v-else-if="activeTab === 'profile'">
+          <view class="panel-head">
+            <view class="panel-title">档案信息</view>
+            <text class="edit-btn" @click="goEditProfile">编辑</text>
+          </view>
+          <view class="sectionCard">
+            <view class="info-grid">
+              <view class="item"><text>性别</text><text>{{ profile?.basic?.gender || '-' }}</text></view>
+              <view class="item"><text>出生日期</text><text>{{ profile?.basic?.birthday || '-' }}</text></view>
+              <view class="item"><text>身份证</text><text>{{ profile?.basic?.idNoMasked || '-' }}</text></view>
+              <view class="item"><text>户籍地</text><text>{{ profile?.basic?.domicile || '-' }}</text></view>
+              <view class="item"><text>职业</text><text>{{ profile?.basic?.job || '-' }}</text></view>
+            </view>
+            <view class="section">
+              <view class="section-title">风险因素</view>
+              <view class="chips">
+                <view v-for="item in profile?.riskFactors || []" :key="item" class="chip">{{ item }}</view>
+                <view v-if="!(profile?.riskFactors || []).length" class="empty">暂无</view>
+              </view>
+            </view>
+            <view class="section">
+              <view class="section-title">证件照片</view>
+              <view class="photo-row">
+                <image v-for="(img, idx) in profile?.idCardPhotos || []" :key="`id-${idx}`" class="photo-thumb" :src="img" mode="aspectFill"></image>
+                <text v-if="!(profile?.idCardPhotos || []).length">--</text>
+              </view>
+              <view class="section-title">人像照片</view>
+              <view class="photo-row">
+                <image v-for="(img, idx) in profile?.portraitPhotos || []" :key="`pt-${idx}`" class="photo-thumb" :src="img" mode="aspectFill"></image>
+                <text v-if="!(profile?.portraitPhotos || []).length">--</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
 
-      <view v-else-if="activeTab === 2">
-        <view class="panel-title">关联信息</view>
-        <view class="stats">
-          <view class="stat">
-            <view class="num">{{ related.alerts }}</view>
-            <view class="label">警情</view>
-          </view>
-          <view class="stat">
-            <view class="num">{{ related.disputes }}</view>
-            <view class="label">纠纷</view>
-          </view>
-          <view class="stat">
-            <view class="num">{{ related.dispatches }}</view>
-            <view class="label">派单</view>
-          </view>
-        </view>
-      </view>
-
-      <view v-else>
-        <view class="panel-title">管控措施</view>
-        <view v-if="measures.length === 0" class="empty">暂无管控措施</view>
-        <view v-for="item in measures" :key="item.measureId" class="measure-card" @click="openMeasureAction(item)">
-          <view class="measure-top">
-            <view class="measure-types">
-              <text v-for="type in item.types" :key="type" class="chip">{{ type }}</text>
+        <view v-else-if="activeTab === 'related'">
+          <view class="panel-title">关联信息</view>
+          <view class="stats">
+            <view class="stat">
+              <view class="num">{{ related.alerts }}</view>
+              <view class="label">警情</view>
             </view>
-            <text :class="['status-badge', measureStatusClass(item.status)]">{{ item.status }}</text>
+            <view class="stat">
+              <view class="num">{{ related.disputes }}</view>
+              <view class="label">纠纷</view>
+            </view>
+            <view class="stat">
+              <view class="num">{{ related.dispatches }}</view>
+              <view class="label">派单</view>
+            </view>
           </view>
-          <view class="measure-remark">{{ item.remark || '暂无备注' }}</view>
-          <view class="measure-meta">更新：{{ formatDate(item.updatedAt || item.createdAt) }}</view>
+        </view>
+
+        <view v-else>
+          <view class="panel-title">管控措施</view>
+          <AppEmpty v-if="measures.length === 0" text="暂无管控措施" />
+          <AppListItem
+            v-for="item in measures"
+            :key="item.measureId"
+            :title="item.types.join(' / ')"
+            :subTitle="item.remark || '暂无备注'"
+            :meta="`更新：${formatDate(item.updatedAt || item.createdAt)}`"
+            leftImage="/static/logo.png"
+            @click="openMeasureAction(item)"
+          >
+            <template #titleExtra>
+              <text :class="['status-badge', measureStatusClass(item.status)]">{{ item.status }}</text>
+            </template>
+          </AppListItem>
         </view>
       </view>
-    </view>
 
-    <view class="action-bar" v-if="actionVisible">
-      <button type="primary" class="action-btn" @click="handleAction">{{ actionLabel }}</button>
+      <AppBottomBar v-if="actionVisible" :label="actionLabel" @click="handleAction" />
     </view>
-  </view>
+  </AppPage>
 </template>
 
 <script setup>
@@ -141,35 +125,49 @@ import {
   getPersonVisits,
   syncKeyPersonTodos,
 } from '@/common/database.js';
+import AppPage from '@/components/app/AppPage.vue';
+import AppHeaderCard from '@/components/app/AppHeaderCard.vue';
+import AppIconTabs from '@/components/app/AppIconTabs.vue';
+import AppListItem from '@/components/app/AppListItem.vue';
+import AppEmpty from '@/components/app/AppEmpty.vue';
+import AppBottomBar from '@/components/app/AppBottomBar.vue';
 
 const personId = ref('');
 const person = ref(null);
 const profile = ref(null);
 const visits = ref([]);
 const measures = ref([]);
-const activeTab = ref(0);
+const activeTab = ref('visits');
 
-const tabs = [
-  { key: 'visits', label: '回访记录', icon: '📝' },
+const tabs = computed(() => ([
+  { key: 'visits', label: '回访记录', icon: '📝', badge: visits.value.length || '' },
   { key: 'profile', label: '档案信息', icon: '📄' },
   { key: 'related', label: '关联信息', icon: '🔗' },
-  { key: 'control', label: '管控措施', icon: '🛡️' },
-];
+  { key: 'control', label: '管控措施', icon: '🛡️', badge: measures.value.length || '' },
+]));
 
 const related = ref({ alerts: 2, disputes: 1, dispatches: 3 });
-const tagList = computed(() => {
+const tags = computed(() => {
   const list = [];
   if (person.value?.personType) list.push(person.value.personType);
   if (person.value?.riskLevel) list.push(person.value.riskLevel);
   if (person.value?.status) list.push(person.value.status);
   (person.value?.tags || []).forEach((tag) => list.push(tag));
-  return list.map((tag) => ({ tag }));
+  return list;
 });
 
+const headerInfoRows = computed(() => ([
+  { label: '责任民警', value: person.value?.officerName || '-' },
+  { label: '电话', value: maskPhone(person.value?.phone) },
+  { label: '地址', value: person.value?.address || '-' },
+  { label: '最近回访', value: person.value?.lastVisitAt || '-' },
+  { label: '下次回访', value: dueText(person.value?.nextVisitDue) },
+]));
+
 const actionLabel = computed(() => {
-  if (activeTab.value === 0) return '新增回访';
-  if (activeTab.value === 1) return '新增档案';
-  if (activeTab.value === 3) return '新增措施';
+  if (activeTab.value === 'visits') return '新增回访';
+  if (activeTab.value === 'profile') return '新增档案';
+  if (activeTab.value === 'control') return '新增措施';
   return '';
 });
 
@@ -205,15 +203,15 @@ function loadAll() {
 
 // 底部主按钮动作分发
 function handleAction() {
-  if (activeTab.value === 0) {
+  if (activeTab.value === 'visits') {
     uni.navigateTo({ url: `/pages/person/visit/edit?personId=${personId.value}&mode=add` });
     return;
   }
-  if (activeTab.value === 1) {
+  if (activeTab.value === 'profile') {
     goEditProfile();
     return;
   }
-  if (activeTab.value === 3) {
+  if (activeTab.value === 'control') {
     uni.navigateTo({ url: `/pages/person/measure/edit?personId=${personId.value}&mode=add` });
   }
 }
@@ -373,10 +371,9 @@ onShow(loadAll);
 </script>
 
 <style lang="scss" scoped>
+@import '@/common/styles/app-ui.scss';
 .person-detail {
-  min-height: 100vh;
   padding: 0 24rpx 140rpx;
-  .statuBar { height: 40rpx; }
   .card {
     background: rgba(255, 255, 255, 0.92);
     border-radius: 16rpx;
@@ -402,36 +399,6 @@ onShow(loadAll);
       }
     }
   }
-  .tabs {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8rpx;
-    margin-bottom: 12rpx;
-    .tab {
-      background: #f6f8fb;
-      border-radius: 12rpx;
-      padding: 10rpx 6rpx;
-      text-align: center;
-      font-size: 24rpx;
-      color: #4f5a68;
-      position: relative;
-      .icon { display: block; font-size: 28rpx; margin-bottom: 4rpx; }
-      .badge {
-        position: absolute;
-        top: 6rpx;
-        right: 8rpx;
-        background: #ff5d5d;
-        color: #fff;
-        border-radius: 12rpx;
-        font-size: 20rpx;
-        padding: 2rpx 6rpx;
-      }
-      &.active {
-        background: #eaf3ff;
-        color: #0f75ff;
-      }
-    }
-  }
   .tab-panel {
     .panel-head {
       display: flex;
@@ -441,27 +408,6 @@ onShow(loadAll);
       .panel-title { font-size: 30rpx; font-weight: 700; }
     }
     .panel-title { font-size: 30rpx; font-weight: 700; margin-bottom: 10rpx; }
-    .record {
-      padding: 12rpx 0;
-      border-bottom: 1px solid #f1f3f5;
-      .record-top {
-        display: flex;
-        justify-content: space-between;
-        font-size: 26rpx;
-        color: #1f2b3a;
-      }
-      .record-content {
-        margin-top: 6rpx;
-        font-size: 26rpx;
-        color: #4f5a68;
-      }
-    .record-meta {
-      margin-top: 6rpx;
-      display: flex;
-      justify-content: space-between;
-      font-size: 24rpx;
-      color: #6e7a89;
-    }
     .record-actions {
       margin-top: 6rpx;
       display: flex;
@@ -470,7 +416,6 @@ onShow(loadAll);
     .action-link {
       color: #0f75ff;
       font-size: 24rpx;
-    }
     }
     .info-grid {
       display: grid;
@@ -583,22 +528,6 @@ onShow(loadAll);
       background: #e6f7ed;
       color: #1b9d5d;
     }
-  }
-  .action-bar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 12rpx 24rpx 24rpx;
-    background: #fff;
-    border-top: 1px solid #eef1f4;
-  }
-  .action-btn {
-    width: 100%;
-    height: 84rpx;
-    line-height: 84rpx;
-    border-radius: 16rpx;
-    font-size: 30rpx;
   }
 }
 </style>
