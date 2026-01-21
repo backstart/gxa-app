@@ -1,40 +1,119 @@
 <template>
   <view class="card headerCard">
-    <image class="headerCover" src="/static/logo.png" mode="aspectFill"></image>
-    <view class="headerInfo">
-      <view class="headerTitleRow">
-        <view>
-          <view class="headerTitle">{{ title }}</view>
-          <view v-if="subTitle" class="headerSub">{{ subTitle }}</view>
+    <view class="headerMain">
+      <image class="headerCover" src="/static/logo.png" mode="aspectFill"></image>
+      <view class="headerPrimary">
+        <view class="headerTitle clamp2">{{ title }}</view>
+        <view v-if="subTitle" class="headerSub clamp1">{{ subTitle }}</view>
+        <view class="headerKv">
+          <view class="kvItem">
+            <text class="kvLabel">{{ leftKv.label }}</text>
+            <text class="kvValue">{{ leftKv.value }}</text>
+          </view>
+          <view class="kvItem">
+            <text class="kvLabel">{{ rightKv.label }}</text>
+            <text class="kvValue link" @click="callPhone(rightKv.value)">{{ rightKv.value }}</text>
+          </view>
         </view>
       </view>
-      <view class="headerGrid">
-        <view v-for="(row, idx) in infoRows" :key="idx" class="headerItem">
-          <text class="label">{{ row.label }}</text>
-          <text class="value">{{ row.value }}</text>
-        </view>
-      </view>
-      <view v-if="tags && tags.length" class="headerTags">
-        <text v-for="(tag, idx) in tags" :key="idx" class="tagChip">{{ tag }}</text>
-      </view>
+    </view>
+
+    <view class="headerExtra" v-if="extraRows.length">
+      <InfoRow
+        v-for="(row, idx) in extraRows"
+        :key="idx"
+        :label="row.label"
+        :value="row.value"
+        :clickable="isClickable(row)"
+        @click="handleRowClick(row)"
+      />
+    </view>
+
+    <view class="headerTags" v-if="mappedTags.length">
+      <com-tag :taglist="mappedTags" />
     </view>
   </view>
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import InfoRow from '@/components/app/InfoRow.vue';
+import ComTag from '@/components/com-tag/com-tag.vue';
+
 const props = defineProps({
   title: { type: String, default: '' },
   subTitle: { type: String, default: '' },
   infoRows: { type: Array, default: () => [] },
   tags: { type: Array, default: () => [] },
 });
+
+const leftKv = computed(() => {
+  const row = props.infoRows?.[0] || {};
+  return {
+    label: row.label || '负责人',
+    value: row.value || '—',
+  };
+});
+
+const rightKv = computed(() => {
+  const row = props.infoRows?.[1] || {};
+  return {
+    label: row.label || '电话',
+    value: row.value || '—',
+  };
+});
+
+const extraRows = computed(() => (props.infoRows || []).slice(2));
+
+function callPhone(phone) {
+  if (!phone || phone === '—') return;
+  uni.makePhoneCall({ phoneNumber: String(phone) });
+}
+
+function isClickable(row) {
+  if (!row) return false;
+  return String(row.label || '').includes('电话');
+}
+
+function handleRowClick(row) {
+  if (!row) return;
+  if (String(row.label || '').includes('电话')) {
+    callPhone(row.value);
+  }
+}
+
+const mappedTags = computed(() => {
+  const list = props.tags || [];
+  return list
+    .map((item) => {
+      if (typeof item === 'string') {
+        return { tag: item, type: tagType(item) };
+      }
+      if (item && typeof item === 'object') {
+        return {
+          tag: item.tag || '',
+          type: item.type || tagType(item.tag || ''),
+        };
+      }
+      return null;
+    })
+    .filter((item) => item && item.tag);
+});
+
+function tagType(tag) {
+  const text = String(tag);
+  if (/涉黄|涉毒|涉赌|未成年人|消防隐患|治安复杂|纠纷多发/.test(text)) return 'danger';
+  if (text.includes('重点')) return 'key';
+  return 'normal';
+}
 </script>
 
 <style lang="scss" scoped>
 @import '@/common/styles/app-ui.scss';
 .headerCard {
   display: flex;
-  gap: 16rpx;
+  flex-direction: column;
+  gap: 12rpx;
 }
 .headerCover {
   width: 140rpx;
@@ -43,53 +122,62 @@ const props = defineProps({
   background: #e9edf2;
   flex-shrink: 0;
 }
-.headerInfo {
+.headerMain {
+  display: flex;
+  gap: 16rpx;
+}
+.headerPrimary {
   flex: 1;
   min-width: 0;
-}
-.headerTitleRow {
-  display: flex;
-  justify-content: space-between;
 }
 .headerTitle {
   font-size: 36rpx;
   font-weight: 700;
   color: #1f2b3a;
+  line-height: 1.2;
 }
 .headerSub {
   margin-top: 4rpx;
   font-size: 24rpx;
   color: #6e7a89;
 }
-.headerGrid {
+.clamp2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.clamp1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.headerKv {
   margin-top: 10rpx;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8rpx 16rpx;
 }
-.headerItem {
+.kvItem {
   display: flex;
   flex-direction: column;
 }
-.label {
+.kvLabel {
   font-size: 22rpx;
   color: #6b7785;
 }
-.value {
+.kvValue {
   font-size: 24rpx;
   color: #1f2b3a;
 }
-.headerTags {
-  margin-top: 10rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
+.kvValue.link {
+  color: #0f75ff;
 }
-.tagChip {
-  padding: 6rpx 12rpx;
-  border-radius: 12rpx;
-  font-size: 22rpx;
-  background: #f4f6f8;
-  color: #344150;
+.headerExtra {
+  width: 100%;
+}
+.headerTags {
+  width: 100%;
 }
 </style>
