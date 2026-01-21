@@ -157,11 +157,12 @@ const tags = computed(() => {
 });
 
 const headerInfoRows = computed(() => ([
-  { label: '责任民警', value: person.value?.officerName || '-' },
-  { label: '电话', value: maskPhone(person.value?.phone) },
-  { label: '地址', value: person.value?.address || '-' },
-  { label: '最近回访', value: person.value?.lastVisitAt || '-' },
-  { label: '下次回访', value: dueText(person.value?.nextVisitDue) },
+  { label: '管控人', value: person.value?.officerName || '—' },
+  { label: '电话', value: person.value?.phone || '—' },
+  { label: '身份证号', value: profile.value?.basic?.idNoMasked || person.value?.idNoMasked || '—' },
+  { label: '住址', value: person.value?.address || '—' },
+  { label: '最近走访', value: person.value?.lastVisitAt || '—' },
+  { label: '风险等级', value: person.value?.riskLevel || '—' },
 ]));
 
 const actionLabel = computed(() => {

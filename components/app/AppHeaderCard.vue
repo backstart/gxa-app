@@ -102,8 +102,8 @@ const mappedTags = computed(() => {
 
 function tagType(tag) {
   const text = String(tag);
-  if (/涉黄|涉毒|涉赌|未成年人|消防隐患|治安复杂|纠纷多发/.test(text)) return 'danger';
-  if (text.includes('重点')) return 'key';
+  if (/涉黄|涉毒|涉赌|未成年人|消防隐患|治安复杂|纠纷多发|精神障碍|暴力倾向|重点上访|肇事肇祸|高风险/.test(text)) return 'danger';
+  if (/重点|管控|关注/.test(text)) return 'key';
   return 'normal';
 }
 </script>
@@ -116,8 +116,8 @@ function tagType(tag) {
   gap: 12rpx;
 }
 .headerCover {
-  width: 140rpx;
-  height: 140rpx;
+  width: 104rpx;
+  height: 104rpx;
   border-radius: 16rpx;
   background: #e9edf2;
   flex-shrink: 0;
