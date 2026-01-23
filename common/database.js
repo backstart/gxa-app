@@ -1598,6 +1598,36 @@ const defaults = {
       phone: '123456789',
       address: 'XX市XX区XX街道XX小区3栋1单元',
       receiveTime: '2025-08-01 10:06',
+      status: '未处警',
+      responders: {
+        main: { name: '李警官', phone: '13800001111' },
+        assists: [{ name: '王警官', phone: '13800002222' }],
+      },
+      timeline: [
+        { id: 'tl-1', time: '08-01 10:06', type: '出警', actor: '指挥席', note: '已通知出警' },
+        { id: 'tl-2', time: '08-01 10:18', type: '到场', actor: '李警官', note: '现场已到场' },
+        { id: 'tl-3', time: '08-01 10:22', type: '现场稳定', actor: '李警官', note: '情绪稳定' },
+        { id: 'tl-4', time: '08-01 10:40', type: '需增援', actor: '李警官', note: '需要协助' },
+        { id: 'tl-5', time: '08-01 10:52', type: '到场', actor: '赵警官', note: '增援到场' },
+      ],
+      entries: [
+        {
+          id: 'entry-1',
+          time: '08-01 10:20',
+          actor: '李警官',
+          type: 'photo',
+          content: '现场照片',
+          files: ['/static/mock/scene_1.png'],
+        },
+        {
+          id: 'entry-2',
+          time: '08-01 10:23',
+          actor: '李警官',
+          type: 'text',
+          content: '现场秩序稳定，等待家属到场。',
+          files: [],
+        },
+      ],
     },
   ],
   venueDetails: [

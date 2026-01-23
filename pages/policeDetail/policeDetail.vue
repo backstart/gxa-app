@@ -2,33 +2,84 @@
   <view class="page">
     <view class="statuBar" :style="{ height: barheight + 'px' }"></view>
     <view class="head">
-      <view class="title">
-        <view class="txt1">{{ detail.title || '警情' }}</view>
-        <view class="innum">
-          <view class="txt_gray">警情编号：</view>
-          <view class="txtclick">{{ detail.caseNo || '-' }}</view>
+      <view class="head-top">
+        <view class="title">
+          <view class="txt1">{{ detail.title || '警情' }}</view>
+          <view class="innum">
+            <view class="txt_gray">警情编号：</view>
+            <view class="txtclick">{{ detail.caseNo || '-' }}</view>
+          </view>
+        </view>
+        <view class="collapse-toggle" @click="toggleCollapse">
+          {{ collapsed ? '展开' : '收起' }}
         </view>
       </view>
-      <view class="introduction txt2">{{ detail.description || '' }}</view>
-      <view class="pepoleinfo">
-        <view class="flexrow">
-          <view class="txt_gray">报警人：</view>
-          <view class="txtclick">{{ detail.reporter || '-' }}</view>
+
+      <view v-if="collapsed" class="head-compact">
+        <view class="compact-row">
+          <text class="txt_gray">报警人：</text>
+          <text class="txtclick">{{ detail.reporter || '-' }}</text>
+          <text class="txt_gray">电话：</text>
+          <text class="txtclick">{{ detail.phone || '-' }}</text>
         </view>
-        <view class="flexrow">
-          <view class="txt_gray">电话：</view>
-          <view class="txtclick">{{ detail.phone || '-' }}</view>
+        <view class="compact-row">
+          <text class="txt_gray">地址：</text>
+          <text class="txtclick">{{ detail.address || '-' }}</text>
+        </view>
+        <view class="compact-row">
+          <text class="txt_gray">接警时间：</text>
+          <text class="txt_gray_after">{{ detail.receiveTime || '-' }}</text>
+        </view>
+        <view class="compact-row">
+          <text class="txt_gray">处警状态：</text>
+          <text class="txtclick">未处警</text>
         </view>
       </view>
-      <view class="address flexrow">
-        <view class="txt_gray">地址：</view>
-        <view class="txtclick">{{ detail.address || '-' }}</view>
+
+      <view v-else class="head-full">
+        <view class="introduction txt2">{{ detail.description || '' }}</view>
+        <view class="pepoleinfo">
+          <view class="flexrow">
+            <view class="txt_gray">报警人：</view>
+            <view class="txtclick">{{ detail.reporter || '-' }}</view>
+          </view>
+          <view class="flexrow">
+            <view class="txt_gray">电话：</view>
+            <view class="txtclick">{{ detail.phone || '-' }}</view>
+          </view>
+        </view>
+        <view class="address flexrow">
+          <view class="txt_gray">地址：</view>
+          <view class="txtclick">{{ detail.address || '-' }}</view>
+        </view>
+        <view class="time flexrow">
+          <view class="txt_gray">接警时间：</view>
+          <view class="txt_gray_after">{{ detail.receiveTime || '-' }}</view>
+        </view>
+        <view class="status-bar">
+          <view class="status-label">处警状态</view>
+          <view class="status-value">未处警</view>
+          <view class="status-action">节点更新记录于时间轴</view>
+        </view>
+        <com-tag></com-tag>
+
+        <view class="round-section">
+          <view class="round-head">
+            <text class="round-title">处警节点时间轴</text>
+          </view>
+          <view class="responder-bar">
+            <view class="responder-row">
+              <view class="responder-label">主处警：</view>
+              <view class="responder-value">{{ mainResponderText }}</view>
+            </view>
+            <view class="responder-row">
+              <view class="responder-label">协同：</view>
+              <view class="responder-value">{{ assistResponderText }}</view>
+            </view>
+          </view>
+          <DispatchTimeline :items="timelineEntries" mode="full" />
+        </view>
       </view>
-      <view class="time flexrow">
-        <view class="txt_gray">接警时间：</view>
-        <view class="txt_gray_after">{{ detail.receiveTime || '-' }}</view>
-      </view>
-      <com-tag></com-tag>
     </view>
 
     <view class="tabs">
@@ -51,7 +102,7 @@
         <view class="chat-panel">
           <view class="messages">
             <view
-              v-for="msg in messages"
+              v-for="msg in chatMessages"
               :key="msg.id"
               :class="['msg-row', msg.self ? 'self' : '', msg.type === 'date' ? 'date-row' : '']"
             >
@@ -66,6 +117,16 @@
               </template>
             </view>
           </view>
+          <scroll-view class="quick-phrases" scroll-x>
+            <view
+              v-for="item in quickPhrases"
+              :key="item.text"
+              class="phrase-chip"
+              @click="sendQuickPhrase(item)"
+            >
+              {{ item.text }}
+            </view>
+          </scroll-view>
           <view class="chat-input-bar">
             <view class="input-wrap">
               <image src="/static/icons/voice.png" class="input-icon" mode="aspectFit"></image>
@@ -81,49 +142,63 @@
       <view v-else-if="activeTab === 1" class="scene">
         <view class="section-head">
           <text class="section-title">现场信息</text>
-          <text class="section-sub">照片、报警人信息、现场情况</text>
+          <text class="section-sub">归档时间线（照片/语音/文字）</text>
         </view>
         <view class="scene-list">
-          <view v-for="item in sceneItems" :key="item.id" class="scene-card">
-            <view class="scene-title">{{ item.title }}</view>
-            <view class="scene-desc">{{ item.desc }}</view>
+          <view v-for="item in sceneEntries" :key="item.id" class="scene-card">
+            <view class="scene-title">
+              <text class="scene-type">{{ sceneTypeLabel(item.type) }}</text>
+              <text>{{ item.content }}</text>
+            </view>
+            <view v-if="item.files && item.files.length" class="scene-media">
+              <image class="scene-image" :src="item.files[0]" mode="aspectFill"></image>
+            </view>
+            <view class="scene-desc">{{ item.actor || '—' }}</view>
             <view class="scene-time">{{ item.time }}</view>
           </view>
         </view>
-        <button class="primary-btn" type="primary" @click="addScene">新增现场信息</button>
+        <button class="light-btn" type="default" @click="addSceneNote">添加现场记录</button>
       </view>
 
       <view v-else class="dispose">
         <view class="section-head">
           <text class="section-title">处置情况</text>
-          <text class="section-sub">记录处置结果，可新增补充</text>
+          <text class="section-sub">处置经过时间线 + 结警补充</text>
         </view>
-        <view class="scene-list">
-          <view v-for="item in disposes" :key="item.id" class="scene-card">
-            <view class="scene-title">{{ item.title }}</view>
-            <view class="scene-desc">{{ item.desc }}</view>
-            <view class="scene-time">{{ item.time }}</view>
+        <DispatchTimeline :items="timelineEntries" mode="compact" />
+        <view class="close-form">
+          <view class="form-row">
+            <text class="form-label">处置结果</text>
+            <input v-model="closeForm.result" placeholder="填写处置结果" />
           </view>
+          <view class="form-row">
+            <text class="form-label">主防跟进</text>
+            <switch :checked="closeForm.needFollowup" @change="toggleFollowup" />
+          </view>
+          <button class="primary-btn" type="primary" @click="submitCloseForm">提交补充</button>
         </view>
-        <button class="primary-btn" type="primary" @click="addDispose">新增处置结果</button>
       </view>
+    </view>
+
+    <view class="quick-bar">
+      <view class="quick-btn" @click="handlePhoto">拍照取证</view>
+      <view class="quick-btn" @click="handleVoice">语音记录</view>
+      <view class="quick-btn primary" @click="handleNodeUpdate">节点更新</view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getStatusBarHeight } from '@/utils/system.js';
+import DispatchTimeline from '@/components/app/DispatchTimeline.vue';
 import {
   getChatMessages,
   addChatMessage,
-  getSceneItems,
-  addSceneItem,
-  getDisposeItems,
-  addDisposeItem,
   getPoliceDetails,
   getPoliceDetailById,
+  savePoliceDetails,
 } from '@/common/database.js';
 
 const barheight = ref(getStatusBarHeight());
@@ -135,19 +210,97 @@ const tabs = [
 const activeTab = ref(0);
 const detailId = ref('');
 const detail = ref({});
+const collapsed = ref(true);
 
 const messages = ref([]);
 const chatText = ref('');
 
-const sceneItems = ref([]);
-const disposes = ref([]);
+const closeForm = ref({ result: '', needFollowup: false });
+
+const quickPhrases = [
+  { text: '已出警', type: '出警' },
+  { text: '已到场', type: '到场' },
+  { text: '预计10分钟', type: '预计到场' },
+  { text: '需增援', type: '需增援' },
+  { text: '现场已稳定', type: '现场稳定' },
+  { text: '建议联系家属/120', type: '联系家属/120' },
+];
+
+const sceneEntries = computed(() => detail.value.entries || []);
+const timelineEntries = computed(() => detail.value.timeline || []);
+const mainResponderText = computed(() => {
+  const main = detail.value.responders?.main;
+  if (!main) return '—';
+  return `${main.name || '—'} ${main.phone || ''}`.trim();
+});
+const assistResponderText = computed(() => {
+  const assists = detail.value.responders?.assists || [];
+  if (!assists.length) return '—';
+  return assists.map((item) => item.name || '—').join('、');
+});
+const chatMessages = computed(() =>
+  messages.value.filter((msg) => msg.type === 'date' || msg.user !== '系统')
+);
 
 function loadData() {
   messages.value = getChatMessages();
-  sceneItems.value = getSceneItems();
-  disposes.value = getDisposeItems();
   const list = getPoliceDetails();
-  detail.value = detailId.value ? getPoliceDetailById(detailId.value) || list[0] || {} : list[0] || {};
+  const current = detailId.value ? getPoliceDetailById(detailId.value) || list[0] || {} : list[0] || {};
+  detail.value = normalizeDetail(current);
+  if (!detail.value.id && list[0]?.id) {
+    detail.value.id = list[0].id;
+  }
+}
+
+function normalizeDetail(data) {
+  const base = {
+    status: '未处警',
+    entries: [],
+    responders: {
+      main: { name: '', phone: '' },
+      assists: [],
+    },
+    timeline: [],
+  };
+  return { ...base, ...data };
+}
+
+function persistDetail() {
+  const list = getPoliceDetails();
+  const idx = list.findIndex((item) => item.id === detail.value.id);
+  if (idx >= 0) {
+    list[idx] = { ...detail.value };
+  } else {
+    list.unshift({ ...detail.value });
+  }
+  savePoliceDetails(list);
+}
+
+function addTimelineEntry(payload) {
+  const entry = {
+    id: `tl-${Date.now()}`,
+    time: new Date().toLocaleString().slice(5, 16),
+    actor: '我',
+    type: '出警',
+    note: '',
+    ...payload,
+  };
+  detail.value.timeline = [entry, ...(detail.value.timeline || [])];
+  persistDetail();
+}
+
+function addSceneEntry(payload) {
+  const entry = {
+    id: `entry-${Date.now()}`,
+    time: new Date().toLocaleString().slice(5, 16),
+    actor: '我',
+    type: 'text',
+    content: '',
+    files: [],
+    ...payload,
+  };
+  detail.value.entries = [entry, ...(detail.value.entries || [])];
+  persistDetail();
 }
 
 function sendText() {
@@ -166,24 +319,109 @@ function sendText() {
   chatText.value = '';
 }
 
-function addScene() {
-  sceneItems.value = addSceneItem({
-    id: `s-${Date.now()}`,
-    title: '新增现场信息',
-    desc: '请在真实环境中替换为表单提交结果',
-    time: new Date().toLocaleTimeString().slice(0, 5),
+function sendQuickPhrase(item) {
+  const now = new Date().toLocaleTimeString().slice(0, 5);
+  messages.value = addChatMessage({
+    id: `m-${Date.now()}`,
+    user: '我',
+    content: item.text,
+    time: now,
+    self: true,
+    avatar: '/static/avatar/me.png',
   });
-  uni.showToast({ title: '已新增', icon: 'success' });
+  addTimelineEntry({ type: item.type, note: item.text });
 }
 
-function addDispose() {
-  disposes.value = addDisposeItem({
-    id: `d-${Date.now()}`,
-    title: '新增处置结果',
-    desc: '请在真实环境中替换为表单提交结果',
-    time: new Date().toLocaleTimeString().slice(0, 5),
+function handleNodeUpdate() {
+  const nodeOptions = ['出警', '到场', '需增援', '现场稳定', '联系家属', '联系120', '结束'];
+  uni.showActionSheet({
+    itemList: nodeOptions,
+    success: (res) => {
+      const picked = nodeOptions[res.tapIndex];
+      uni.showModal({
+        title: '节点备注',
+        editable: true,
+        placeholderText: '填写备注（可选）',
+        success: (modalRes) => {
+          if (!modalRes.confirm) return;
+          addTimelineEntry({ type: picked, note: modalRes.content || '' });
+        },
+      });
+    },
   });
-  uni.showToast({ title: '已新增', icon: 'success' });
+}
+
+function handlePhoto() {
+  uni.chooseImage({
+    count: 3,
+    sourceType: ['camera', 'album'],
+    success: (res) => {
+      res.tempFilePaths.forEach((path) => {
+        addSceneEntry({
+          type: 'photo',
+          content: '拍照取证',
+          files: [path],
+        });
+        addTimelineEntry({ type: '现场记录', note: '拍照取证' });
+      });
+    },
+  });
+}
+
+function handleVoice() {
+  uni.showModal({
+    title: '语音记录',
+    editable: true,
+    placeholderText: '输入语音转写内容',
+    success: (res) => {
+      if (!res.confirm) return;
+      const text = res.content || '语音记录';
+      addSceneEntry({ type: 'audio', content: text });
+      addTimelineEntry({ type: '语音记录', note: text });
+    },
+  });
+}
+
+function addSceneNote() {
+  uni.showModal({
+    title: '添加现场记录',
+    editable: true,
+    placeholderText: '输入现场记录',
+    success: (res) => {
+      if (!res.confirm) return;
+      const text = res.content || '现场记录';
+      addSceneEntry({ type: 'text', content: text });
+      addTimelineEntry({ type: '现场记录', note: text });
+    },
+  });
+}
+
+function sceneTypeLabel(type) {
+  if (type === 'photo') return '照片';
+  if (type === 'audio') return '语音';
+  return '文字';
+}
+
+function toggleFollowup(event) {
+  closeForm.value.needFollowup = event.detail.value;
+}
+
+function submitCloseForm() {
+  if (!closeForm.value.result) {
+    uni.showToast({ title: '请填写处置结果', icon: 'none' });
+    return;
+  }
+  addTimelineEntry({ type: '结警补充', note: closeForm.value.result });
+  if (closeForm.value.needFollowup) {
+    uni.showToast({ title: '已提示生成后续任务', icon: 'none' });
+  } else {
+    uni.showToast({ title: '已补充', icon: 'success' });
+  }
+  closeForm.value = { result: '', needFollowup: false };
+}
+
+function toggleCollapse() {
+  collapsed.value = !collapsed.value;
 }
 
 onLoad((query) => {
@@ -208,8 +446,14 @@ onShow(loadData);
   padding: 16rpx;
 }
 
+.head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
 .title {
-  margin: 10rpx 10rpx;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -244,6 +488,33 @@ onShow(loadData);
   margin-bottom: 8px;
 }
 
+.collapse-toggle {
+  font-size: 24rpx;
+  color: #0f75ff;
+  padding: 6rpx 12rpx;
+  border-radius: 14rpx;
+  background: #f0f5ff;
+}
+
+.head-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  margin-top: 10rpx;
+}
+
+.compact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #5c6b7a;
+}
+
+.head-full {
+  margin-top: 10rpx;
+}
+
 .tabs {
   display: flex;
   margin: 14rpx 0;
@@ -269,8 +540,8 @@ onShow(loadData);
 .tab-panel {
   background: #f2f2f2;
   border-radius: 16rpx;
-  padding: 0;
-  box-shadow: 0 6rpx 24rpx rgba(0,0,0,0.08);
+  padding: 0 0 180rpx;
+  box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.08);
 }
 
 .section-head {
@@ -302,7 +573,7 @@ onShow(loadData);
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 12rpx 18rpx 140rpx;
+  padding: 12rpx 18rpx 220rpx;
   display: flex;
   flex-direction: column;
   gap: 14rpx;
@@ -345,7 +616,7 @@ onShow(loadData);
   padding: 14rpx 16rpx;
   font-size: 28rpx;
   color: #1f2b3a;
-  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
 }
 
 .msg-row.self .msg-bubble {
@@ -370,11 +641,29 @@ onShow(loadData);
   font-size: 22rpx;
 }
 
+.quick-phrases {
+  display: flex;
+  gap: 12rpx;
+  padding: 6rpx 12rpx;
+  background: #f2f2f2;
+  border-top: 1px solid #e6e6e6;
+  white-space: nowrap;
+}
+
+.phrase-chip {
+  padding: 6rpx 14rpx;
+  border-radius: 16rpx;
+  background: #ffffff;
+  color: #1f2b3a;
+  font-size: 22rpx;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+}
+
 .chat-input-bar {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 96rpx;
   background: #f7f7f7;
   padding: 10rpx 16rpx 18rpx;
   display: flex;
@@ -429,6 +718,24 @@ onShow(loadData);
   font-size: 30rpx;
   font-weight: 600;
   color: #1f2b3a;
+  display: flex;
+  gap: 12rpx;
+}
+
+.scene-type {
+  font-size: 24rpx;
+  color: #0f75ff;
+}
+
+.scene-media {
+  margin-top: 8rpx;
+}
+
+.scene-image {
+  width: 160rpx;
+  height: 120rpx;
+  border-radius: 8rpx;
+  background: #ddd;
 }
 
 .scene-desc {
@@ -448,5 +755,132 @@ onShow(loadData);
   color: white;
   font-size: 30rpx;
   border-radius: 12rpx;
+}
+
+.light-btn {
+  background: #ffffff;
+  color: #0f75ff;
+  border-radius: 12rpx;
+  border: 1px solid #0f75ff;
+  font-size: 28rpx;
+}
+
+.status-bar {
+  margin: 12rpx 0;
+  padding: 12rpx 16rpx;
+  border-radius: 10rpx;
+  background: #f6f8fb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.status-label {
+  font-size: 26rpx;
+  color: #6e7a89;
+}
+
+.status-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #0f75ff;
+}
+
+.status-action {
+  font-size: 24rpx;
+  color: #97a1ad;
+}
+
+.round-section {
+  margin-top: 12rpx;
+  padding: 12rpx;
+  border-radius: 12rpx;
+  background: #f6f8fb;
+}
+
+.round-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2b3a;
+}
+
+.responder-bar {
+  background: #f6f8fb;
+  border-radius: 10rpx;
+  padding: 12rpx 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  margin-bottom: 10rpx;
+}
+
+.responder-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.responder-label {
+  font-size: 24rpx;
+  color: #6e7a89;
+}
+
+.responder-value {
+  font-size: 26rpx;
+  color: #1f2b3a;
+}
+
+.close-form {
+  margin-top: 14rpx;
+  background: #ffffff;
+  border-radius: 12rpx;
+  padding: 12rpx;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 0;
+  border-bottom: 1px solid #eef1f4;
+}
+
+.form-row:last-child {
+  border-bottom: none;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #6e7a89;
+  min-width: 140rpx;
+}
+
+.quick-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12rpx 20rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: #ffffff;
+  border-top: 1px solid #e6e6e6;
+  display: flex;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.quick-btn {
+  flex: 1;
+  text-align: center;
+  padding: 14rpx 0;
+  border-radius: 14rpx;
+  background: #f2f4f7;
+  color: #1f2b3a;
+  font-size: 26rpx;
+}
+
+.quick-btn.primary {
+  background: #0f75ff;
+  color: #ffffff;
 }
 </style>
