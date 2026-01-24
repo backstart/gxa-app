@@ -38,7 +38,12 @@
     </view>
 
     <view v-if="collapsed" class="chat-layout" @click="handleContentTap">
-      <scroll-view class="messages" scroll-y :scroll-into-view="scrollIntoId">
+      <scroll-view
+        class="messages"
+        scroll-y
+        :scroll-into-view="scrollIntoId"
+        :scroll-with-animation="scrollWithAnimation"
+      >
         <view
           v-for="msg in chatMessages"
           :key="msg.id"
@@ -81,6 +86,7 @@
               v-else
               class="voice-btn"
               @touchstart="handleVoiceStart"
+              @touchmove="handleVoiceMove"
               @touchend="handleVoiceEnd"
             >
               按住说话
@@ -107,6 +113,13 @@
         <view class="panel-item" @click="handleCamera">
           <image class="panel-icon" src="/static/msg/camera.png" mode="aspectFit"></image>
           <text class="panel-text">拍摄</text>
+        </view>
+      </view>
+      <view v-if="showEmoji" class="emoji-panel" @click.stop>
+        <view class="emoji-grid">
+          <text v-for="item in emojis" :key="item" class="emoji-item" @click="pickEmoji(item)">
+            {{ item }}
+          </text>
         </view>
       </view>
     </view>
@@ -191,7 +204,15 @@ const showPanel = ref(false);
 const showEmoji = ref(false);
 const inputFocus = ref(false);
 const scrollIntoId = ref('');
+const scrollWithAnimation = ref(true);
 let voiceStartAt = 0;
+let voiceCanceled = false;
+
+const emojis = [
+  '😀', '😄', '😁', '😆', '😅', '😂', '🙂', '😉',
+  '😍', '😘', '😜', '🤔', '😎', '🥳', '😭', '😡',
+  '👍', '🙏', '💪', '🎉', '🔥', '⭐', '🌈', '✅',
+];
 
 const mappedTags = computed(() => {
   const list = detail.value?.tags || [];
@@ -282,6 +303,7 @@ function sendMessage() {
   messages.value = addChatMessage(payload);
   chatText.value = '';
   scrollIntoId.value = payload.id;
+  scrollWithAnimation.value = true;
 }
 
 function addImageMessage(url) {
@@ -297,6 +319,7 @@ function addImageMessage(url) {
   };
   messages.value = addChatMessage(payload);
   scrollIntoId.value = payload.id;
+  scrollWithAnimation.value = true;
 }
 
 function addVoiceMessage(duration) {
@@ -312,6 +335,7 @@ function addVoiceMessage(duration) {
   };
   messages.value = addChatMessage(payload);
   scrollIntoId.value = payload.id;
+  scrollWithAnimation.value = true;
 }
 
 function toggleVoiceMode() {
@@ -333,9 +357,17 @@ function togglePanel() {
 }
 
 function toggleEmoji() {
+  if (!showEmoji.value) {
+    uni.hideKeyboard();
+  }
   showEmoji.value = !showEmoji.value;
   showPanel.value = false;
-  uni.showToast({ title: '表情面板待实现', icon: 'none' });
+}
+
+function pickEmoji(item) {
+  chatText.value = `${chatText.value || ''}${item}`;
+  inputFocus.value = true;
+  showEmoji.value = false;
 }
 
 function handleAlbum() {
@@ -362,10 +394,23 @@ function handleCamera() {
 
 function handleVoiceStart() {
   voiceStartAt = Date.now();
+  voiceCanceled = false;
   uni.showToast({ title: '开始录音…', icon: 'none' });
 }
 
+function handleVoiceMove(event) {
+  const touch = event.touches?.[0];
+  if (!touch) return;
+  if (touch.clientY < 200) {
+    voiceCanceled = true;
+  }
+}
+
 function handleVoiceEnd() {
+  if (voiceCanceled) {
+    uni.showToast({ title: '取消录音', icon: 'none' });
+    return;
+  }
   const duration = Math.max(1, Math.round((Date.now() - voiceStartAt) / 1000));
   addVoiceMessage(duration);
 }
@@ -669,6 +714,23 @@ onShow(loadData);
 .panel-text {
   font-size: 24rpx;
   color: #4f5a68;
+}
+
+.emoji-panel {
+  background: #f5f6f8;
+  padding: 12rpx 16rpx calc(12rpx + env(safe-area-inset-bottom));
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8rpx;
+}
+
+.emoji-item {
+  font-size: 28rpx;
+  text-align: center;
+  padding: 6rpx 0;
 }
 
 .status-bar {
