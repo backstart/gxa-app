@@ -37,29 +37,77 @@
       </view>
     </view>
 
-    <view v-if="collapsed" class="chat-layout">
-      <scroll-view class="messages" scroll-y>
+    <view v-if="collapsed" class="chat-layout" @click="handleContentTap">
+      <scroll-view class="messages" scroll-y :scroll-into-view="scrollIntoId">
         <view
           v-for="msg in chatMessages"
           :key="msg.id"
           :class="['msg-row', msg.self ? 'self' : '', msg.type === 'date' ? 'date-row' : '']"
+          :id="msg.id"
         >
           <view v-if="msg.type === 'date'" class="date-badge">{{ msg.content }}</view>
           <template v-else>
             <image class="avatar" :src="msg.avatar" mode="aspectFill"></image>
             <view class="bubble-wrap">
               <view class="msg-user">{{ msg.user }}</view>
-              <view class="msg-bubble">{{ msg.content }}</view>
+              <view v-if="msg.type === 'image'" class="msg-image">
+                <image class="msg-image-item" :src="msg.url" mode="aspectFill"></image>
+              </view>
+              <view v-else class="msg-bubble">{{ msg.content }}</view>
               <view class="msg-time">{{ msg.time }}</view>
             </view>
           </template>
         </view>
       </scroll-view>
-      <view class="chat-input-sticky">
-        <view class="input-wrap">
-          <input v-model="chatText" placeholder="输入文字" />
+      <view class="chat-input-sticky" @click.stop>
+        <view class="chat-bar">
+          <view v-if="isVoiceMode" class="chat-keyboard-btn" @click="toggleVoiceMode">键盘</view>
+          <image
+            v-else
+            class="chat-icon"
+            src="/static/msg/voice.png"
+            mode="aspectFit"
+            @click="toggleVoiceMode"
+          ></image>
+          <view class="chat-input">
+            <input
+              v-if="!isVoiceMode"
+              v-model="chatText"
+              placeholder="输入文字"
+              :focus="inputFocus"
+              @focus="handleInputFocus"
+            />
+            <view
+              v-else
+              class="voice-btn"
+              @touchstart="handleVoiceStart"
+              @touchend="handleVoiceEnd"
+            >
+              按住说话
+            </view>
+          </view>
+          <image class="chat-icon" src="/static/msg/emoji.png" mode="aspectFit" @click="toggleEmoji"></image>
+          <image class="chat-icon" src="/static/msg/add.png" mode="aspectFit" @click="togglePanel"></image>
         </view>
-        <button class="send-btn" type="primary" size="mini" @click="sendText">发送</button>
+        <button
+          v-if="!isVoiceMode && chatText"
+          class="send-btn"
+          type="primary"
+          size="mini"
+          @click="sendMessage"
+        >
+          发送
+        </button>
+      </view>
+      <view v-if="showPanel" class="action-panel" @click.stop>
+        <view class="panel-item" @click="handleAlbum">
+          <image class="panel-icon" src="/static/msg/photo.png" mode="aspectFit"></image>
+          <text class="panel-text">相册</text>
+        </view>
+        <view class="panel-item" @click="handleCamera">
+          <image class="panel-icon" src="/static/msg/camera.png" mode="aspectFit"></image>
+          <text class="panel-text">拍摄</text>
+        </view>
       </view>
     </view>
 
@@ -138,6 +186,12 @@ const collapsed = ref(true);
 
 const messages = ref([]);
 const chatText = ref('');
+const isVoiceMode = ref(false);
+const showPanel = ref(false);
+const showEmoji = ref(false);
+const inputFocus = ref(false);
+const scrollIntoId = ref('');
+let voiceStartAt = 0;
 
 const mappedTags = computed(() => {
   const list = detail.value?.tags || [];
@@ -211,20 +265,119 @@ function addTimelineEntry(payload) {
   persistDetail();
 }
 
-function sendText() {
+function sendMessage() {
   if (!chatText.value) {
     uni.showToast({ title: '请输入内容', icon: 'none' });
     return;
   }
-  messages.value = addChatMessage({
+  const payload = {
     id: `m-${Date.now()}`,
     user: '我',
     content: chatText.value,
+    type: 'text',
     time: new Date().toLocaleTimeString().slice(0, 5),
     self: true,
     avatar: '/static/avatar/me.png',
-  });
+  };
+  messages.value = addChatMessage(payload);
   chatText.value = '';
+  scrollIntoId.value = payload.id;
+}
+
+function addImageMessage(url) {
+  const payload = {
+    id: `m-${Date.now()}`,
+    user: '我',
+    type: 'image',
+    url,
+    content: '',
+    time: new Date().toLocaleTimeString().slice(0, 5),
+    self: true,
+    avatar: '/static/avatar/me.png',
+  };
+  messages.value = addChatMessage(payload);
+  scrollIntoId.value = payload.id;
+}
+
+function addVoiceMessage(duration) {
+  const payload = {
+    id: `m-${Date.now()}`,
+    user: '我',
+    type: 'voice',
+    duration,
+    content: `[语音 ${duration}s]`,
+    time: new Date().toLocaleTimeString().slice(0, 5),
+    self: true,
+    avatar: '/static/avatar/me.png',
+  };
+  messages.value = addChatMessage(payload);
+  scrollIntoId.value = payload.id;
+}
+
+function toggleVoiceMode() {
+  isVoiceMode.value = !isVoiceMode.value;
+  showPanel.value = false;
+  showEmoji.value = false;
+  inputFocus.value = !isVoiceMode.value;
+  if (isVoiceMode.value) {
+    uni.hideKeyboard();
+  }
+}
+
+function togglePanel() {
+  if (!showPanel.value) {
+    uni.hideKeyboard();
+  }
+  showPanel.value = !showPanel.value;
+  showEmoji.value = false;
+}
+
+function toggleEmoji() {
+  showEmoji.value = !showEmoji.value;
+  showPanel.value = false;
+  uni.showToast({ title: '表情面板待实现', icon: 'none' });
+}
+
+function handleAlbum() {
+  uni.chooseImage({
+    count: 1,
+    sourceType: ['album'],
+    success: (res) => {
+      const path = res.tempFilePaths?.[0];
+      if (path) addImageMessage(path);
+    },
+  });
+}
+
+function handleCamera() {
+  uni.chooseImage({
+    count: 1,
+    sourceType: ['camera'],
+    success: (res) => {
+      const path = res.tempFilePaths?.[0];
+      if (path) addImageMessage(path);
+    },
+  });
+}
+
+function handleVoiceStart() {
+  voiceStartAt = Date.now();
+  uni.showToast({ title: '开始录音…', icon: 'none' });
+}
+
+function handleVoiceEnd() {
+  const duration = Math.max(1, Math.round((Date.now() - voiceStartAt) / 1000));
+  addVoiceMessage(duration);
+}
+
+function handleContentTap() {
+  showPanel.value = false;
+  showEmoji.value = false;
+}
+
+function handleInputFocus() {
+  showPanel.value = false;
+  showEmoji.value = false;
 }
 
 function toggleCollapse() {
@@ -420,7 +573,7 @@ onShow(loadData);
   position: sticky;
   bottom: 0;
   background: #f7f7f7;
-  padding: 10rpx 16rpx 18rpx;
+  padding: 10rpx 16rpx 14rpx;
   display: flex;
   align-items: center;
   gap: 10rpx;
@@ -428,20 +581,51 @@ onShow(loadData);
   padding-bottom: calc(18rpx + env(safe-area-inset-bottom));
 }
 
-.input-wrap {
+.chat-bar {
   flex: 1;
-  background: white;
-  border-radius: 26rpx;
-  padding: 10rpx 14rpx;
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  box-shadow: inset 0 0 0 1px #eee;
+  gap: 10rpx;
 }
 
-.input-wrap input {
+.chat-icon {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.chat-keyboard-btn {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 10rpx;
+  background: #e8eef7;
+  color: #1f2b3a;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-input {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 26rpx;
+  padding: 8rpx 14rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 0 0 1px #eee;
+  min-height: 60rpx;
+}
+
+.chat-input input {
   flex: 1;
   font-size: 28rpx;
+}
+
+.voice-btn {
+  flex: 1;
+  text-align: center;
+  color: #1f2b3a;
+  font-size: 26rpx;
 }
 
 .send-btn {
@@ -449,6 +633,42 @@ onShow(loadData);
   color: white;
   border-radius: 12rpx;
   padding: 0 18rpx;
+}
+
+.msg-image {
+  margin-top: 6rpx;
+}
+
+.msg-image-item {
+  width: 240rpx;
+  height: 180rpx;
+  border-radius: 10rpx;
+  background: #e5e7eb;
+}
+
+.action-panel {
+  background: #f5f6f8;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 24rpx;
+}
+
+.panel-item {
+  width: 120rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.panel-icon {
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.panel-text {
+  font-size: 24rpx;
+  color: #4f5a68;
 }
 
 .status-bar {
