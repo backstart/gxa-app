@@ -1,20 +1,25 @@
 <template>
   <view class="detail pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">交接详情</view>
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }"></view>
+    <view class="nav-bar" :style="{ top: statusBarHeight + 'px' }">
+      <view class="nav-left" @click="goBack">
+        <text class="back-icon">‹</text>
+        <text class="back-text">返回</text>
       </view>
-      <button size="mini" class="ghost-btn" @click="copySummary">复制交接摘要</button>
+      <view class="nav-title">交接详情</view>
+      <view class="nav-right">
+        <button size="mini" class="nav-btn ghost" @click="copySummary">复制</button>
+      </view>
     </view>
 
-    <view v-if="!record" class="card empty-card">
-      <view class="empty">未找到交接记录</view>
-      <button size="mini" @click="goBack">返回</button>
-    </view>
+    <scroll-view class="content" scroll-y>
+      <view v-if="!record" class="card empty-card">
+        <view class="empty">未找到交接记录</view>
+        <button size="mini" @click="goBack">返回</button>
+      </view>
 
-    <view v-else>
-      <view class="card">
+      <view v-else>
+        <view class="card">
         <view class="section-head">
           <text class="section-title">交接信息</text>
         </view>
@@ -28,7 +33,7 @@
         </view>
       </view>
 
-      <view class="card">
+        <view class="card">
         <view class="section-head">
           <text class="section-title">交接事项</text>
         </view>
@@ -59,24 +64,27 @@
         </view>
       </view>
 
-      <view class="card">
+        <view class="card">
         <view class="section-head">
           <text class="section-title">信息</text>
         </view>
         <view class="row"><text class="label">shiftId</text><text class="value">{{ record.shiftId }}</text></view>
         <view class="row"><text class="label">创建时间</text><text class="value">{{ record.createdAt }}</text></view>
       </view>
-    </view>
+      </view>
+    </scroll-view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
-import { getShifts } from '@/common/database.js';
+import { onShow, onLoad } from '@dcloudio/uni-app';
+import { getHandworkRecords, getShifts } from '@/common/database.js';
 
 const record = ref(null);
 const shiftId = ref('');
+const recordId = ref('');
+const statusBarHeight = ref(0);
 
 const groupedItems = computed(() => {
   if (!record.value) return [];
@@ -100,15 +108,20 @@ function riskClass(risk) {
   return 'low';
 }
 
+function countType(item, type) {
+  return (item.items || []).filter((i) => i.type === type).length;
+}
+
 function copySummary() {
   if (!record.value) return;
   const lines = [];
+  const highRisk = (record.value.items || []).filter((i) => i.risk === '高').map((i) => i.title);
   lines.push(`交接时间：${record.value.handoverTime || record.value.createdAt}`);
-  lines.push(`本班：${record.value.currentShift || ''} -> 下一班：${record.value.nextShift?.name || ''}`);
-  lines.push(`共 ${record.value.items.length} 条，已确认 ${confirmedCount.value} 条`);
-  (record.value.items || []).forEach((i) => {
-    lines.push(`${typeLabel(i.type)}-${i.title} | ${i.assignedToUserName || '未指定'} | 截止 ${i.deadline || '--'} | ${i.requirement ? i.requirement.slice(0,30) : ''}`);
-  });
+  lines.push(`本班：${record.value.currentShift || ''} -> 接班：${record.value.nextShift?.name || ''}`);
+  lines.push(`未结事项：警情 ${countType(record.value,'alert')} / 任务 ${countType(record.value,'task')} / 纠纷 ${countType(record.value,'dispute')} / 派单 ${countType(record.value,'order')}`);
+  lines.push(`已交代 ${confirmedCount.value} 条 / 未交代 ${(record.value.items || []).length - confirmedCount.value} 条`);
+  if (highRisk.length) lines.push(`高风险清单：${highRisk.join('、')}`);
+  lines.push(`总体备注：${record.value.overallRemark || '无'}`);
   uni.setClipboardData({ data: lines.join('\n') });
 }
 
@@ -125,26 +138,91 @@ function openOrigin(item) {
   uni.navigateTo({ url });
 }
 
-onShow((query) => {
-  if (query && query.shiftId) shiftId.value = query.shiftId;
-  const rec = getShifts().find((s) => s.shiftId === shiftId.value);
+function loadRecord() {
+  const list = getHandworkRecords();
+  const source = list.length ? list : getShifts();
+  const rec = source.find((s) => s.recordId === recordId.value || s.shiftId === shiftId.value);
   record.value = rec || null;
+}
+
+onShow(() => {
+  loadRecord();
+});
+
+onLoad((query) => {
+  const info = uni.getSystemInfoSync();
+  statusBarHeight.value = info.statusBarHeight || 0;
+  if (query && query.recordId) recordId.value = query.recordId;
+  if (query && query.shiftId) shiftId.value = query.shiftId;
 });
 </script>
 
 <style lang="scss" scoped>
 .detail {
   min-height: 100vh;
-  padding: 0 24rpx 40rpx;
-}
-.header {
-  padding: 10rpx 0 20rpx;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  .title { font-size: 44rpx; font-weight: 700; }
-  .ghost-btn { border: 1px solid #d0d6de; background: #fff; color: #1f2b3a; padding: 10rpx 18rpx; border-radius: 12rpx; }
+  flex-direction: column;
 }
+
+.status-bar {
+  width: 100%;
+  background: transparent;
+}
+
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 24rpx;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.nav-left {
+  width: 140rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  color: #1f2b3a;
+}
+.back-icon { font-size: 36rpx; }
+.back-text { font-size: 26rpx; }
+
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2b3a;
+}
+
+.nav-right {
+  width: 140rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.nav-btn {
+  height: 56rpx;
+  line-height: 56rpx;
+  padding: 0 14rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+}
+.nav-btn.ghost {
+  border: 1px solid #d0d6de;
+  background: #fff;
+  color: #1f2b3a;
+}
+
+.content {
+  flex: 1;
+  padding: 12rpx 24rpx 40rpx;
+}
+
 .card {
   background: rgba(255,255,255,0.92);
   border-radius: 16rpx;

@@ -1,62 +1,67 @@
 <template>
   <view class="history pageBg">
-    <view class="statuBar"></view>
-    <view class="header">
-      <view>
-        <view class="title">交接班历史</view>
+    <view class="status-bar" :style="{ height: statusBarHeight + 'px' }"></view>
+    <view class="nav-bar" :style="{ top: statusBarHeight + 'px' }">
+      <view class="nav-left" @click="goHandover">
+        <text class="back-icon">‹</text>
+        <text class="back-text">返回</text>
       </view>
-      <button size="mini" class="ghost-btn" @click="goHandover">返回交接班</button>
+      <view class="nav-title">交接班历史</view>
+      <view class="nav-right"></view>
     </view>
 
-    <view class="card filters">
-      <view class="chips">
-        <view v-for="t in timeRanges" :key="t.value" :class="['chip', filters.timeRange === t.value ? 'active':'']" @click="filters.timeRange = t.value">{{ t.label }}</view>
+    <scroll-view class="content" scroll-y>
+      <view class="card filters">
+        <view class="chips">
+          <view v-for="t in timeRanges" :key="t.value" :class="['chip', filters.timeRange === t.value ? 'active':'']" @click="filters.timeRange = t.value">{{ t.label }}</view>
+        </view>
+        <input class="search" v-model="filters.keyword" placeholder="搜索备注/交接人/事项" />
       </view>
-      <input class="search" v-model="filters.keyword" placeholder="搜索备注/交接人/事项" />
-    </view>
 
-    <view v-if="filtered.length === 0" class="card empty-card">
-      <view class="empty">暂无交接记录</view>
-      <button size="mini" type="primary" @click="goHandover">去创建交接</button>
-    </view>
+      <view v-if="filtered.length === 0" class="card empty-card">
+        <view class="empty">暂无交接记录</view>
+        <button size="mini" type="primary" @click="goHandover">去创建交接</button>
+      </view>
 
-    <view v-else class="list">
-      <view class="card item" v-for="item in filtered" :key="item.shiftId" @click="goDetail(item)">
-        <view class="row-top">
-          <view class="time">{{ item.handoverTime || item.createdAt }}</view>
-          <text class="arrow">></text>
-        </view>
-        <view class="row">
-          <text class="label">本班</text>
-          <text class="value">{{ item.currentShift || (item.fromTeam || '') }}</text>
-        </view>
-        <view class="row">
-          <text class="label">下一班</text>
-          <text class="value">{{ item.nextShift?.name || item.toTeam || '' }}</text>
-        </view>
-        <view class="row">
-          <text class="label">事项</text>
-          <text class="value">共 {{ item.items.length }} 条，警情 {{ countType(item,'alert') }} / 任务 {{ countType(item,'task') }} / 纠纷 {{ countType(item,'dispute') }} / 派单 {{ countType(item,'order') }}</text>
-        </view>
-        <view class="row">
-          <text class="label">已确认</text>
-          <text class="value">{{ confirmedCount(item) }} / {{ item.items.length }}</text>
-        </view>
-        <view class="row remark">
-          <text class="label">备注</text>
-          <text class="value">{{ (item.overallRemark || '').slice(0,40) }}</text>
+      <view v-else class="list">
+        <view class="card item" v-for="item in filtered" :key="item.recordId || item.shiftId" @click="goDetail(item)">
+          <view class="row-top">
+            <view class="time">{{ item.handoverTime || item.createdAt }}</view>
+            <text class="arrow">></text>
+          </view>
+          <view class="row-split">
+            <text class="label">本班</text>
+            <text class="value">{{ item.currentShift || (item.fromTeam || '') }}</text>
+          </view>
+          <view class="row-split">
+            <text class="label">下一班</text>
+            <text class="value">{{ item.nextShift?.name || item.toTeam || '' }}</text>
+          </view>
+          <view class="row-split">
+            <text class="label">事项</text>
+            <text class="value">警情 {{ countType(item,'alert') }} / 任务 {{ countType(item,'task') }} / 纠纷 {{ countType(item,'dispute') }} / 派单 {{ countType(item,'order') }}</text>
+          </view>
+          <view class="row-split">
+            <text class="label">已确认</text>
+            <text class="value">{{ confirmedText(item) }}</text>
+          </view>
+          <view class="row-split remark">
+            <text class="label">备注</text>
+            <text class="value">{{ (item.overallRemark || '').slice(0,60) }}</text>
+          </view>
         </view>
       </view>
-    </view>
+    </scroll-view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
-import { getShifts } from '@/common/database.js';
+import { onShow, onLoad } from '@dcloudio/uni-app';
+import { getHandworkRecords, getShifts } from '@/common/database.js';
 
 const shifts = ref([]);
+const statusBarHeight = ref(0);
 const filters = ref({
   timeRange: 'all',
   keyword: '',
@@ -98,8 +103,16 @@ function confirmedCount(item) {
   return (item.items || []).filter((i) => i.confirmed).length;
 }
 
+function confirmedText(item) {
+  const total = (item.items || []).length;
+  const confirmed = confirmedCount(item);
+  if (!total) return '未确认';
+  return confirmed === total ? '已确认' : `未确认(${confirmed}/${total})`;
+}
+
 function goDetail(item) {
-  uni.navigateTo({ url: '/pages/handwork/detail?shiftId=' + item.shiftId });
+  const id = item.recordId || item.shiftId;
+  uni.navigateTo({ url: '/pages/handwork/detail?recordId=' + id });
 }
 
 function goHandover() {
@@ -107,23 +120,67 @@ function goHandover() {
 }
 
 onShow(() => {
-  shifts.value = getShifts();
+  const list = getHandworkRecords();
+  shifts.value = list.length ? list : getShifts();
+});
+
+onLoad(() => {
+  const info = uni.getSystemInfoSync();
+  statusBarHeight.value = info.statusBarHeight || 0;
 });
 </script>
 
 <style lang="scss" scoped>
 .history {
   min-height: 100vh;
-  padding: 0 24rpx 40rpx;
-}
-.header {
-  padding: 10rpx 0 20rpx;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  .title { font-size: 44rpx; font-weight: 700; }
-  .ghost-btn { border: 1px solid #d0d6de; background: #fff; color: #1f2b3a; padding: 10rpx 18rpx; border-radius: 12rpx; }
+  flex-direction: column;
 }
+
+.status-bar {
+  width: 100%;
+  background: transparent;
+}
+
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 24rpx;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.nav-left {
+  width: 140rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  color: #1f2b3a;
+}
+.back-icon { font-size: 36rpx; }
+.back-text { font-size: 26rpx; }
+
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2b3a;
+}
+
+.nav-right {
+  width: 140rpx;
+}
+
+.content {
+  flex: 1;
+  padding: 12rpx 24rpx 40rpx;
+}
+
 .card {
   background: rgba(255,255,255,0.92);
   border-radius: 16rpx;
@@ -133,8 +190,8 @@ onShow(() => {
 }
 .filters {
   .chips { display: flex; gap: 10rpx; margin-bottom: 8rpx; }
-  .chip { padding: 10rpx 14rpx; border-radius: 12rpx; background: #f4f6f8; }
-  .chip.active { background: #0f75ff; color: #fff; }
+  .chip { padding: 8rpx 12rpx; border-radius: 999rpx; background: #f4f6f8; font-size: 24rpx; }
+  .chip.active { background: #eaf3ff; color: #0f75ff; }
   .search { background: #f4f6f8; border-radius: 12rpx; padding: 12rpx 14rpx; }
 }
 .list .item {
@@ -143,7 +200,7 @@ onShow(() => {
 .row-top { display: flex; justify-content: space-between; align-items: center; }
 .time { font-size: 30rpx; font-weight: 600; }
 .arrow { color: #6b7785; }
-.row { margin-top: 6rpx; display: flex; justify-content: space-between; }
+.row-split { margin-top: 6rpx; display: flex; justify-content: space-between; gap: 12rpx; }
 .label { color: #6b7785; }
 .value { color: #1f2b3a; }
 .remark .value { color: #6b7785; }

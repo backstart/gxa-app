@@ -19,6 +19,7 @@
   patrolPoints: 'db_patrol_points',
   incidents: 'db_incidents',
   shifts: 'db_shifts',
+  handworkRecords: 'db_handwork_records',
   places: 'db_places',
   placeProfiles: 'db_place_profiles',
   placeVisits: 'db_place_visits',
@@ -1638,6 +1639,7 @@ const defaults = {
       usingInfo: null,
     },
   ],
+  handworkRecords: [],
   carUseLogs: [
     {
       id: 'carlog-1',
@@ -1921,6 +1923,9 @@ export const saveIncidents = (list) => uni.setStorageSync(KEYS.incidents, list);
 
 export const getShifts = () => ensure(KEYS.shifts, defaults.shifts);
 export const saveShifts = (list) => uni.setStorageSync(KEYS.shifts, list);
+
+export const getHandworkRecords = () => ensure(KEYS.handworkRecords, defaults.handworkRecords);
+export const saveHandworkRecords = (list) => uni.setStorageSync(KEYS.handworkRecords, list);
 
 export const getPlaces = () => ensure(KEYS.places, defaults.places);
 export const savePlaces = (list) => uni.setStorageSync(KEYS.places, list);
