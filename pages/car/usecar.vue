@@ -1,301 +1,256 @@
-﻿<template>
-    <view class="car-register pageBg">
-        <view class="statuBar" :style="{height: barheight+'px'}"></view>
-        <view class="header">
-            <view class="title">{{ isEndMode ? '结束使用' : '用车登记' }}</view>
-            <view class="subtitle">{{ isEndMode ? '填写归还里程结束用车' : '选择车辆后自动带出上一笔结束里程' }}</view>
+<template>
+  <view class="car-use pageBg">
+    <view class="statuBar" :style="{ height: barheight + 'px' }"></view>
+    <view class="page-body">
+      <view class="header">
+        <view class="title">用车登记</view>
+        <view class="subtitle">{{ car?.plateNo || '请选择车辆' }}</view>
+      </view>
+
+      <view class="card" v-if="car">
+        <view class="summary-row">
+          <text class="label">车辆</text>
+          <text class="value">{{ car.plateNo }} · {{ car.type || '—' }}</text>
         </view>
-
-        <view class="card">
-            <view class="vehicle-summary" v-if="currentVehicle">
-                <view class="row">
-                    <text class="label">车牌</text>
-                    <text>{{ currentVehicle.plate }}</text>
-                    <text :class="['status-badge', currentVehicle.status]">{{ statusText[currentVehicle.status] }}</text>
-                </view>
-                <view class="row">
-                    <text class="label">当前里程</text>
-                    <text>{{ currentVehicle.mileage }} km</text>
-                </view>
-            </view>
-
-            <view v-if="!isEndMode">
-                <view class="form-item">
-                    <text class="label">使用人</text>
-                    <input class="input" v-model="form.applicant" placeholder="请输入使用人" />
-                </view>
-                <view class="form-item">
-                    <text class="label">车辆</text>
-                    <picker mode="selector" :range="vehicleNames" @change="onVehicleChange">
-                        <view class="picker-value">{{ form.vehicleId ? vehicleLabel(form.vehicleId) : '请选择车辆' }}</view>
-                    </picker>
-                </view>
-                <view class="form-item">
-                    <text class="label">开始里程</text>
-                    <view class="readonly">{{ form.startMileage ? form.startMileage + ' km' : '选择车辆后自动填充' }}</view>
-                </view>
-                <view class="form-item">
-                    <text class="label">用途</text>
-                    <picker mode="selector" :range="purposeOptions" @change="onPurposeChange">
-                        <view class="picker-value">{{ form.purpose || '请选择用途' }}</view>
-                    </picker>
-                </view>
-                <view class="form-item">
-                    <text class="label">目的地</text>
-                    <picker mode="selector" :range="destinationOptions" @change="onDestinationChange">
-                        <view class="picker-value">{{ form.destination || '请选择目的地' }}</view>
-                    </picker>
-                </view>
-                <button class="primary-btn" type="primary" @click="submitStart">提交登记</button>
-            </view>
-
-            <view v-else>
-                <view class="form-item">
-                    <text class="label">使用人</text>
-                    <view class="readonly">{{ activeRecord?.applicant || '未知' }}</view>
-                </view>
-                <view class="form-item">
-                    <text class="label">开始里程</text>
-                    <view class="readonly">{{ activeRecord?.startMileage || '--' }} km</view>
-                </view>
-                <view class="form-item">
-                    <text class="label">用途</text>
-                    <view class="readonly">{{ activeRecord?.purpose || '--' }}</view>
-                </view>
-                <view class="form-item">
-                    <text class="label">目的地</text>
-                    <view class="readonly">{{ activeRecord?.destination || '--' }}</view>
-                </view>
-                <view class="form-item">
-                    <text class="label">结束里程</text>
-                    <input class="input" v-model="endMileage" type="number" placeholder="请输入结束里程" />
-                </view>
-                <button class="primary-btn" type="primary" @click="submitEnd">结束使用</button>
-            </view>
+        <view class="summary-row">
+          <text class="label">当前里程</text>
+          <text class="value">{{ currentMileage }} km</text>
         </view>
+      </view>
+
+      <view class="card form-card">
+        <view class="form-item">
+          <text class="label">使用人*</text>
+          <input class="input" v-model="form.user" placeholder="请输入使用人" />
+        </view>
+        <view class="form-item">
+          <text class="label">用途*</text>
+          <picker mode="selector" :range="purposeOptions" @change="onPurposeChange">
+            <view class="picker-value">{{ form.purpose || '请选择用途' }}</view>
+          </picker>
+        </view>
+        <view class="form-item">
+          <text class="label">目的地</text>
+          <input class="input" v-model="form.destination" placeholder="可选" />
+          <view v-if="recentDestinations.length" class="chips">
+            <view
+              v-for="d in recentDestinations"
+              :key="d"
+              class="chip"
+              @click="form.destination = d"
+            >
+              {{ d }}
+            </view>
+          </view>
+        </view>
+        <view class="form-item">
+          <text class="label">开始里程</text>
+          <input class="input" v-model="form.startMileage" type="number" />
+        </view>
+      </view>
     </view>
+
+    <view class="bottom-bar">
+      <button class="primary-btn" type="primary" @click="submit">提交登记</button>
+    </view>
+  </view>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
-import { addRegistration, endUse, getActiveRecord, getLastEndMileage, getVehicles, statusText } from '@/common/database.js';
+import { computed, ref } from 'vue';
+import { onLoad, onShow } from '@dcloudio/uni-app';
+import { getCarById, getCarUseLogs, saveCarUseLogs, updateCar } from '@/common/database.js';
 import { getStatusBarHeight } from '@/utils/system.js';
 
 const barheight = ref(getStatusBarHeight());
-const vehicles = ref([]);
-const currentVehicle = ref(null);
-const activeRecord = ref(null);
-const isEndMode = ref(false);
-const endMileage = ref('');
-const purposeOptions = ['接处警', '巡逻', '办案', '其他'];
-const destinationOptions = ['长命水', '龙石', '桂南', '其他'];
+const carId = ref('');
+const incidentId = ref('');
+const car = ref(null);
+const logs = ref([]);
+const purposeOptions = ['巡逻', '出警', '走访', '送检', '押送', '其他'];
 
-const form = reactive({
-    applicant: '',
-    vehicleId: '',
-    startMileage: '',
-    purpose: '',
-    destination: '',
+const form = ref({
+  user: '',
+  purpose: '',
+  destination: '',
+  startMileage: '',
 });
 
-const vehicleNames = computed(() => vehicles.value.map(item => `${item.plate} (${statusText[item.status]})`));
+const currentMileage = computed(() => car.value?.currentMileage ?? car.value?.currentOdo ?? car.value?.mileage ?? 0);
 
-// 根据车辆ID生成显示标签
-function vehicleLabel(id) {
-    const found = vehicles.value.find(v => v.id === id);
-    return found ? `${found.plate} (${found.type})` : '未知车辆';
+const recentDestinations = computed(() => {
+  const list = logs.value
+    .filter((l) => l.carId === carId.value && l.destination)
+    .map((l) => l.destination);
+  return Array.from(new Set(list)).slice(0, 3);
+});
+
+function loadData() {
+  car.value = getCarById(carId.value) || null;
+  logs.value = getCarUseLogs();
+  form.value.user = uni.getStorageSync('userName') || form.value.user || '张三';
+  form.value.startMileage = String(currentMileage.value || 0);
+  if (incidentId.value && !form.value.purpose) {
+    form.value.purpose = '出警';
+  }
 }
 
-// 从存储加载车辆列表并保持当前选中车辆
-function loadVehicles() {
-    vehicles.value = getVehicles();
-    if (form.vehicleId) {
-        currentVehicle.value = vehicles.value.find(v => v.id === form.vehicleId) || null;
-    }
-}
-
-// 设置当前选择的车辆，并带出开始里程与在用记录
-function setVehicle(carId) {
-    form.vehicleId = carId;
-    form.startMileage = getLastEndMileage(carId);
-    currentVehicle.value = vehicles.value.find(v => v.id === carId) || null;
-    activeRecord.value = getActiveRecord(carId) || null;
-}
-
-// 车辆选择事件
-function onVehicleChange(e) {
-    const idx = e.detail.value;
-    const car = vehicles.value[idx];
-    if (car) {
-        setVehicle(car.id);
-    }
-}
-
-// 用途选择事件
 function onPurposeChange(e) {
-    const idx = e.detail.value;
-    form.purpose = purposeOptions[idx] || '';
+  const idx = e.detail.value;
+  form.value.purpose = purposeOptions[idx] || '';
 }
 
-// 目的地选择事件
-function onDestinationChange(e) {
-    const idx = e.detail.value;
-    form.destination = destinationOptions[idx] || '';
+function validate() {
+  if (!car.value) return '未找到车辆信息';
+  const status = String(car.value.status || '').toLowerCase();
+  if (status && status !== 'idle') return '车辆非空闲状态';
+  if (!form.value.user) return '请填写使用人';
+  if (!form.value.purpose) return '请选择用途';
+  if (form.value.startMileage && Number.isNaN(Number(form.value.startMileage))) return '开始里程需为数字';
+  return '';
 }
 
-// 校验开始用车表单
-function validateStart() {
-    if (!form.applicant) return '请填写使用人';
-    if (!form.vehicleId) return '请选择车辆';
-    if (!form.purpose) return '请填写用途';
-    if (!form.destination) return '请填写目的地';
-    return '';
+function submit() {
+  const error = validate();
+  if (error) {
+    uni.showToast({ title: error, icon: 'none' });
+    return;
+  }
+  const now = formatNow();
+  const startMileage = Number(form.value.startMileage || currentMileage.value || 0);
+  const record = {
+    id: `carlog-${Date.now()}`,
+    carId: carId.value,
+    user: form.value.user,
+    purpose: form.value.purpose,
+    destination: form.value.destination,
+    startTime: now,
+    startMileage,
+    status: 'OPEN',
+    relatedIncidentId: incidentId.value || '',
+  };
+  const list = [record, ...getCarUseLogs()];
+  saveCarUseLogs(list);
+  updateCar(carId.value, {
+    status: 'using',
+    currentMileage: startMileage,
+    usingInfo: {
+      user: form.value.user,
+      startTime: now,
+      startMileage,
+      purpose: form.value.purpose,
+      destination: form.value.destination,
+      relatedIncidentId: incidentId.value || '',
+    },
+  });
+  uni.showToast({ title: '登记成功', icon: 'success' });
+  setTimeout(() => uni.navigateBack(), 400);
 }
 
-// 校验结束用车表单
-function validateEnd() {
-    if (!activeRecord.value) return '未找到用车记录';
-    if (!endMileage.value) return '请填写结束里程';
-    if (Number(endMileage.value) < Number(activeRecord.value.startMileage)) return '结束里程需大于开始里程';
-    return '';
-}
-
-// 重置表单与状态
-function resetForm() {
-    form.applicant = '';
-    form.vehicleId = '';
-    form.startMileage = '';
-    form.purpose = '';
-    form.destination = '';
-    currentVehicle.value = null;
-    activeRecord.value = null;
-    endMileage.value = '';
-}
-
-// 提交开始用车
-function submitStart() {
-    const error = validateStart();
-    if (error) {
-        uni.showToast({ title: error, icon: 'none' });
-        return;
-    }
-    const nowId = `use-${Date.now()}`;
-    const startM = form.startMileage || getLastEndMileage(form.vehicleId) || 0;
-    const record = {
-        id: nowId,
-        applicant: form.applicant,
-        vehicleId: form.vehicleId,
-        purpose: form.purpose,
-        destination: form.destination,
-        startMileage: Number(startM),
-    };
-    addRegistration(record);
-    uni.showToast({ title: '登记成功，车辆使用中', icon: 'success' });
-    resetForm();
-    setTimeout(() => uni.navigateBack(), 400);
-}
-
-// 提交结束用车
-function submitEnd() {
-    const error = validateEnd();
-    if (error) {
-        uni.showToast({ title: error, icon: 'none' });
-        return;
-    }
-    endUse(currentVehicle.value.id, Number(endMileage.value), activeRecord.value.applicant);
-    uni.showToast({ title: '已结束使用', icon: 'success' });
-    resetForm();
-    setTimeout(() => uni.navigateBack(), 400);
+function formatNow() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 onLoad((query) => {
-    isEndMode.value = query.mode === 'end';
-    loadVehicles();
-    if (query.vehicleId) {
-        setVehicle(query.vehicleId);
-    }
+  carId.value = query.carId || '';
+  incidentId.value = query.incidentId || '';
 });
+
+onShow(loadData);
 </script>
 
-<style lang="scss">
-.car-register {
-    min-height: 100vh;
-    padding: 0 24rpx 40rpx;
+<style lang="scss" scoped>
+.car-use {
+  min-height: 100vh;
+  padding: 0 24rpx;
+}
 
-    .header {
-        padding: 20rpx 8rpx;
-        .title {
-            font-size: 42rpx;
-            font-weight: 600;
-            color: #1f2b3a;
-        }
-        .subtitle {
-            margin-top: 8rpx;
-            color: #6e7a89;
-            font-size: 26rpx;
-        }
-    }
+.page-body {
+  padding-bottom: 160rpx;
+}
 
-    .card {
-        background: rgba(255,255,255,0.9);
-        border-radius: 16rpx;
-        padding: 24rpx;
-        box-shadow: 0 6rpx 24rpx rgba(0,0,0,0.06);
-    }
+.header {
+  padding: 20rpx 8rpx;
+}
+.title {
+  font-size: 42rpx;
+  font-weight: 600;
+  color: #1f2b3a;
+}
+.subtitle {
+  margin-top: 8rpx;
+  color: #6e7a89;
+  font-size: 26rpx;
+}
 
-    .vehicle-summary {
-        margin-bottom: 12rpx;
-    }
+.card {
+  background: rgba(255,255,255,0.9);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 6rpx 24rpx rgba(0,0,0,0.06);
+  margin-bottom: 16rpx;
+}
 
-    .form-item {
-        margin-bottom: 18rpx;
-        .label {
-            display: block;
-            font-size: 26rpx;
-            color: #4a5564;
-            margin-bottom: 8rpx;
-        }
-        .input, .picker-value, .readonly {
-            width: 100%;
-            padding: 22rpx 18rpx;
-            border-radius: 12rpx;
-            background: #f4f6f8;
-            font-size: 28rpx;
-        }
-        .readonly {
-            color: #6b7785;
-        }
-    }
+.form-card {
+  min-height: 360rpx;
+}
 
-    .primary-btn {
-        margin-top: 8rpx;
-        background: linear-gradient(90deg, #0f75ff, #56a0ff);
-        color: white;
-        font-size: 30rpx;
-        border-radius: 12rpx;
-    }
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
 
-    .row {
-        display: flex;
-        align-items: center;
-        gap: 16rpx;
-        margin-bottom: 8rpx;
-        .label {
-            width: 170rpx;
-            color: #6b7785;
-            font-size: 26rpx;
-        }
-    }
+.label {
+  font-size: 26rpx;
+  color: #6b7785;
+}
+.value {
+  font-size: 26rpx;
+  color: #1f2b3a;
+}
 
-    .status-badge {
-        margin-left: auto;
-        padding: 6rpx 14rpx;
-        border-radius: 14rpx;
-        font-size: 24rpx;
-        &.idle { background: #e6f7ed; color: #1b9d5d; }
-        &.in_use { background: #eaf3ff; color: #0f75ff; }
-        &.maintenance { background: #fff6e6; color: #c88719; }
-    }
+.form-item {
+  margin-bottom: 16rpx;
+}
+.input,
+.picker-value {
+  width: 100%;
+  padding: 18rpx 16rpx;
+  border-radius: 12rpx;
+  background: #f4f6f8;
+  font-size: 28rpx;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+.chip {
+  padding: 6rpx 12rpx;
+  border-radius: 12rpx;
+  background: #eaf3ff;
+  color: #0f75ff;
+  font-size: 24rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12rpx 24rpx calc(12rpx + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 -6rpx 16rpx rgba(0,0,0,0.08);
+}
+.primary-btn {
+  width: 100%;
+  border-radius: 12rpx;
+  background: linear-gradient(90deg, #0f75ff, #56a0ff);
+  color: #fff;
 }
 </style>

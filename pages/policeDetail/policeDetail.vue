@@ -151,6 +151,11 @@
               <view class="txt_gray">接警时间：</view>
               <view class="txt_gray_after">{{ detail.receiveTime || '-' }}</view>
             </view>
+            <view class="car-select-row">
+              <view class="txt_gray">用车：</view>
+              <view class="txtclick">{{ selectedCarLabel }}</view>
+              <button class="select-car-btn" @click="openCarSelect">选择用车</button>
+            </view>
             <view class="status-bar">
               <view class="status-label">处警状态</view>
               <view class="status-value">未处警</view>
@@ -226,6 +231,12 @@ const mappedTags = computed(() => {
 });
 
 const timelineEntries = computed(() => detail.value.timeline || []);
+const selectedCarLabel = computed(() => {
+  if (detail.value.selectedCarNo) {
+    return `${detail.value.selectedCarNo}${detail.value.selectedCarType ? `（${detail.value.selectedCarType}）` : ''}`;
+  }
+  return '未选择';
+});
 const mainResponderText = computed(() => {
   const main = detail.value.responders?.main;
   if (!main) return '—';
@@ -258,6 +269,9 @@ function normalizeDetail(data) {
       assists: [],
     },
     timeline: [],
+    selectedCarId: '',
+    selectedCarNo: '',
+    selectedCarType: '',
   };
   return { ...base, ...data };
 }
@@ -427,6 +441,25 @@ function handleInputFocus() {
 
 function toggleCollapse() {
   collapsed.value = !collapsed.value;
+}
+
+function openCarSelect() {
+  const incidentId = detail.value.id || detailId.value || '';
+  uni.navigateTo({
+    url: `/pages/car/list?selectMode=1&incidentId=${incidentId}`,
+    success: (res) => {
+      const channel = res.eventChannel;
+      channel.on('carSelected', (data) => {
+        detail.value.selectedCarId = data.carId;
+        detail.value.selectedCarNo = data.plateNo;
+        detail.value.selectedCarType = data.type;
+        persistDetail();
+        if (data.carId) {
+          uni.navigateTo({ url: `/pages/car/usecar?carId=${data.carId}&incidentId=${incidentId}` });
+        }
+      });
+    },
+  });
 }
 
 onLoad((query) => {
@@ -758,6 +791,22 @@ onShow(loadData);
 .status-action {
   font-size: 24rpx;
   color: #97a1ad;
+}
+
+.car-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+
+.select-car-btn {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: #0f75ff;
+  background: #f0f5ff;
+  border-radius: 12rpx;
+  padding: 6rpx 12rpx;
 }
 
 .round-title {
