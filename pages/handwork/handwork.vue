@@ -49,22 +49,43 @@
       </view>
 
       <view v-if="selectedCases.length === 0" class="empty">尚未选择事项</view>
-      <view v-else class="case-list">
-        <view v-for="item in displayCases" :key="item.id" class="case-card">
-          <view class="case-head">
-            <text class="case-title">{{ item.title }}</text>
-            <view class="case-tags">
-              <text :class="['tag', riskClass(item.level)]">{{ item.level }}</text>
-              <text class="tag status">{{ item.status }}</text>
+      <view v-else class="case-list" @click="closeSwipe">
+        <view v-for="item in displayCases" :key="item.id" class="swipe-item">
+          <view class="swipe-actions">
+            <view class="delete-btn" @click.stop="removeSelected(item.id)">
+              <image class="delete-icon" src="/static/icons/delete.png" mode="aspectFit" />
             </view>
           </view>
-          <view class="case-meta">编号：{{ item.no }}</view>
-          <view class="case-row">
-            <text class="case-addr">{{ item.addr }}</text>
-            <text class="case-time">{{ item.time }}</text>
-          </view>
-          <view class="case-actions">
-            <button size="mini" class="ghost-btn" @click="removeSelected(item.id)">移除</button>
+          <view
+            class="case-card swipe-content"
+            :style="{ transform: `translateX(${getSwipeOffset(item.id)}px)` }"
+            @touchstart="onTouchStart($event, item.id)"
+            @touchmove="onTouchMove($event, item.id)"
+            @touchend="onTouchEnd"
+          >
+            <view class="case-head">
+              <text class="case-title">{{ item.title }}</text>
+              <view class="case-tags">
+                <text :class="['tag', riskClass(item.level)]">{{ item.level }}</text>
+                <text class="tag status">{{ item.status }}</text>
+              </view>
+            </view>
+            <view class="case-row">
+              <text class="case-addr">{{ item.addr }}</text>
+            </view>
+            <view class="case-no-row">
+              <text class="case-no link-blue" @click.stop="goCaseDetail(item)">编号：{{ item.no }}</text>
+              <text class="case-time">{{ item.time }}</text>
+            </view>
+            <view class="case-extra">
+              <text class="case-link" @click.stop="selectHandoverTo(item)">
+                交班给：<text :class="['handover-name', item.handoverTo ? 'link-blue' : 'muted']">{{ item.handoverTo || '未选择' }}</text>
+              </text>
+            </view>
+            <view class="case-remark" @click.stop="editRemark(item)">
+              <text class="case-remark-label">补充说明：</text>
+              <text :class="['case-remark-text', item.remark ? '' : 'muted']">{{ item.remark || '未填写' }}</text>
+            </view>
           </view>
         </view>
         <view v-if="!expandedAll" class="case-more">共 {{ selectedCases.length }} 条</view>
@@ -111,6 +132,9 @@ const handoverTime = ref(new Date().toISOString().slice(0, 16).replace('T', ' ')
 const overallRemark = ref('');
 const selectedCases = ref([]);
 const showAll = ref(false);
+const swipeWidth = 72;
+const openSwipeId = ref('');
+const swipeState = reactive({ id: '', startX: 0, startY: 0, offset: 0, moving: false });
 
 const displayCases = computed(() => (showAll.value ? selectedCases.value : selectedCases.value.slice(0, 3)));
 const expandedAll = computed(() => showAll.value);
@@ -152,7 +176,11 @@ function goSelectCase() {
           uni.showToast({ title: '该警情已在交接列表中', icon: 'none' });
           return;
         }
-        selectedCases.value = [payload, ...selectedCases.value];
+        selectedCases.value = [{
+          ...payload,
+          handoverTo: '',
+          remark: '',
+        }, ...selectedCases.value];
       });
     },
   });
@@ -160,6 +188,77 @@ function goSelectCase() {
 
 function removeSelected(id) {
   selectedCases.value = selectedCases.value.filter((c) => c.id !== id);
+  if (openSwipeId.value === id) openSwipeId.value = '';
+}
+
+function getSwipeOffset(id) {
+  if (swipeState.id === id && swipeState.moving) return swipeState.offset;
+  return openSwipeId.value === id ? -swipeWidth : 0;
+}
+
+function onTouchStart(e, id) {
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+  swipeState.id = id;
+  swipeState.startX = t.clientX;
+  swipeState.startY = t.clientY;
+  swipeState.offset = openSwipeId.value === id ? -swipeWidth : 0;
+  swipeState.moving = false;
+}
+
+function onTouchMove(e, id) {
+  if (swipeState.id !== id) return;
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+  const dx = t.clientX - swipeState.startX;
+  const dy = t.clientY - swipeState.startY;
+  if (Math.abs(dy) > Math.abs(dx)) return;
+  swipeState.moving = true;
+  let next = dx + (openSwipeId.value === id ? -swipeWidth : 0);
+  if (next > 0) next = 0;
+  if (next < -swipeWidth) next = -swipeWidth;
+  swipeState.offset = next;
+}
+
+function onTouchEnd() {
+  if (!swipeState.moving) return;
+  if (swipeState.offset <= -swipeWidth / 2) {
+    openSwipeId.value = swipeState.id;
+  } else {
+    openSwipeId.value = '';
+  }
+  swipeState.moving = false;
+}
+
+function closeSwipe() {
+  if (openSwipeId.value) openSwipeId.value = '';
+}
+
+function selectHandoverTo(item) {
+  uni.showActionSheet({
+    itemList: userNames,
+    success: (res) => {
+      const idx = res.tapIndex;
+      item.handoverTo = userNames[idx] || '';
+    },
+  });
+}
+
+function editRemark(item) {
+  uni.showModal({
+    title: '补充说明',
+    editable: true,
+    placeholderText: '补充说明',
+    content: item.remark || '',
+    success: (res) => {
+      if (res.confirm) item.remark = res.content || '';
+    },
+  });
+}
+
+function goCaseDetail(item) {
+  const id = item.id || item.no;
+  uni.navigateTo({ url: `/pages/policeDetail/policeDetail?id=${id}` });
 }
 
 function insertRemarkTemplate() {
@@ -220,11 +319,12 @@ function doSubmit() {
       assignedToUserId: nextShift.id,
       assignedToUserName: nextShift.name,
       deadline: '',
-      requirement: '',
+      requirement: i.remark || '',
       priority: i.level,
       needVisit: false,
       confirmed: false,
-      note: '',
+      note: i.remark || '',
+      handoverTo: i.handoverTo || '',
     })),
     createdAt: new Date().toISOString(),
   };
@@ -257,6 +357,7 @@ function doSubmit() {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-top: calc(16px + env(safe-area-inset-top));
 }
 
 .handwork,
@@ -367,16 +468,47 @@ function doSubmit() {
 .risk.low { background: #e6f7ed; color: #1b9d5d; }
 
 .case-list { display: flex; flex-direction: column; gap: 10rpx; }
+.swipe-item { position: relative; overflow: hidden; border-radius: 12rpx; }
+.swipe-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffeded;
+}
+.delete-btn {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ff4d4f;
+}
+.delete-icon { width: 36rpx; height: 36rpx; }
+.swipe-content { transition: transform 0.18s ease; }
 .case-card { padding: 12rpx; border-radius: 12rpx; background: #f6f8fb; box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05); }
 .case-head { display: flex; justify-content: space-between; align-items: center; }
-.case-title { font-size: 30rpx; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.case-title { font-size: 32rpx; font-weight: 700; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .case-tags { display: flex; gap: 6rpx; }
 .tag { padding: 4rpx 10rpx; border-radius: 10rpx; font-size: 22rpx; }
 .tag.status { background: #eef1f5; color: #6b7785; }
 .case-meta { color: #6b7785; font-size: 24rpx; margin-top: 6rpx; }
-.case-row { display: flex; justify-content: space-between; color: #6b7785; font-size: 24rpx; margin-top: 4rpx; gap: 8rpx; }
+.case-row { display: flex; justify-content: space-between; color: #6b7785; font-size: 28rpx; line-height: 40rpx; margin-top: 4rpx; gap: 8rpx; }
 .case-addr { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.case-time { flex-shrink: 0; }
-.case-actions { margin-top: 6rpx; display: flex; justify-content: flex-end; }
+.case-no-row { display: flex; align-items: center; justify-content: space-between; gap: 8rpx; margin-top: 6rpx; width: 100%; font-size: 28rpx; line-height: 40rpx; }
+.case-no { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.case-time { flex-shrink: 0; white-space: nowrap; color: #1f2b3a; font-size: 28rpx; line-height: 40rpx; }
+.link-blue { color: #1677ff; }
+.handover-name { font-weight: 600; }
+.muted { color: #97a1ad; font-size: 26rpx; }
+.case-extra { margin-top: 8rpx; display: flex; flex-wrap: wrap; gap: 12rpx; font-size: 28rpx; line-height: 40rpx; }
+.case-link { font-size: 28rpx; line-height: 40rpx; color: #1677ff; }
+.case-remark { margin-top: 6rpx; display: flex; flex-wrap: wrap; align-items: center; gap: 6rpx; font-size: 28rpx; line-height: 40rpx; }
+.case-remark-label { color: #6b7785; font-size: 26rpx; }
+.case-remark-text { color: #1677ff; font-size: 28rpx; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .case-more { text-align: center; color: #6b7785; font-size: 24rpx; padding: 6rpx 0; }
 </style>
