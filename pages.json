@@ -46,6 +46,7 @@
     {"path":"pages/place/modules/netbar","style":{"navigationBarTitleText":"网吧模块","navigationStyle":"custom"}},
     {"path":"pages/place/modules/footbath","style":{"navigationBarTitleText":"足浴模块","navigationStyle":"custom"}},
     {"path":"pages/handwork/handwork","style":{"navigationBarTitleText":"交接班安排","navigationStyle":"custom"}},
+    {"path":"pages/handwork/selectCase","style":{"navigationBarTitleText":"选择事项","navigationStyle":"custom"}},
     {"path":"pages/handwork/history","style":{"navigationBarTitleText":"交接班历史","navigationStyle":"custom"}},
     {"path":"pages/handwork/detail","style":{"navigationBarTitleText":"交接详情","navigationStyle":"custom"}},
     {"path":"pages/analysis/analysis","style":{"navigationBarTitleText":""}}
