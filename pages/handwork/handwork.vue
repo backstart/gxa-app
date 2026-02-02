@@ -7,26 +7,28 @@
       <view class="section-head">
         <text class="section-title">交接信息</text>
       </view>
-      <view class="form-row">
-        <text class="label">本班</text>
-        <text class="value">{{ currentShift }}</text>
+      <view class="form-row double">
+        <view class="col">
+          <text class="label">本班</text>
+          <text class="value">{{ displayCurrentShift }}</text>
+        </view>
+        <view class="col">
+          <text class="label">接班</text>
+          <picker :range="userNames" @change="onNextUserChange">
+            <text class="link-text">{{ nextShift.name || '请选择' }}</text>
+          </picker>
+        </view>
       </view>
-      <view class="form-row">
-        <text class="label">接班人/组</text>
-        <picker :range="userNames" @change="onNextUserChange">
-          <view class="picker">{{ nextShift.name || '请选择' }}</view>
-        </picker>
-      </view>
-      <view class="form-row">
+      <view class="form-row time-row">
         <text class="label">交接时间</text>
         <picker mode="datetime" @change="(e)=>handoverTime = e.detail.value">
-          <view class="picker">{{ handoverTime }}</view>
+          <text class="link-text align-right">{{ handoverTime }}</text>
         </picker>
       </view>
       <view class="form-row column">
         <view class="row-head">
           <text class="label">总体备注</text>
-          <button size="mini" class="text-btn" @click="insertRemarkTemplate">插入模板</button>
+          <text class="link-text" @click="insertRemarkTemplate">插入模板</text>
         </view>
         <textarea class="textarea" v-model="overallRemark" placeholder="风险点、总体提醒" />
       </view>
@@ -78,8 +80,9 @@
               <text class="case-time">{{ item.time }}</text>
             </view>
             <view class="case-extra">
+              <text class="case-label">交班给：</text>
               <text class="case-link" @click.stop="selectHandoverTo(item)">
-                交班给：<text :class="['handover-name', item.handoverTo ? 'link-blue' : 'muted']">{{ item.handoverTo || '未选择' }}</text>
+                <text :class="['handover-name', item.handoverTo ? 'link-blue' : 'muted']">{{ item.handoverTo || '未选择' }}</text>
               </text>
             </view>
             <view class="case-remark" @click.stop="editRemark(item)">
@@ -119,6 +122,7 @@ import {
 } from '@/common/database.js';
 
 const currentShift = '本班：A组-李警官';
+const displayCurrentShift = computed(() => currentShift.replace(/^本班[:：]/, '').trim());
 const users = [
   { id: 'u1', name: '李警官' },
   { id: 'u2', name: '王警官' },
@@ -387,13 +391,18 @@ function doSubmit() {
 .section-head { margin-bottom: 8rpx; display: flex; justify-content: space-between; align-items: center; }
 .section-title { font-size: 32rpx; font-weight: 700; }
 .section-sub { font-size: 24rpx; color: #6e7a89; }
-.form-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10rpx; width: 100%; }
+.form-row { display: flex; align-items: center; justify-content: flex-start; gap: 8rpx; margin-bottom: 12rpx; width: 100%; }
+.form-row.double { gap: 16rpx; align-items: center; }
+.form-row.double .col { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8rpx; }
+.form-row.time-row { align-items: center; }
 .form-row.column { flex-direction: column; align-items: flex-start; }
-.label { font-size: 28rpx; color: #344150; margin-right: 10rpx; width: 120rpx; flex-shrink: 0; }
-.value { color: #1f2b3a; font-size: 28rpx; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label { font-size: 28rpx; color: #6b7785; margin-right: 8rpx; width: 112rpx; flex: 0 0 112rpx; white-space: nowrap; }
+.value { color: #1f2b3a; font-size: 28rpx; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .row-head { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8rpx; }
 .text-btn { font-size: 24rpx; color: #0f75ff; background: transparent; padding: 0; }
-.picker { background: #f4f6f8; padding: 12rpx 14rpx; border-radius: 12rpx; flex: 1; min-width: 0; }
+.picker { background: transparent; padding: 0; border-radius: 0; flex: 1; min-width: 0; }
+.align-right { text-align: right; }
+.link-text { color: #1677ff; font-size: 28rpx; line-height: 40rpx; }
 .textarea { width: 100%; min-height: 140rpx; background: #f4f6f8; border-radius: 12rpx; padding: 14rpx; font-size: 28rpx; }
 .chips { display: flex; flex-wrap: wrap; gap: 10rpx; margin: 8rpx 0; }
 .chip { padding: 10rpx 14rpx; border-radius: 12rpx; background: #f4f6f8; font-size: 24rpx; }
@@ -505,7 +514,8 @@ function doSubmit() {
 .link-blue { color: #1677ff; }
 .handover-name { font-weight: 600; }
 .muted { color: #97a1ad; font-size: 26rpx; }
-.case-extra { margin-top: 8rpx; display: flex; flex-wrap: wrap; gap: 12rpx; font-size: 28rpx; line-height: 40rpx; }
+.case-extra { margin-top: 8rpx; display: flex; flex-wrap: wrap; gap: 6rpx; font-size: 28rpx; line-height: 40rpx; }
+.case-label { color: #6b7785; }
 .case-link { font-size: 28rpx; line-height: 40rpx; color: #1677ff; }
 .case-remark { margin-top: 6rpx; display: flex; flex-wrap: wrap; align-items: center; gap: 6rpx; font-size: 28rpx; line-height: 40rpx; }
 .case-remark-label { color: #6b7785; font-size: 26rpx; }
