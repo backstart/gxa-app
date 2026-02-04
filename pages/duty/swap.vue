@@ -1,27 +1,31 @@
 <template>
   <view class="duty pageBg" :style="{ paddingTop: safeTop + 'px' }">
-    <view class="page-title">换班申请</view>
-    <view class="card">
-      <view class="row">
-        <text class="label">我的换出日期</text>
-        <picker mode="date" @change="(e)=>fromDate = e.detail.value">
-          <text class="link">{{ fromDate || '请选择' }}</text>
-        </picker>
+    <!-- 表单可滚动，避免内容被底部按钮遮挡 -->
+    <scroll-view class="content" scroll-y>
+      <view class="page-title">换班申请</view>
+      <view class="card">
+        <view class="row">
+          <text class="label">我的换出日期</text>
+          <picker mode="date" @change="(e)=>fromDate = e.detail.value">
+            <text class="link">{{ fromDate || '请选择' }}</text>
+          </picker>
+        </view>
+        <view class="row">
+          <text class="label">对方人员</text>
+          <picker :range="userNames" @change="onUserChange">
+            <text class="link">{{ toUserName || '请选择' }}</text>
+          </picker>
+        </view>
+        <view class="row">
+          <text class="label">对方日期</text>
+          <picker mode="date" @change="(e)=>toDate = e.detail.value">
+            <text class="link">{{ toDate || '请选择' }}</text>
+          </picker>
+        </view>
+        <textarea class="textarea" v-model="remark" placeholder="备注（可选）" />
       </view>
-      <view class="row">
-        <text class="label">对方人员</text>
-        <picker :range="userNames" @change="onUserChange">
-          <text class="link">{{ toUserName || '请选择' }}</text>
-        </picker>
-      </view>
-      <view class="row">
-        <text class="label">对方日期</text>
-        <picker mode="date" @change="(e)=>toDate = e.detail.value">
-          <text class="link">{{ toDate || '请选择' }}</text>
-        </picker>
-      </view>
-      <textarea class="textarea" v-model="remark" placeholder="备注（可选）" />
-    </view>
+    </scroll-view>
+    <!-- 底部操作按钮固定在安全区之上 -->
     <view class="bottom-bar">
       <button type="primary" class="btn" @click="submit">提交申请</button>
     </view>
@@ -50,16 +54,19 @@ const toUserName = ref('');
 const remark = ref('');
 
 function onUserChange(e) {
+  // 选择换班对象
   const idx = e.detail.value;
   toUserId.value = users[idx].id;
   toUserName.value = users[idx].name;
 }
 
 function hasOverride(dateStr, userId) {
+  // 判断日期是否已被换班覆盖
   return getDutyOverrides().some((o) => o.userId === userId && o.date === dateStr && o.reason === 'swap');
 }
 
 function dutyDay(dateStr, userId) {
+  // 按周期判断是否值班日
   const anchor = getDutyAnchor().find((i) => i.userId === userId) || getDutyAnchor()[0];
   const anchorDate = new Date(anchor.anchorDate.replace(/-/g, '/'));
   const cur = new Date(dateStr.replace(/-/g, '/'));
@@ -68,6 +75,7 @@ function dutyDay(dateStr, userId) {
 }
 
 function isRestByWeekend(dateStr, userId) {
+  // 周末值班联动休息规则
   const d = new Date(dateStr.replace(/-/g, '/'));
   const day = d.getDay();
   if (day === 0 || day === 1) {
@@ -84,6 +92,7 @@ function isRestByWeekend(dateStr, userId) {
 }
 
 function getStatus(dateStr, userId) {
+  // 计算日期状态（覆盖优先）
   const override = getDutyOverrides().find((o) => o.userId === userId && o.date === dateStr);
   if (override) return override.type;
   if (isRestByWeekend(dateStr, userId)) return 'REST';
@@ -91,6 +100,7 @@ function getStatus(dateStr, userId) {
 }
 
 function submit() {
+  // 提交换班申请
   if (!fromDate.value || !toDate.value || !toUserId.value) {
     uni.showToast({ title: '请完整填写信息', icon: 'none' });
     return;
@@ -132,6 +142,7 @@ function submit() {
 }
 
 onLoad((query) => {
+  // 计算安全区并初始化日期
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;
@@ -140,12 +151,23 @@ onLoad((query) => {
 </script>
 
 <style lang="scss" scoped>
-.duty { min-height: 100vh; padding: 12rpx 24rpx 120rpx; box-sizing: border-box; }
+.duty {
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  /* 顶部/底部安全区留白，避免遮挡 */
+  padding: calc(12rpx + env(safe-area-inset-top)) 24rpx calc(120rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.content { flex: 1; width: 100%; }
 .page-title { font-size: 34rpx; font-weight: 700; margin-bottom: 12rpx; }
 .card { background: #fff; border-radius: 16rpx; padding: 16rpx; box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08); }
 .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
 .label { color: #6b7785; font-size: 24rpx; }
 .link { color: #1677ff; font-size: 24rpx; }
+.link:active { opacity: 0.6; }
 .textarea { background: #f4f6f8; border-radius: 12rpx; padding: 12rpx; min-height: 160rpx; }
 .bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12rpx 24rpx calc(16rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -6rpx 16rpx rgba(0,0,0,0.08); }
 .btn { width: 100%; height: 72rpx; line-height: 72rpx; border-radius: 12rpx; background: #1677ff; color: #fff; }

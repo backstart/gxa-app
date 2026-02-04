@@ -47,6 +47,7 @@ const filtered = computed(() => {
 });
 
 function statusText(status) {
+  // 状态文案映射
   const map = {
     pending: '待审批',
     approving: '审批中',
@@ -58,11 +59,13 @@ function statusText(status) {
 }
 
 function typeText(type) {
+  // 休假类型文案映射
   const map = { annual: '年假', personal: '事假', sick: '病假', compensatory: '调休' };
   return map[type] || type;
 }
 
 function nodeText(item) {
+  // 生成当前审批节点文案
   const roles = ['leader_station_dept','leader_bureau_political','leader_bureau'];
   const labels = ['派出所部门领导', '分局政工', '分局领导'];
   if (item.status === 'approved') return '审批已完成';
@@ -75,14 +78,17 @@ function nodeText(item) {
 }
 
 function goDetail(item) {
+  // 跳转到详情页
   uni.navigateTo({ url: `/pages/leave/detail?id=${item.id}` });
 }
 
 onShow(() => {
+  // 读取休假列表
   list.value = getLeaveRequests();
 });
 
 onLoad(() => {
+  // 计算顶部安全区
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;

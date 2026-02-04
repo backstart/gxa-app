@@ -65,11 +65,13 @@ const canRevoke = computed(() => {
 });
 
 function typeText(type) {
+  // 休假类型文案映射
   const map = { annual: '年假', personal: '事假', sick: '病假', compensatory: '调休' };
   return map[type] || type;
 }
 
 function statusText(status) {
+  // 状态文案映射
   const map = {
     pending: '待审批',
     approving: '审批中',
@@ -81,6 +83,7 @@ function statusText(status) {
 }
 
 function stepLabel(role) {
+  // 审批角色文案映射
   const map = {
     leader_station_dept: '派出所部门领导',
     leader_bureau_political: '分局政工',
@@ -90,6 +93,7 @@ function stepLabel(role) {
 }
 
 function stepStatusText(status, idx) {
+  // 构建节点状态文案
   if (status === 'approved') return '已同意';
   if (status === 'rejected') return '已驳回';
   if (record.value && idx === record.value.currentStepIndex && ['pending','approving'].includes(record.value.status)) return '待审批';
@@ -97,6 +101,7 @@ function stepStatusText(status, idx) {
 }
 
 function stepStatusClass(status, idx) {
+  // 构建节点状态样式
   if (status === 'approved') return 'approved';
   if (status === 'rejected') return 'rejected';
   if (record.value && idx === record.value.currentStepIndex && ['pending','approving'].includes(record.value.status)) return 'pending';
@@ -104,6 +109,7 @@ function stepStatusClass(status, idx) {
 }
 
 function formatTime(val) {
+  // 格式化时间文本
   if (!val) return '—';
   const d = new Date(val);
   if (Number.isNaN(d.getTime())) {
@@ -114,12 +120,14 @@ function formatTime(val) {
 }
 
 function updateRecord(next) {
+  // 持久化更新后的记录
   const list = getLeaveRequests().map((i) => (i.id === next.id ? next : i));
   saveLeaveRequests(list);
   record.value = next;
 }
 
 function approve() {
+  // 同意当前节点
   if (!record.value) return;
   uni.showModal({
     title: '审批意见',
@@ -145,6 +153,7 @@ function approve() {
 }
 
 function reject() {
+  // 驳回当前节点
   if (!record.value) return;
   uni.showModal({
     title: '驳回原因',
@@ -169,6 +178,7 @@ function reject() {
 }
 
 function revoke() {
+  // 申请人撤回
   if (!record.value) return;
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const next = { ...record.value, status: 'revoked', updatedAt: now };
@@ -177,6 +187,7 @@ function revoke() {
 }
 
 onLoad((query) => {
+  // 加载记录并计算安全区
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;

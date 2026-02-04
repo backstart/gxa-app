@@ -113,14 +113,17 @@ const daysCount = computed(() => {
 });
 
 function getMonthKey(date) {
+  // 生成月份缓存键
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function formatDate(y, m, d) {
+  // 格式化日期为 YYYY-MM-DD
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
 function loadDutyMap(monthKey, daysInMonth) {
+  // 加载或生成月份勤务等级
   const cache = uni.getStorageSync(dutyCacheKey) || {};
   if (cache[monthKey]) return cache[monthKey];
   const map = {};
@@ -137,6 +140,7 @@ function loadDutyMap(monthKey, daysInMonth) {
 }
 
 function buildCalendar() {
+  // 构建月历网格
   const date = currentMonth.value;
   const y = date.getFullYear();
   const m = date.getMonth();
@@ -178,24 +182,28 @@ function buildCalendar() {
 }
 
 function isInRange(dateStr) {
+  // 判断日期是否在选中区间
   if (!startDate.value) return false;
   if (!endDate.value) return dateStr === startDate.value;
   return dateStr >= startDate.value && dateStr <= endDate.value;
 }
 
 function dutyText(level) {
+  // 勤务等级文案
   if (level === 1) return '一级';
   if (level === 2) return '二级';
   return '常态';
 }
 
 function dutyClass(level) {
+  // 勤务等级样式
   if (level === 1) return 'level-1';
   if (level === 2) return 'level-2';
   return 'level-0';
 }
 
 function selectType(val) {
+  // 选择休假类型并重新校验
   leaveType.value = val;
   if (startDate.value) {
     const ok = validateRange(startDate.value, endDate.value || startDate.value);
@@ -208,6 +216,7 @@ function selectType(val) {
 }
 
 function selectDay(day) {
+  // 选择日期并进行校验
   if (!day.inMonth || day.disabled) return;
   if (!leaveType.value) {
     uni.showToast({ title: '请先选择休假类别', icon: 'none' });
@@ -234,6 +243,7 @@ function selectDay(day) {
 }
 
 function validateRange(start, end) {
+  // 根据勤务规则与最大天数校验
   if (!start || !end) return true;
   if (end < start) return false;
   const dates = getDatesBetween(start, end);
@@ -254,6 +264,7 @@ function validateRange(start, end) {
 }
 
 function getDutyLevel(dateStr) {
+  // 获取指定日期勤务等级
   const monthKey = dateStr.slice(0, 7);
   const cache = uni.getStorageSync(dutyCacheKey) || {};
   const map = cache[monthKey];
@@ -262,6 +273,7 @@ function getDutyLevel(dateStr) {
 }
 
 function getDatesBetween(start, end) {
+  // 生成区间日期列表
   const res = [];
   const s = new Date(start.replace(/-/g, '/'));
   const e = new Date(end.replace(/-/g, '/'));
@@ -274,22 +286,26 @@ function getDatesBetween(start, end) {
 }
 
 function prevMonth() {
+  // 切换到上个月
   const d = currentMonth.value;
   currentMonth.value = new Date(d.getFullYear(), d.getMonth() - 1, 1);
   buildCalendar();
 }
 
 function nextMonth() {
+  // 切换到下个月
   const d = currentMonth.value;
   currentMonth.value = new Date(d.getFullYear(), d.getMonth() + 1, 1);
   buildCalendar();
 }
 
 function addAttachment() {
+  // 添加示例附件
   attachments.value.push('/static/logo.png');
 }
 
 function submit() {
+  // 提交休假申请并校验
   if (!leaveType.value) {
     uni.showToast({ title: '请选择休假类别', icon: 'none' });
     return;
@@ -337,6 +353,7 @@ function submit() {
 watch([startDate, endDate], () => buildCalendar());
 
 onLoad(() => {
+  // 初始化安全区与日历
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;

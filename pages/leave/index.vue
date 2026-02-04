@@ -34,15 +34,18 @@ const currentUser = {
 const canApprove = computed(() => currentUser.roles && currentUser.roles.length > 0);
 
 function go(url) {
+  // 跳转到对应休假页面
   uni.navigateTo({ url });
 }
 
 function goApprove() {
+  // 有审批角色时进入待审批列表
   if (!canApprove.value) return;
   go('/pages/leave/approve');
 }
 
 onLoad(() => {
+  // 计算顶部安全区高度
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;

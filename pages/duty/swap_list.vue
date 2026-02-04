@@ -50,11 +50,13 @@ const filtered = computed(() => {
 });
 
 function statusText(s) {
+  // 换班状态文案映射
   const map = { pending: '待确认', approved: '已同意', rejected: '已拒绝', revoked: '已撤回' };
   return map[s] || s;
 }
 
 function agree(item) {
+  // 同意换班申请
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const next = list.value.map((i) => (i.id === item.id ? { ...i, status: 'approved', updatedAt: now } : i));
   list.value = next;
@@ -63,6 +65,7 @@ function agree(item) {
 }
 
 function reject(item) {
+  // 拒绝换班申请
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const next = list.value.map((i) => (i.id === item.id ? { ...i, status: 'rejected', updatedAt: now } : i));
   list.value = next;
@@ -70,6 +73,7 @@ function reject(item) {
 }
 
 function revoke(item) {
+  // 撤回换班申请
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const next = list.value.map((i) => (i.id === item.id ? { ...i, status: 'revoked', updatedAt: now } : i));
   list.value = next;
@@ -77,6 +81,7 @@ function revoke(item) {
 }
 
 function applySwap(item) {
+  // 应用双方换班覆盖
   const overrides = getDutyOverrides();
   overrides.push({ userId: item.fromUserId, date: item.fromDate, type: 'WORK', reason: 'swap', swapId: item.id });
   overrides.push({ userId: item.fromUserId, date: item.toDate, type: 'DUTY', reason: 'swap', swapId: item.id });
@@ -86,10 +91,12 @@ function applySwap(item) {
 }
 
 onShow(() => {
+  // 读取换班列表
   list.value = getDutySwaps();
 });
 
 onLoad(() => {
+  // 计算顶部安全区
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;

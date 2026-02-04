@@ -40,21 +40,25 @@ const roleLabels = {
 };
 
 function nodeText(item) {
+  // 当前审批节点文案
   const idx = item.currentStepIndex || 0;
   const step = item.steps && item.steps[idx];
   return roleLabels[step?.role] || '审批节点';
 }
 
 function typeText(type) {
+  // 休假类型文案映射
   const map = { annual: '年假', personal: '事假', sick: '病假', compensatory: '调休' };
   return map[type] || type;
 }
 
 function goDetail(item) {
+  // 跳转到详情页
   uni.navigateTo({ url: `/pages/leave/detail?id=${item.id}` });
 }
 
 onShow(() => {
+  // 读取待我审批列表
   const all = getLeaveRequests();
   list.value = all.filter((i) => {
     if (!['pending','approving'].includes(i.status)) return false;
@@ -65,6 +69,7 @@ onShow(() => {
 });
 
 onLoad(() => {
+  // 计算顶部安全区
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;

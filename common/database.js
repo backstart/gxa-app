@@ -1921,7 +1921,7 @@ function ensure(key, fallback) {
   return clone(fallback);
 }
 
-// Generic getters
+// 通用读取/保存
 export const getVehicles = () => ensure(KEYS.vehicles, defaults.vehicles);
 export const saveVehicles = (list) => uni.setStorageSync(KEYS.vehicles, list);
 
@@ -2016,22 +2016,27 @@ export const getVenueDetails = () => ensure(KEYS.venueDetails, defaults.venueDet
 export const saveVenueDetails = (list) => uni.setStorageSync(KEYS.venueDetails, list);
 export const getVenueDetailById = (id) => getVenueDetails().find((item) => item.id === id);
 
+// 休假申请存储
 export const getLeaveRequests = () => ensure(KEYS.leaveRequests, defaults.leaveRequests);
 export const saveLeaveRequests = (list) => uni.setStorageSync(KEYS.leaveRequests, list);
 
+// 值班备忘录存储
 export const getDutyMemos = () => ensure(KEYS.dutyMemos, defaults.dutyMemos);
 export const saveDutyMemos = (list) => uni.setStorageSync(KEYS.dutyMemos, list);
 
+// 值班换班存储
 export const getDutySwaps = () => ensure(KEYS.dutySwaps, defaults.dutySwaps);
 export const saveDutySwaps = (list) => uni.setStorageSync(KEYS.dutySwaps, list);
 
+// 值班覆盖表存储
 export const getDutyOverrides = () => ensure(KEYS.dutyOverrides, defaults.dutyOverrides);
 export const saveDutyOverrides = (list) => uni.setStorageSync(KEYS.dutyOverrides, list);
 
+// 值班锚点存储
 export const getDutyAnchor = () => ensure(KEYS.dutyAnchor, defaults.dutyAnchor);
 export const saveDutyAnchor = (list) => uni.setStorageSync(KEYS.dutyAnchor, list);
 
-// Place helpers
+// 场所辅助方法
 export const getPlaceById = (placeId) => getPlaces().find((p) => p.placeId === placeId);
 export const getProfileByPlaceId = (placeId) => getPlaceProfiles().find((p) => p.placeId === placeId);
 
@@ -2055,7 +2060,7 @@ export function updateProfile(placeId, patch) {
   return list;
 }
 
-// Vehicle helpers
+// 车辆辅助方法
 export const getVehicleById = (id) => getVehicles().find((v) => v.id === id);
 
 export const getLastEndMileage = (vehicleId) => {
@@ -2121,7 +2126,7 @@ export function endUse(vehicleId, endMileage) {
   return { approvals, history, vehicles };
 }
 
-// Chat helpers
+// 聊天辅助方法
 export function addChatMessage(payload) {
   const list = getChatMessages();
   list.push(payload);
@@ -2129,35 +2134,35 @@ export function addChatMessage(payload) {
   return list;
 }
 
-// Scene helpers
+// 现场辅助方法
 export function addSceneItem(item) {
   const list = [item, ...getSceneItems()];
   saveSceneItems(list);
   return list;
 }
 
-// Dispose helpers
+// 处置辅助方法
 export function addDisposeItem(item) {
   const list = [item, ...getDisposeItems()];
   saveDisposeItems(list);
   return list;
 }
 
-// Dispatch helpers
+// 派单辅助方法
 export function addDispatch(record) {
   const list = [record, ...getDispatches()];
   saveDispatches(list);
   return list;
 }
 
-// Car helpers
+// 警车辅助方法
 export const getOpenLogByCarId = (carId) =>
   getCarUseLogs().find((log) => log.carId === carId && log.status === 'OPEN');
 
 export const getOpenLogByUserId = (userId) =>
   getCarUseLogs().find((log) => log.userId === userId && log.status === 'OPEN');
 
-// Key person helpers
+// 重点人辅助方法
 export const getKeyPersonById = (personId) =>
   getKeyPersons().find((item) => item.personId === personId);
 
