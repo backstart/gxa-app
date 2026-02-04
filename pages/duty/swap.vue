@@ -1,152 +1,200 @@
 <template>
   <view class="duty pageBg" :style="{ paddingTop: safeTop + 'px' }">
-    <!-- 表单可滚动，避免内容被底部按钮遮挡 -->
+    <!-- 顶部标题与分段切换（胶囊样式） -->
+    <view class="page-title">换班记录</view>
+    <view class="tabs">
+      <view v-for="t in tabs" :key="t.value" :class="['tab', activeTab===t.value?'active':'']" @click="activeTab=t.value">{{ t.label }}</view>
+    </view>
+
+    <!-- 列表区域可滚动，避免底部按钮遮挡 -->
     <scroll-view class="content" scroll-y>
-      <view class="page-title">换班申请</view>
-      <view class="card">
-        <view class="row">
-          <text class="label">我的换出日期</text>
-          <picker mode="date" @change="(e)=>fromDate = e.detail.value">
-            <text class="link">{{ fromDate || '请选择' }}</text>
-          </picker>
+      <view v-if="filtered.length===0" class="empty">暂无记录</view>
+      <view v-else>
+        <view class="card" v-for="item in filtered" :key="item.id">
+          <view class="row-top">
+            <text class="title">{{ item.fromDate }} ↔ {{ item.toDate }}</text>
+            <text :class="['status', item.status]">{{ statusText(item) }}</text>
+          </view>
+          <view class="row">对方人员：{{ item.toUserName }}</view>
+          <view class="row">我方日期：{{ item.fromDate }}（{{ typeText(item.fromType) }}）</view>
+          <view class="row">对方日期：{{ item.toDate }}（{{ typeText(item.toType) }}）</view>
+          <view class="row sub">审批进度：{{ progressText(item) }}</view>
+          <view class="row sub">创建时间：{{ item.createdAt }}</view>
+
+          <!-- 审批操作：只有当前用户具备对应领导角色时显示 -->
+          <view class="actions" v-if="activeTab==='received' && canApprove(item)">
+            <text class="link" @click="approve(item)">同意</text>
+            <text class="link danger" @click="reject(item)">拒绝</text>
+          </view>
+
+          <!-- 发起人撤回：仅待审批时可撤回 -->
+          <view class="actions" v-if="activeTab==='sent' && item.status==='pending'">
+            <text class="link" @click="revoke(item)">撤回</text>
+          </view>
         </view>
-        <view class="row">
-          <text class="label">对方人员</text>
-          <picker :range="userNames" @change="onUserChange">
-            <text class="link">{{ toUserName || '请选择' }}</text>
-          </picker>
-        </view>
-        <view class="row">
-          <text class="label">对方日期</text>
-          <picker mode="date" @change="(e)=>toDate = e.detail.value">
-            <text class="link">{{ toDate || '请选择' }}</text>
-          </picker>
-        </view>
-        <textarea class="textarea" v-model="remark" placeholder="备注（可选）" />
       </view>
     </scroll-view>
-    <!-- 底部操作按钮固定在安全区之上 -->
-    <view class="bottom-bar">
-      <button type="primary" class="btn" @click="submit">提交申请</button>
+
+    <!-- 底部固定按钮：发起换班申请 -->
+    <view class="bottom-actions">
+      <button class="action-btn primary" @click="goApply">发起换班</button>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
-import { getDutySwaps, saveDutySwaps, getDutyOverrides, getDutyAnchor } from '@/common/database.js';
+import { ref, computed } from 'vue';
+import { onShow, onLoad } from '@dcloudio/uni-app';
+import { getDutySwaps, saveDutySwaps, getDutyOverrides, saveDutyOverrides } from '@/common/database.js';
 
 const safeTop = ref(0);
-const currentUser = { id: 'u1', name: '李警官' };
-const users = [
-  { id: 'u2', name: '王警官' },
-  { id: 'u3', name: '张警官' },
-  { id: 'u4', name: '陈警官' },
-  { id: 'u5', name: '赵警官' },
+// 当前用户信息（mock），后续可替换为真实登录信息
+const currentUser = { id: 'u1', name: '李警官', roles: ['leader_station_dept', 'leader_bureau'] };
+
+const list = ref([]);
+const activeTab = ref('sent');
+
+const tabs = [
+  { label: '我发起', value: 'sent' },
+  { label: '我收到', value: 'received' },
+  { label: '已完成', value: 'done' },
 ];
-const userNames = users.map((u) => u.name);
 
-const fromDate = ref('');
-const toDate = ref('');
-const toUserId = ref('');
-const toUserName = ref('');
-const remark = ref('');
-
-function onUserChange(e) {
-  // 选择换班对象
-  const idx = e.detail.value;
-  toUserId.value = users[idx].id;
-  toUserName.value = users[idx].name;
-}
-
-function hasOverride(dateStr, userId) {
-  // 判断日期是否已被换班覆盖
-  return getDutyOverrides().some((o) => o.userId === userId && o.date === dateStr && o.reason === 'swap');
-}
-
-function dutyDay(dateStr, userId) {
-  // 按周期判断是否值班日
-  const anchor = getDutyAnchor().find((i) => i.userId === userId) || getDutyAnchor()[0];
-  const anchorDate = new Date(anchor.anchorDate.replace(/-/g, '/'));
-  const cur = new Date(dateStr.replace(/-/g, '/'));
-  const diff = Math.floor((cur - anchorDate) / 86400000);
-  return diff % anchor.cycleDays === 0;
-}
-
-function isRestByWeekend(dateStr, userId) {
-  // 周末值班联动休息规则
-  const d = new Date(dateStr.replace(/-/g, '/'));
-  const day = d.getDay();
-  if (day === 0 || day === 1) {
-    const sat = new Date(d); sat.setDate(d.getDate() - (day === 0 ? 1 : 2));
-    const satStr = `${sat.getFullYear()}-${String(sat.getMonth() + 1).padStart(2, '0')}-${String(sat.getDate()).padStart(2, '0')}`;
-    if (dutyDay(satStr, userId)) return true;
+const filtered = computed(() => {
+  if (activeTab.value === 'sent') {
+    return list.value.filter((i) => i.fromUserId === currentUser.id && i.status !== 'approved' && i.status !== 'rejected' && i.status !== 'canceled');
   }
-  if (day === 5 || day === 6) {
-    const sun = new Date(d); sun.setDate(d.getDate() + (day === 5 ? 2 : 1));
-    const sunStr = `${sun.getFullYear()}-${String(sun.getMonth() + 1).padStart(2, '0')}-${String(sun.getDate()).padStart(2, '0')}`;
-    if (dutyDay(sunStr, userId)) return true;
+  if (activeTab.value === 'received') {
+    return list.value.filter((i) => canApprove(i));
   }
+  return list.value.filter((i) => ['approved', 'rejected', 'canceled'].includes(i.status));
+});
+
+function typeText(type) {
+  // 状态类型转中文
+  const map = { duty: '值班', work: '工作', rest: '休息' };
+  return map[type] || type;
+}
+
+function statusText(item) {
+  // 顶部状态标签
+  if (item.status === 'approved') return '已同意';
+  if (item.status === 'rejected') return '已拒绝';
+  if (item.status === 'canceled') return '已撤回';
+  return '待审批';
+}
+
+function progressText(item) {
+  // 审批进度文案
+  if (item.status === 'approved') return '双方领导已同意';
+  if (item.status === 'rejected') return '已拒绝';
+  if (item.approvals.myLeader.status !== 'approved') return '本班领导待审';
+  if (item.approvals.otherLeader.status !== 'approved') return '对方领导待审';
+  return '审批中';
+}
+
+function canApprove(item) {
+  // 判断当前用户是否是待审批节点的领导
+  if (!['pending', 'approving'].includes(item.status)) return false;
+  if (item.approvals.myLeader.status === 'pending' && currentUser.roles.includes(item.approvals.myLeader.role)) return true;
+  if (item.approvals.otherLeader.status === 'pending' && currentUser.roles.includes(item.approvals.otherLeader.role)) return true;
   return false;
 }
 
-function getStatus(dateStr, userId) {
-  // 计算日期状态（覆盖优先）
-  const override = getDutyOverrides().find((o) => o.userId === userId && o.date === dateStr);
-  if (override) return override.type;
-  if (isRestByWeekend(dateStr, userId)) return 'REST';
-  return dutyDay(dateStr, userId) ? 'DUTY' : 'WORK';
+function approve(item) {
+  // 审批同意：更新对应节点
+  uni.showModal({
+    title: '审批意见',
+    editable: true,
+    placeholderText: '可填写意见',
+    success: (res) => {
+      if (!res.confirm) return;
+      const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      const next = list.value.map((i) => {
+        if (i.id !== item.id) return i;
+        const approvals = { ...i.approvals };
+        if (approvals.myLeader.status === 'pending' && currentUser.roles.includes(approvals.myLeader.role)) {
+          approvals.myLeader = { ...approvals.myLeader, status: 'approved', time: now, remark: res.content || '' };
+        } else if (approvals.otherLeader.status === 'pending' && currentUser.roles.includes(approvals.otherLeader.role)) {
+          approvals.otherLeader = { ...approvals.otherLeader, status: 'approved', time: now, remark: res.content || '' };
+        }
+        let status = i.status;
+        if (approvals.myLeader.status === 'approved' && approvals.otherLeader.status === 'approved') {
+          status = 'approved';
+        } else {
+          status = 'approving';
+        }
+        const updated = { ...i, approvals, status, updatedAt: now };
+        if (status === 'approved') applySwap(updated);
+        return updated;
+      });
+      list.value = next;
+      saveDutySwaps(next);
+      uni.showToast({ title: '已同意', icon: 'success' });
+    },
+  });
 }
 
-function submit() {
-  // 提交换班申请
-  if (!fromDate.value || !toDate.value || !toUserId.value) {
-    uni.showToast({ title: '请完整填写信息', icon: 'none' });
-    return;
-  }
-  if (fromDate.value === toDate.value) {
-    uni.showToast({ title: '不可选择同一天互换', icon: 'none' });
-    return;
-  }
-  if (getStatus(fromDate.value, currentUser.id) !== 'DUTY') {
-    uni.showToast({ title: '我的换出日期必须为值班日', icon: 'none' });
-    return;
-  }
-  if (getStatus(toDate.value, toUserId.value) !== 'DUTY') {
-    uni.showToast({ title: '对方日期必须为值班日', icon: 'none' });
-    return;
-  }
-  if (hasOverride(fromDate.value, currentUser.id) || hasOverride(toDate.value, toUserId.value)) {
-    uni.showToast({ title: '日期已存在换班覆盖', icon: 'none' });
-    return;
-  }
-  const id = `swap-${Date.now()}`;
-  const record = {
-    id,
-    fromUserId: currentUser.id,
-    fromUserName: currentUser.name,
-    toUserId: toUserId.value,
-    toUserName: toUserName.value,
-    fromDate: fromDate.value,
-    toDate: toDate.value,
-    status: 'pending',
-    remark: remark.value,
-    createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
-    updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
-  };
-  const list = [record, ...getDutySwaps()];
-  saveDutySwaps(list);
-  uni.showToast({ title: '已提交', icon: 'success' });
-  uni.navigateBack();
+function reject(item) {
+  // 审批拒绝：任一节点拒绝即结束
+  uni.showModal({
+    title: '拒绝原因',
+    editable: true,
+    placeholderText: '可填写原因',
+    success: (res) => {
+      if (!res.confirm) return;
+      const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      const next = list.value.map((i) => {
+        if (i.id !== item.id) return i;
+        const approvals = { ...i.approvals };
+        if (approvals.myLeader.status === 'pending' && currentUser.roles.includes(approvals.myLeader.role)) {
+          approvals.myLeader = { ...approvals.myLeader, status: 'rejected', time: now, remark: res.content || '' };
+        } else if (approvals.otherLeader.status === 'pending' && currentUser.roles.includes(approvals.otherLeader.role)) {
+          approvals.otherLeader = { ...approvals.otherLeader, status: 'rejected', time: now, remark: res.content || '' };
+        }
+        return { ...i, approvals, status: 'rejected', updatedAt: now };
+      });
+      list.value = next;
+      saveDutySwaps(next);
+      uni.showToast({ title: '已拒绝', icon: 'none' });
+    },
+  });
 }
 
-onLoad((query) => {
-  // 计算安全区并初始化日期
+function revoke(item) {
+  // 发起人撤回申请
+  const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const next = list.value.map((i) => (i.id === item.id ? { ...i, status: 'canceled', updatedAt: now } : i));
+  list.value = next;
+  saveDutySwaps(next);
+  uni.showToast({ title: '已撤回', icon: 'none' });
+}
+
+function applySwap(item) {
+  // 审批通过后写入覆盖表（生效换班）
+  const overrides = getDutyOverrides();
+  overrides.push({ userId: item.fromUserId, date: item.fromDate, type: 'WORK', reason: 'swap', swapId: item.id });
+  overrides.push({ userId: item.fromUserId, date: item.toDate, type: 'DUTY', reason: 'swap', swapId: item.id });
+  overrides.push({ userId: item.toUserId, date: item.toDate, type: 'WORK', reason: 'swap', swapId: item.id });
+  overrides.push({ userId: item.toUserId, date: item.fromDate, type: 'DUTY', reason: 'swap', swapId: item.id });
+  saveDutyOverrides(overrides);
+}
+
+function goApply() {
+  // 跳转到发起换班页面
+  uni.navigateTo({ url: '/pages/duty/swapApply' });
+}
+
+onShow(() => {
+  // 读取换班记录
+  list.value = getDutySwaps();
+});
+
+onLoad(() => {
+  // 计算安全区
   const info = uni.getSystemInfoSync();
   const topInset = info.safeAreaInsets?.top || 0;
   safeTop.value = Math.max(info.statusBarHeight || 0, topInset) + 8;
-  if (query?.date) fromDate.value = query.date;
 });
 </script>
 
@@ -155,20 +203,56 @@ onLoad((query) => {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-  /* 顶部/底部安全区留白，避免遮挡 */
   padding: calc(12rpx + env(safe-area-inset-top)) 24rpx calc(120rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
-.content { flex: 1; width: 100%; }
 .page-title { font-size: 34rpx; font-weight: 700; margin-bottom: 12rpx; }
-.card { background: #fff; border-radius: 16rpx; padding: 16rpx; box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08); }
-.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
-.label { color: #6b7785; font-size: 24rpx; }
+.tabs {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+.tab { padding: 8rpx 16rpx; border-radius: 999rpx; background: #f4f6f8; font-size: 24rpx; }
+.tab.active { background: #eaf3ff; color: #1677ff; }
+.content { flex: 1; width: 100%; }
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  margin-bottom: 12rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08);
+}
+.row-top { display: flex; justify-content: space-between; align-items: center; }
+.title { font-size: 26rpx; font-weight: 600; }
+.status { font-size: 22rpx; padding: 4rpx 10rpx; border-radius: 999rpx; background: #fff6e6; color: #c88719; }
+.status.approved { background: #e6f7ed; color: #1b9d5d; }
+.status.rejected, .status.canceled { background: #ffecec; color: #d64545; }
+.row { margin-top: 6rpx; font-size: 24rpx; color: #1f2b3a; }
+.row.sub { color: #6b7785; }
+.actions { margin-top: 10rpx; display: flex; gap: 16rpx; }
 .link { color: #1677ff; font-size: 24rpx; }
+.link.danger { color: #d64545; }
 .link:active { opacity: 0.6; }
-.textarea { background: #f4f6f8; border-radius: 12rpx; padding: 12rpx; min-height: 160rpx; }
-.bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12rpx 24rpx calc(16rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -6rpx 16rpx rgba(0,0,0,0.08); }
-.btn { width: 100%; height: 72rpx; line-height: 72rpx; border-radius: 12rpx; background: #1677ff; color: #fff; }
+.empty { text-align: center; color: #97a1ad; padding: 40rpx 0; }
+.bottom-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12rpx 24rpx calc(12rpx + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -6rpx 16rpx rgba(0,0,0,0.08);
+}
+.action-btn {
+  width: 100%;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  background: #1677ff;
+  color: #fff;
+}
 </style>

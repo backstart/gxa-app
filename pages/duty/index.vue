@@ -1,5 +1,6 @@
 <template>
-  <view class="duty pageBg" :style="{ paddingTop: safeTop + 'px' }">
+  <!-- 页面根容器改名，避免与状态标签类名冲突 -->
+  <view class="duty-page pageBg" :style="{ paddingTop: safeTop + 'px' }">
     <!-- 主体滚动区域，确保日历完整显示 -->
     <scroll-view class="content" scroll-y>
       <view class="page-title">值班</view>
@@ -16,15 +17,17 @@
         </view>
         <view class="calendar-grid">
           <view
-            v-for="d in calendarDays"
-            :key="d.key"
+            v-for="(d, i) in calendarDays"
+            :key="d.dateStr || ('empty-' + i)"
             :class="['day-cell', d.inMonth ? '' : 'empty', d.isSelected ? 'selected' : '' ]"
-            @click="selectDay(d)"
+            :data-date="d.dateStr"
+            :data-in-month="d.inMonth"
+            @tap="onDayTap"
           >
             <!-- 日期数字使用 text，避免被样式挤压隐藏 -->
-            <text class="day-num">{{ d.day }}</text>
-            <!-- 状态标签使用独立类名，避免与页面根类名 .duty 冲突 -->
-            <text v-if="d.inMonth" :class="['duty-tag', statusClass(d.status)]">{{ statusText(d.status) }}</text>
+            <text class="day-num">{{ d.inMonth ? d.day : '' }}</text>
+            <!-- 只要是当月日期就渲染状态，避免 DUTY 被 v-if 吞掉 -->
+            <text v-if="d.inMonth" class="status-tag" :class="d.statusType">{{ d.statusText }}</text>
           </view>
         </view>
       </view>
@@ -38,7 +41,7 @@
         </view>
         <view class="detail-row">
           <text class="label">状态</text>
-          <text :class="['value', 'status-text', statusClass(selectedStatus)]">{{ statusText(selectedStatus) }}</text>
+          <text :class="['value', 'status-text', selectedStatusType]">{{ selectedStatusText }}</text>
         </view>
         <view class="detail-row">
           <text class="label">备忘录</text>
@@ -52,10 +55,10 @@
       </view>
     </scroll-view>
 
-    <!-- 右下角悬浮按钮，避开安全区与内容区域 -->
-    <view class="float-actions">
-      <view class="float-btn" @click="goMemo">新增备忘录</view>
-      <view class="float-btn secondary" @click="goSwapList">换班</view>
+    <!-- 底部固定按钮栏，避免遮挡内容 -->
+    <view class="bottom-actions">
+      <button class="action-btn primary" @click="goMemo">新增备忘录</button>
+      <button class="action-btn secondary" @click="goSwapList">换班</button>
     </view>
   </view>
 </template>
@@ -72,7 +75,8 @@ const weekNames = ['日','一','二','三','四','五','六'];
 const currentMonth = ref(new Date());
 const calendarDays = ref([]);
 const selectedDate = ref('');
-const selectedStatus = ref('WORK');
+const selectedStatusType = ref('tag-work');
+const selectedStatusText = ref('工作');
 const selectedMemo = ref(null);
 
 const monthTitle = computed(() => {
@@ -112,7 +116,7 @@ function dutyDay(dateStr) {
 }
 
 function isRestByWeekend(dateStr) {
-  // 根据周末值班规则判断休息
+  // 根据周末值班规则判断休息（只影响周五/六/日/一的休息标记）
   const d = new Date(dateStr.replace(/-/g, '/'));
   const day = d.getDay();
   if (day === 0 || day === 1) {
@@ -128,12 +132,35 @@ function isRestByWeekend(dateStr) {
   return false;
 }
 
-function getStatus(dateStr) {
-  // 计算最终状态（覆盖优先）
+function normalizeType(type) {
+  // 统一状态类型为小写，避免 duty 文案缺失
+  const map = { DUTY: 'duty', WORK: 'work', REST: 'rest' };
+  return map[type] || type;
+}
+
+function typeToClass(type) {
+  // 状态样式统一加 tag- 前缀，避免与页面根类名冲突
+  const map = { duty: 'tag-duty', work: 'tag-work', rest: 'tag-rest' };
+  return map[type] || 'tag-work';
+}
+
+function typeToText(type) {
+  // 状态类型转中文文案
+  const map = { duty: '值班', work: '工作', rest: '休息' };
+  return map[type] || '';
+}
+
+function getDayStatus(dateStr) {
+  // 统一计算状态，优先级：换班覆盖 > 值班日 > 周末休息 > 工作
   const override = getSwapOverrides(dateStr);
-  if (override) return override.type;
-  if (isRestByWeekend(dateStr)) return 'REST';
-  return dutyDay(dateStr) ? 'DUTY' : 'WORK';
+  if (override) {
+    const type = normalizeType(override.type);
+    return { type: typeToClass(type), text: typeToText(type) };
+  }
+  const isDuty = dutyDay(dateStr);
+  if (isDuty) return { type: 'tag-duty', text: '值班' };
+  if (isRestByWeekend(dateStr)) return { type: 'tag-rest', text: '休息' };
+  return { type: 'tag-work', text: '工作' };
 }
 
 function buildCalendar() {
@@ -152,13 +179,15 @@ function buildCalendar() {
   // 当月日期填充
   for (let d = 1; d <= daysInMonth; d += 1) {
     const dateStr = formatDate(y, m + 1, d);
-    const status = getStatus(dateStr);
+    // 兜底：如果状态为空，默认设置为工作，避免文案不显示
+    const status = getDayStatus(dateStr) || { type: 'tag-work', text: '工作' };
     days.push({
       key: dateStr,
       inMonth: true,
       day: d,
       dateStr,
-      status,
+      statusType: status.type,
+      statusText: status.text,
       isSelected: selectedDate.value === dateStr,
     });
   }
@@ -170,24 +199,11 @@ function buildCalendar() {
   calendarDays.value = days;
 }
 
-function statusText(status) {
-  // 状态文案映射
-  if (status === 'DUTY') return '值班';
-  if (status === 'REST') return '休息';
-  return '工作';
-}
-
-function statusClass(status) {
-  // 状态样式映射
-  if (status === 'DUTY') return 'duty';
-  if (status === 'REST') return 'rest';
-  return 'work';
-}
-
-function selectDay(day) {
-  // 选择日期
-  if (!day.inMonth) return;
-  selectedDate.value = day.dateStr;
+function onDayTap(e) {
+  // 通过 dataset 取日期，避免复用导致点击错位
+  const { date, inMonth } = e.currentTarget.dataset || {};
+  if (!date || inMonth === false || inMonth === 'false') return;
+  selectedDate.value = date;
   refreshSelected();
   buildCalendar();
 }
@@ -195,7 +211,9 @@ function selectDay(day) {
 function refreshSelected() {
   // 刷新选中日期信息
   if (!selectedDate.value) return;
-  selectedStatus.value = getStatus(selectedDate.value);
+  const status = getDayStatus(selectedDate.value);
+  selectedStatusType.value = status.type;
+  selectedStatusText.value = status.text;
   const memos = getDutyMemos().filter((m) => m.userId === currentUser.id && m.date === selectedDate.value);
   selectedMemo.value = memos[0] || null;
 }
@@ -209,8 +227,8 @@ function goMemo() {
 }
 
 function goSwapList() {
-  // 跳转换班记录
-  uni.navigateTo({ url: '/pages/duty/swap_list' });
+  // 跳转换班模块
+  uni.navigateTo({ url: '/pages/duty/swap' });
 }
 
 function prevMonth() {
@@ -246,7 +264,8 @@ onLoad(() => {
 </script>
 
 <style lang="scss" scoped>
-.duty {
+/* 页面根容器改名为 .duty-page，避免与状态标签类名冲突 */
+.duty-page {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
@@ -293,40 +312,42 @@ onLoad(() => {
 }
 .day-cell.empty { background: transparent; }
 .day-cell.selected { border: 2rpx solid #1677ff; }
-.day-num { font-size: 24rpx; }
-/* 状态标签改名为 duty-tag，避免与根容器 .duty 冲突 */
-.duty-tag { margin-top: 2rpx; font-size: 20rpx; }
-.duty-tag.duty { color: #1677ff; }
-.duty-tag.work { color: #6b7785; }
-.duty-tag.rest { color: #2ecc71; }
+.day-num { font-size: 24rpx; pointer-events: none; }
+/* 状态标签使用 status-tag + tag- 前缀，避免与根容器类名冲突 */
+.status-tag { margin-top: 2rpx; font-size: 20rpx; pointer-events: none; }
+.status-tag.tag-duty { color: #1677ff; }
+.status-tag.tag-work { color: #6b7785; }
+.status-tag.tag-rest { color: #2ecc71; }
 .section-title { font-size: 26rpx; font-weight: 600; margin-bottom: 8rpx; }
 .detail-row { display: flex; align-items: center; gap: 8rpx; margin-top: 6rpx; font-size: 24rpx; color: #1f2b3a; }
 .label { color: #6b7785; width: 120rpx; flex: 0 0 120rpx; white-space: nowrap; }
 .value { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .muted { color: #97a1ad; }
-.status-text.duty { color: #1677ff; }
-.status-text.work { color: #6b7785; }
-.status-text.rest { color: #2ecc71; }
+.status-text.tag-duty { color: #1677ff; }
+.status-text.tag-work { color: #6b7785; }
+.status-text.tag-rest { color: #2ecc71; }
 .detail-actions { margin-top: 10rpx; display: flex; gap: 16rpx; }
 .link { color: #1677ff; font-size: 24rpx; }
 .link:active { opacity: 0.6; }
-.float-actions {
+.bottom-actions {
   position: fixed;
-  right: 16rpx;
-  bottom: calc(16rpx + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12rpx 24rpx calc(12rpx + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(8px);
   display: flex;
-  flex-direction: column;
   gap: 12rpx;
-  z-index: 10;
+  box-shadow: 0 -6rpx 16rpx rgba(0,0,0,0.08);
 }
-.float-btn {
-  background: #1677ff;
-  color: #fff;
-  padding: 12rpx 18rpx;
-  border-radius: 999rpx;
-  font-size: 24rpx;
-  box-shadow: 0 6rpx 16rpx rgba(0,0,0,0.12);
-  text-align: center;
+.action-btn {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
 }
-.float-btn.secondary { background: #2ecc71; }
+.action-btn.primary { background: #1677ff; color: #fff; }
+.action-btn.secondary { background: #2ecc71; color: #fff; }
 </style>

@@ -57,6 +57,7 @@
     {"path":"pages/duty/index","style":{"navigationBarTitleText":"值班","navigationStyle":"custom"}},
     {"path":"pages/duty/memo","style":{"navigationBarTitleText":"备忘录","navigationStyle":"custom"}},
     {"path":"pages/duty/swap","style":{"navigationBarTitleText":"换班","navigationStyle":"custom"}},
+    {"path":"pages/duty/swapApply","style":{"navigationBarTitleText":"发起换班","navigationStyle":"custom"}},
     {"path":"pages/duty/swap_list","style":{"navigationBarTitleText":"换班记录","navigationStyle":"custom"}},
     {"path":"pages/analysis/analysis","style":{"navigationBarTitleText":""}}
   ],
