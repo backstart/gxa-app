@@ -18,8 +18,8 @@
 		<l-grid>
 		    <l-grid-item text="会议" :dot="true" image="/static/userFuns/meet.png" />
 		    <l-grid-item text="OA" badge="5" image="/static/userFuns/oa.png" />
-		    <l-grid-item text="休假" badge="15" image="/static/userFuns/leave.png" />
-		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" />
+		    <l-grid-item text="休假" badge="15" image="/static/userFuns/leave.png" @click="goDetail('leave')" />
+		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" @click="goDetail('duty')" />
 			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" @click="goDetail('car')" />
 			<l-grid-item text="交接班" badge="4" image="/static/userFuns/handwork.png" @click="goDetail('handwork')" />
 			<l-grid-item text="申领" badge="4" image="/static/userFuns/applyfor.png" @click="goDetail('applyfor')" />
@@ -45,6 +45,10 @@ function goDetail(item) {
   } else if (item === 'handwork') {
 	  //交接班
     target = '/pages/handwork/handwork';
+  } else if (item === 'leave') {
+    target = '/pages/leave/index';
+  } else if (item === 'duty') {
+    target = '/pages/duty/index';
   } 
   console.log(target);
   uni.navigateTo({ url: target });

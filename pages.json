@@ -49,6 +49,15 @@
     {"path":"pages/handwork/selectCase","style":{"navigationBarTitleText":"选择事项","navigationStyle":"custom"}},
     {"path":"pages/handwork/history","style":{"navigationBarTitleText":"交接班历史","navigationStyle":"custom"}},
     {"path":"pages/handwork/detail","style":{"navigationBarTitleText":"交接详情","navigationStyle":"custom"}},
+    {"path":"pages/leave/index","style":{"navigationBarTitleText":"休假","navigationStyle":"custom"}},
+    {"path":"pages/leave/apply","style":{"navigationBarTitleText":"发起休假","navigationStyle":"custom"}},
+    {"path":"pages/leave/my","style":{"navigationBarTitleText":"我的休假","navigationStyle":"custom"}},
+    {"path":"pages/leave/approve","style":{"navigationBarTitleText":"待我审批","navigationStyle":"custom"}},
+    {"path":"pages/leave/detail","style":{"navigationBarTitleText":"休假详情","navigationStyle":"custom"}},
+    {"path":"pages/duty/index","style":{"navigationBarTitleText":"值班","navigationStyle":"custom"}},
+    {"path":"pages/duty/memo","style":{"navigationBarTitleText":"备忘录","navigationStyle":"custom"}},
+    {"path":"pages/duty/swap","style":{"navigationBarTitleText":"换班","navigationStyle":"custom"}},
+    {"path":"pages/duty/swap_list","style":{"navigationBarTitleText":"换班记录","navigationStyle":"custom"}},
     {"path":"pages/analysis/analysis","style":{"navigationBarTitleText":""}}
   ],
   "globalStyle": {

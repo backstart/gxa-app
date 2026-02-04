@@ -27,6 +27,11 @@
   carUseLogs: 'db_car_use_logs',
   policeDetails: 'db_police_details',
   venueDetails: 'db_venue_details',
+  leaveRequests: 'db_leave_requests',
+  dutyMemos: 'db_duty_memos',
+  dutySwaps: 'db_duty_swaps',
+  dutyOverrides: 'db_duty_overrides',
+  dutyAnchor: 'db_duty_anchor',
 };
 
 export const statusText = {
@@ -1850,6 +1855,59 @@ const defaults = {
       archiveList: [],
     },
   ],
+  leaveRequests: [
+    {
+      id: 'leave-20260120-1',
+      applicantId: 'u1',
+      applicantName: '李警官',
+      deptName: '桂南派出所',
+      leaveType: 'annual',
+      startDate: '2026-01-22',
+      endDate: '2026-01-24',
+      daysCount: 3,
+      reason: '年假休整',
+      status: 'approving',
+      currentStepIndex: 1,
+      steps: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'approved', comment: '同意', time: '2026-01-20 10:30' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      createdAt: '2026-01-20 09:10',
+      updatedAt: '2026-01-20 10:30',
+    },
+    {
+      id: 'leave-20260118-1',
+      applicantId: 'u2',
+      applicantName: '王警官',
+      deptName: '江北派出所',
+      leaveType: 'sick',
+      startDate: '2026-01-18',
+      endDate: '2026-01-19',
+      daysCount: 2,
+      reason: '身体不适就诊',
+      status: 'approved',
+      currentStepIndex: 2,
+      steps: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'approved', comment: '同意', time: '2026-01-18 09:20' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'approved', comment: '同意', time: '2026-01-18 14:10' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'approved', comment: '同意', time: '2026-01-18 18:00' },
+      ],
+      createdAt: '2026-01-18 08:40',
+      updatedAt: '2026-01-18 18:00',
+    },
+  ],
+  dutyMemos: [],
+  dutySwaps: [],
+  dutyOverrides: [],
+  dutyAnchor: [
+    {
+      userId: 'u1',
+      anchorDate: '2026-02-01',
+      anchorType: 'DUTY',
+      cycleDays: 4,
+    },
+  ],
 };
 
 function clone(data) {
@@ -1957,6 +2015,21 @@ export const getPoliceDetailById = (id) => getPoliceDetails().find((item) => ite
 export const getVenueDetails = () => ensure(KEYS.venueDetails, defaults.venueDetails);
 export const saveVenueDetails = (list) => uni.setStorageSync(KEYS.venueDetails, list);
 export const getVenueDetailById = (id) => getVenueDetails().find((item) => item.id === id);
+
+export const getLeaveRequests = () => ensure(KEYS.leaveRequests, defaults.leaveRequests);
+export const saveLeaveRequests = (list) => uni.setStorageSync(KEYS.leaveRequests, list);
+
+export const getDutyMemos = () => ensure(KEYS.dutyMemos, defaults.dutyMemos);
+export const saveDutyMemos = (list) => uni.setStorageSync(KEYS.dutyMemos, list);
+
+export const getDutySwaps = () => ensure(KEYS.dutySwaps, defaults.dutySwaps);
+export const saveDutySwaps = (list) => uni.setStorageSync(KEYS.dutySwaps, list);
+
+export const getDutyOverrides = () => ensure(KEYS.dutyOverrides, defaults.dutyOverrides);
+export const saveDutyOverrides = (list) => uni.setStorageSync(KEYS.dutyOverrides, list);
+
+export const getDutyAnchor = () => ensure(KEYS.dutyAnchor, defaults.dutyAnchor);
+export const saveDutyAnchor = (list) => uni.setStorageSync(KEYS.dutyAnchor, list);
 
 // Place helpers
 export const getPlaceById = (placeId) => getPlaces().find((p) => p.placeId === placeId);
