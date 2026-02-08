@@ -4,14 +4,23 @@
     <scroll-view class="content" scroll-y>
       <view class="page-title">备忘录</view>
       <view class="card">
-        <view class="row"><text class="label">日期</text><text class="value">{{ date }}</text></view>
+        <!-- 日期行：左侧标签固定宽度，右侧内容自适应 -->
+        <view class="form-row">
+          <text class="label">日期</text>
+          <text class="value">{{ date }}</text>
+        </view>
+        <!-- 标题输入框：占满卡片宽度，避免右侧留白 -->
         <input class="input" v-model="title" placeholder="标题（可选）" />
+        <!-- 内容输入框：占满卡片宽度，避免右侧留白 -->
         <textarea class="textarea" v-model="content" placeholder="请输入内容" />
-        <view class="row">
+        <!-- 提醒时间行：左侧标签固定，右侧可点击文字 -->
+        <view class="form-row">
           <text class="label">提醒时间</text>
-          <picker mode="datetime" @change="(e)=>remindAt = e.detail.value">
-            <text class="link">{{ remindAt || '不提醒' }}</text>
-          </picker>
+          <view class="value">
+            <picker mode="datetime" @change="(e)=>remindAt = e.detail.value">
+              <text class="link">{{ remindAt || '不提醒' }}</text>
+            </picker>
+          </view>
         </view>
       </view>
     </scroll-view>
@@ -101,11 +110,38 @@ onLoad((query) => {
 .content { flex: 1; width: 100%; }
 .page-title { font-size: 34rpx; font-weight: 700; margin-bottom: 12rpx; }
 .card { background: #fff; border-radius: 16rpx; padding: 16rpx; box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08); }
-.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
-.label { color: #6b7785; font-size: 24rpx; }
-.value { color: #1f2b3a; font-size: 24rpx; }
-.input { background: #f4f6f8; border-radius: 12rpx; padding: 12rpx; margin-bottom: 12rpx; }
-.textarea { background: #f4f6f8; border-radius: 12rpx; padding: 12rpx; min-height: 200rpx; }
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.label {
+  color: #6b7785;
+  font-size: 24rpx;
+  flex: 0 0 120rpx;
+}
+.value {
+  color: #1f2b3a;
+  font-size: 24rpx;
+  flex: 1;
+  min-width: 0;
+}
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #f4f6f8;
+  border-radius: 12rpx;
+  padding: 12rpx;
+  margin-bottom: 12rpx;
+}
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #f4f6f8;
+  border-radius: 12rpx;
+  padding: 12rpx;
+  min-height: 200rpx;
+}
 .link { color: #1677ff; font-size: 24rpx; }
 .link:active { opacity: 0.6; }
 .bottom-bar {

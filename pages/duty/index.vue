@@ -35,6 +35,17 @@
       <!-- 当天详情卡片 -->
       <view class="card">
         <view class="section-title">当天详情</view>
+        <!-- 换班记录置顶展示（有记录才显示） -->
+        <view v-if="selectedSwaps.length" class="swap-block">
+          <view class="swap-title">换班记录</view>
+          <view v-for="s in selectedSwaps" :key="s.id" class="swap-item" @click="goSwapDetail(s)">
+            <view class="swap-row">
+              <text class="swap-name">对方：{{ s.toUserName }}</text>
+              <text class="swap-status">{{ swapStatusText(s) }}</text>
+            </view>
+            <view class="swap-sub">我方：{{ s.fromDate }} ｜ 对方：{{ s.toDate }}</view>
+          </view>
+        </view>
         <view class="detail-row">
           <text class="label">日期</text>
           <text class="value">{{ selectedDate }}</text>
@@ -45,11 +56,32 @@
         </view>
         <view class="detail-row">
           <text class="label">备忘录</text>
-          <text class="value" v-if="selectedMemo">{{ selectedMemo.content }}</text>
-          <text class="value muted" v-else>暂无备忘录</text>
+          <text class="value muted" v-if="!selectedMemos.length">暂无备忘录</text>
+        </view>
+        <!-- 备忘录列表：支持左滑编辑/删除 -->
+        <view class="memo-list" @click="closeSwipe">
+          <!-- 给 SwipeRow 传入与备忘录卡片一致的背景色，避免默认状态露出右侧操作区底色 -->
+          <SwipeRow
+            v-for="m in selectedMemos"
+            :key="m.id"
+            class="memo-swipe-row"
+            style="--swipe-content-bg:#f7f9fb;"
+            :row-id="m.id"
+            :open-id="openMemoId"
+            @open="openSwipe"
+            @close="closeSwipe"
+            @edit="editMemo"
+            @delete="deleteMemo"
+          >
+            <view class="memo-item">
+              <view class="memo-title">{{ m.title || '备忘录' }}</view>
+              <view class="memo-content">{{ m.content }}</view>
+              <view v-if="m.remindAt" class="memo-remind">提醒：{{ m.remindAt }}</view>
+            </view>
+          </SwipeRow>
         </view>
         <view class="detail-actions">
-          <text class="link" @click="goMemo">{{ selectedMemo ? '编辑备忘录' : '新增备忘录' }}</text>
+          <text class="link" @click="goMemo">新增备忘录</text>
           <text class="link" @click="goSwapList">换班</text>
         </view>
       </view>
@@ -66,7 +98,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { onShow, onLoad } from '@dcloudio/uni-app';
-import { getDutyMemos, getDutyOverrides, getDutyAnchor, getDutySwaps } from '@/common/database.js';
+import { getDutyMemos, saveDutyMemos, getDutyOverrides, getDutyAnchor, getDutySwaps } from '@/common/database.js';
 
 const safeTop = ref(0);
 const currentUser = { id: 'u1', name: '李警官' };
@@ -77,7 +109,15 @@ const calendarDays = ref([]);
 const selectedDate = ref('');
 const selectedStatusType = ref('tag-work');
 const selectedStatusText = ref('工作');
-const selectedMemo = ref(null);
+// 当天备忘录列表（支持多条）
+const selectedMemos = ref([]);
+// 当天相关换班记录列表（置顶展示）
+const selectedSwaps = ref([]);
+// 当前展开的备忘录行 id（用于左滑互斥）
+const openMemoId = ref('');
+
+// 引入全局左滑组件，统一管理左滑交互与样式遮挡
+import SwipeRow from '@/components/SwipeRow.vue';
 
 const monthTitle = computed(() => {
   const d = currentMonth.value;
@@ -211,24 +251,70 @@ function onDayTap(e) {
 function refreshSelected() {
   // 刷新选中日期信息
   if (!selectedDate.value) return;
+  // 刷新列表时关闭已展开的左滑行，避免状态残留
+  openMemoId.value = '';
   const status = getDayStatus(selectedDate.value);
   selectedStatusType.value = status.type;
   selectedStatusText.value = status.text;
-  const memos = getDutyMemos().filter((m) => m.userId === currentUser.id && m.date === selectedDate.value);
-  selectedMemo.value = memos[0] || null;
+  // 读取当天全部备忘录，按更新时间倒序
+  const memos = getDutyMemos()
+    .filter((m) => m.userId === currentUser.id && m.date === selectedDate.value)
+    .sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
+  selectedMemos.value = memos;
+  // 读取当天相关换班记录（涉及 fromDate/toDate）
+  const swaps = getDutySwaps().filter((s) => s.fromDate === selectedDate.value || s.toDate === selectedDate.value);
+  selectedSwaps.value = swaps;
 }
 
 function goMemo() {
   // 跳转备忘录页面
   if (!selectedDate.value) return;
-  const id = selectedMemo.value?.id || '';
-  const qs = id ? `&memoId=${id}` : '';
-  uni.navigateTo({ url: `/pages/duty/memo?date=${selectedDate.value}${qs}` });
+  uni.navigateTo({ url: `/pages/duty/memo?date=${selectedDate.value}` });
 }
 
 function goSwapList() {
   // 跳转换班模块
   uni.navigateTo({ url: '/pages/duty/swap' });
+}
+
+function goSwapDetail(item) {
+  // 跳转到换班记录页（列表中可查看详情）
+  uni.navigateTo({ url: '/pages/duty/swap' });
+}
+
+function swapStatusText(item) {
+  // 换班审批状态文案
+  const map = { pending: '待审批', approving: '审批中', approved: '已同意', rejected: '已拒绝', canceled: '已撤回' };
+  return map[item.status] || '待审批';
+}
+
+function openSwipe(id) {
+  // 记录当前展开的备忘录行
+  openMemoId.value = id;
+}
+
+function closeSwipe() {
+  // 关闭已展开的备忘录行
+  openMemoId.value = '';
+}
+
+function editMemo(id) {
+  // 进入备忘录编辑
+  uni.navigateTo({ url: `/pages/duty/memo?date=${selectedDate.value}&memoId=${id}` });
+}
+
+function deleteMemo(id) {
+  // 删除备忘录（确认后从本地存储移除）
+  uni.showModal({
+    title: '删除备忘录',
+    content: '确认删除该备忘录？',
+    success: (res) => {
+      if (!res.confirm) return;
+      const list = getDutyMemos().filter((m) => m.id !== id);
+      saveDutyMemos(list);
+      refreshSelected();
+    },
+  });
 }
 
 function prevMonth() {
@@ -329,6 +415,23 @@ onLoad(() => {
 .detail-actions { margin-top: 10rpx; display: flex; gap: 16rpx; }
 .link { color: #1677ff; font-size: 24rpx; }
 .link:active { opacity: 0.6; }
+/* 换班记录区块：置顶展示，样式紧凑 */
+.swap-block { margin-bottom: 12rpx; }
+.swap-title { font-size: 24rpx; font-weight: 600; margin-bottom: 6rpx; }
+.swap-item { background: #f7f9fb; border-radius: 12rpx; padding: 10rpx 12rpx; margin-bottom: 8rpx; }
+.swap-row { display: flex; justify-content: space-between; align-items: center; font-size: 22rpx; }
+.swap-name { color: #1f2b3a; }
+.swap-status { color: #6b7785; }
+.swap-sub { margin-top: 4rpx; font-size: 20rpx; color: #97a1ad; }
+/* 备忘录列表样式：卡片内列表，避免撑爆页面 */
+.memo-list { margin-top: 8rpx; display: flex; flex-direction: column; gap: 8rpx; }
+/* 左滑行容器宽度固定为 100%，避免父级布局导致右侧留白 */
+.memo-swipe-row { width: 100%; box-sizing: border-box; border-radius: 12rpx; overflow: hidden; }
+/* 备忘录内容区保持实色背景，避免操作区透出 */
+.memo-item { width: 100%; box-sizing: border-box; background: #f7f9fb; border-radius: 12rpx; padding: 10rpx 12rpx; }
+.memo-title { font-size: 24rpx; font-weight: 600; color: #1f2b3a; margin-bottom: 4rpx; }
+.memo-content { font-size: 22rpx; color: #6b7785; line-height: 32rpx; }
+.memo-remind { margin-top: 4rpx; font-size: 20rpx; color: #97a1ad; }
 .bottom-actions {
   position: fixed;
   left: 0;

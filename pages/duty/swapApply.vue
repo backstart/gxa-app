@@ -4,24 +4,34 @@
     <scroll-view class="content" scroll-y>
       <view class="page-title">发起换班</view>
       <view class="card">
-        <view class="row">
+        <!-- 选择换班人员：标签固定宽度，右侧文本可点击 -->
+        <view class="form-row">
           <text class="label">换班人员</text>
-          <picker :range="userNames" @change="onUserChange">
-            <text class="link">{{ toUserName || '请选择' }}</text>
-          </picker>
+          <view class="value">
+            <picker :range="userNames" @change="onUserChange">
+              <text class="link">{{ toUserName || '请选择' }}</text>
+            </picker>
+          </view>
         </view>
-        <view class="row">
+        <!-- 选择我的日期 -->
+        <view class="form-row">
           <text class="label">我的日期</text>
-          <picker mode="date" @change="(e)=>fromDate = e.detail.value">
-            <text class="link">{{ fromDate || '请选择' }}</text>
-          </picker>
+          <view class="value">
+            <picker mode="date" @change="(e)=>fromDate = e.detail.value">
+              <text class="link">{{ fromDate || '请选择' }}</text>
+            </picker>
+          </view>
         </view>
-        <view class="row">
+        <!-- 选择对方日期 -->
+        <view class="form-row">
           <text class="label">对方日期</text>
-          <picker mode="date" @change="(e)=>toDate = e.detail.value">
-            <text class="link">{{ toDate || '请选择' }}</text>
-          </picker>
+          <view class="value">
+            <picker mode="date" @change="(e)=>toDate = e.detail.value">
+              <text class="link">{{ toDate || '请选择' }}</text>
+            </picker>
+          </view>
         </view>
+        <!-- 换班原因输入框占满卡片宽度，避免右侧留白 -->
         <textarea class="textarea" v-model="reason" placeholder="换班原因（可选）" />
       </view>
     </scroll-view>
@@ -184,11 +194,27 @@ onLoad((query) => {
 .content { flex: 1; width: 100%; }
 .page-title { font-size: 34rpx; font-weight: 700; margin-bottom: 12rpx; }
 .card { background: #fff; border-radius: 16rpx; padding: 16rpx; box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08); }
-.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
-.label { color: #6b7785; font-size: 24rpx; }
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.label {
+  color: #6b7785;
+  font-size: 24rpx;
+  flex: 0 0 120rpx;
+}
+.value { flex: 1; min-width: 0; }
 .link { color: #1677ff; font-size: 24rpx; }
 .link:active { opacity: 0.6; }
-.textarea { background: #f4f6f8; border-radius: 12rpx; padding: 12rpx; min-height: 160rpx; }
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #f4f6f8;
+  border-radius: 12rpx;
+  padding: 12rpx;
+  min-height: 160rpx;
+}
 .bottom-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12rpx 24rpx calc(16rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -6rpx 16rpx rgba(0,0,0,0.08); }
 .btn { width: 100%; height: 72rpx; line-height: 72rpx; border-radius: 12rpx; background: #1677ff; color: #fff; }
 </style>
