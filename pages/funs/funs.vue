@@ -84,7 +84,8 @@
 	else if (e === 'e') {
 			
 			uni.navigateTo({
-				url: '/pages/person/index'
+				// 功能页“重点人”直达重点人列表页，去掉中间页跳转层级
+				url: '/pages/person/list?title=重点人'
 			})
 		}
 	

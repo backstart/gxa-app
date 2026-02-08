@@ -20,7 +20,6 @@
         </view>
         <text class="searchBtn" @tap.stop="onSearch">搜索</text>
       </view>
-      <view class="pageHint">{{ pageTitle }}</view>
 
       <scroll-view class="tabScroll" scroll-x show-scrollbar="false" :scroll-into-view="tabIntoViewId">
         <view class="tabRow">
@@ -82,6 +81,9 @@
           v-for="place in displayList"
           :key="place.placeId"
           class="placeCard"
+          hover-class="placeCardActive"
+          hover-start-time="20"
+          hover-stay-time="70"
           @tap.stop="goDetail(place)"
         >
           <image class="placeCover" :src="place.frontPhoto || '/static/logo.png'" mode="aspectFill"></image>
@@ -194,7 +196,6 @@ import { getPlaces } from '@/common/database.js';
 
 const instance = getCurrentInstance();
 
-const pageTitle = ref('重点场所列表');
 const rawList = ref([]);
 const searchKey = ref('');
 const activeTabKey = ref('ALL');
@@ -247,17 +248,17 @@ const filterEntries = [
 
 const TYPE_LABEL_MAP = {
   ALL: '全部',
-  KTV: 'KTV/夜场',
+  KTV: 'KTV',
   RENTAL: '出租屋',
   NETBAR: '网吧',
   FOOTBATH: '足浴',
-  CHESS_CARD: '棋牌/麻将',
-  NIGHTCLUB: '夜店/酒吧',
-  BILLIARD: '台球厅',
-  HOTEL: '旅馆/酒店',
-  SAUNA: '洗浴/桑拿',
-  MASSAGE: '按摩/养生',
-  EGAME: '电竞/电玩城',
+  CHESS_CARD: '棋牌',
+  NIGHTCLUB: '夜店',
+  BILLIARD: '台球',
+  HOTEL: '酒店',
+  SAUNA: '洗浴',
+  MASSAGE: '养生',
+  EGAME: '电竞',
 };
 
 const TAB_ORDER = [
@@ -311,17 +312,17 @@ const tabs = computed(() => {
 
   TAB_ORDER.forEach((key) => {
     if (key === 'ALL') {
-      list.push({ key: 'ALL', label: TYPE_LABEL_MAP.ALL });
+      list.push({ key: 'ALL', label: normalizeDisplayLabel(TYPE_LABEL_MAP.ALL) });
       return;
     }
     if (mustKeys.includes(key) || sourceSet.has(key)) {
-      list.push({ key, label: TYPE_LABEL_MAP[key] || key });
+      list.push({ key, label: normalizeDisplayLabel(TYPE_LABEL_MAP[key] || key) });
     }
   });
 
   Array.from(sourceSet).forEach((key) => {
     if (!list.some((item) => item.key === key)) {
-      list.push({ key, label: TYPE_LABEL_MAP[key] || key });
+      list.push({ key, label: normalizeDisplayLabel(TYPE_LABEL_MAP[key] || key) });
     }
   });
 
@@ -556,20 +557,27 @@ function riskClass(level) {
 function typeLabel(typeKey) {
   // 类型文案映射：未知值直接回显，避免空标签
   const key = String(typeKey || '').toUpperCase();
-  return TYPE_LABEL_MAP[key] || key || '未分类';
+  return normalizeDisplayLabel(TYPE_LABEL_MAP[key] || key || '未分类');
 }
 
 function moduleLabel(moduleKey) {
   // 模块文案映射与 tab 共用同一字典，保证语义一致
   const key = String(moduleKey || '').toUpperCase();
-  return TYPE_LABEL_MAP[key] || key;
+  return normalizeDisplayLabel(TYPE_LABEL_MAP[key] || key);
 }
 
 function placeModuleTags(place) {
-  // 列表卡片模块标签去重展示，避免和主类型重复
+  // 列表卡片模块标签去重并限量展示，避免标签过多撑高卡片
   const primaryLabel = typeLabel(place.primaryType);
   const tags = (place.modules || []).map((m) => moduleLabel(m));
-  return Array.from(new Set(tags.filter((tag) => tag && tag !== primaryLabel)));
+  return Array.from(new Set(tags.filter((tag) => tag && tag !== primaryLabel))).slice(0, 2);
+}
+
+function normalizeDisplayLabel(label) {
+  // 展示文案统一去掉“/”后的附加语义，避免出现“KTV/夜场”这种双重含义
+  const text = String(label || '').trim();
+  if (!text) return text;
+  return text.includes('/') ? text.split('/')[0] : text;
 }
 
 function riskScore(level) {
@@ -654,7 +662,6 @@ onLoad((query) => {
   const sys = uni.getSystemInfoSync();
   safeTop.value = sys.safeAreaInsets?.top ?? sys.statusBarHeight ?? 0;
   activeTabKey.value = normalizeTypeKey(query?.type || query?.filterType || 'ALL');
-  pageTitle.value = query?.title ? `${query.title}列表` : '重点场所列表';
 });
 
 onShow(() => {
@@ -729,24 +736,18 @@ onReady(() => {
 }
 
 .tabScroll {
-  margin-top: 10rpx;
+  margin-top: 12rpx;
   width: 100%;
   white-space: nowrap;
   box-sizing: border-box;
-}
-
-.pageHint {
-  margin-top: 10rpx;
-  color: #1677ff;
-  font-size: 24rpx;
 }
 
 .tabRow {
   display: inline-flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 26rpx;
-  padding: 2rpx 4rpx 10rpx;
+  gap: 14rpx;
+  padding: 2rpx 4rpx 12rpx;
   box-sizing: border-box;
 }
 
@@ -756,9 +757,10 @@ onReady(() => {
   align-items: center;
   flex-shrink: 0;
   white-space: nowrap;
-  padding: 8rpx 2rpx;
+  min-height: 64rpx;
+  padding: 10rpx 12rpx;
   color: #1f2b3a;
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: 700;
   box-sizing: border-box;
 }
@@ -864,17 +866,21 @@ onReady(() => {
   display: flex;
   align-items: flex-start;
   gap: 16rpx;
-  padding: 18rpx;
-  margin-bottom: 14rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
   background: #fff;
   border-radius: 20rpx;
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
 }
 
+.placeCardActive {
+  opacity: 0.85;
+}
+
 .placeCover {
-  width: 152rpx;
-  height: 152rpx;
+  width: 128rpx;
+  height: 128rpx;
   border-radius: 14rpx;
   background: #e9edf2;
   flex-shrink: 0;
@@ -887,8 +893,9 @@ onReady(() => {
 
 .titleRow {
   display: flex;
-  align-items: center;
-  gap: 10rpx;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8rpx;
 }
 
 .placeName {
@@ -904,7 +911,7 @@ onReady(() => {
 
 .riskTag {
   flex-shrink: 0;
-  padding: 4rpx 10rpx;
+  padding: 4rpx 12rpx;
   border-radius: 12rpx;
   font-size: 22rpx;
 }
@@ -927,24 +934,27 @@ onReady(() => {
 .addrRow {
   margin-top: 6rpx;
   color: #6e7a89;
-  font-size: 24rpx;
+  font-size: 25rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .tagRow {
-  margin-top: 10rpx;
+  margin-top: 8rpx;
   display: flex;
   flex-wrap: wrap;
   gap: 8rpx;
+  min-height: 40rpx;
+  overflow: hidden;
 }
 
 .typeTag,
 .moduleTag {
-  padding: 6rpx 12rpx;
+  padding: 4rpx 12rpx;
   border-radius: 12rpx;
   font-size: 22rpx;
+  line-height: 32rpx;
 }
 
 .typeTag {
@@ -958,11 +968,11 @@ onReady(() => {
 }
 
 .footRow {
-  margin-top: 12rpx;
+  margin-top: 10rpx;
 }
 
 .dueText {
-  font-size: 28rpx;
+  font-size: 30rpx;
 }
 
 .dueText.overdue {
