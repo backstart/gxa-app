@@ -41,12 +41,6 @@
             <input v-model="form.destination" class="input-field" placeholder="请输入去向" />
           </view>
         </view>
-        <view class="form-row">
-          <text class="label">联系电话</text>
-          <view class="value">
-            <input v-model="form.contactPhone" class="input-field" placeholder="可选，方便联络" />
-          </view>
-        </view>
         <view class="form-area">
           <text class="label">外出事由</text>
           <textarea v-model="form.reason" class="textarea-field" placeholder="请输入外出事由" />
@@ -84,7 +78,6 @@ const form = reactive({
   endAt: '',
   destination: '',
   reason: '',
-  contactPhone: '',
 });
 
 const isLeaveLink = ref(false);
@@ -147,7 +140,6 @@ function submit() {
     endAt: form.endAt,
     destination: form.destination,
     reason: form.reason,
-    contactPhone: form.contactPhone,
     status: 'pending',
     currentNodeKey: 'leader_station_dept',
     flowNodes: createFlowNodes(),

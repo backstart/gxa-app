@@ -4,19 +4,21 @@
     <scroll-view class="content" scroll-y>
       <view v-if="list.length === 0" class="empty">暂无待审批</view>
       <view v-else>
-        <view v-for="item in list" :key="item.id" class="card">
-          <view class="row-top" @click="goDetail(item.id)">
+        <!-- 列表页不再直接审批，整卡点击进入详情页处理审批 -->
+        <view
+          v-for="item in list"
+          :key="item.id"
+          class="card clickable-card"
+          hover-class="card-hover"
+          @click="goDetail(item.id)"
+        >
+          <view class="row-top">
             <text class="type-tag">{{ outTypeText(item.type) }}</text>
             <text class="status-tag">待审批</text>
           </view>
           <view class="row">{{ item.applicantName }} · {{ item.deptName }}</view>
           <view class="row">{{ item.startAt }} 至 {{ item.endAt }}</view>
           <view class="row sub">{{ item.destination }} ｜ {{ item.reason }}</view>
-          <view class="actions">
-            <text class="link-btn" @click="goDetail(item.id)">查看详情</text>
-            <text class="link-btn approve" @click="approve(item)">同意</text>
-            <text class="link-btn reject" @click="reject(item)">驳回</text>
-          </view>
         </view>
       </view>
     </scroll-view>
@@ -26,7 +28,7 @@
 <script setup>
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { getOutRequests, saveOutRequests } from '@/common/database.js';
+import { getOutRequests } from '@/common/database.js';
 const list = ref([]);
 
 const currentUser = {
@@ -34,11 +36,6 @@ const currentUser = {
   name: '李警官',
   roles: ['leader_station_dept'],
 };
-
-function nowText() {
-  // 统一生成 YYYY-MM-DD HH:mm 时间文本
-  return new Date().toISOString().slice(0, 16).replace('T', ' ');
-}
 
 function outTypeText(type) {
   // 外出类型文案映射
@@ -66,77 +63,8 @@ function loadList() {
 }
 
 function goDetail(id) {
-  // 进入详情页执行完整审批操作
+  // 列表页只负责跳详情，审批动作统一在详情页完成
   uni.navigateTo({ url: `/pages/out/detail?id=${id}` });
-}
-
-function updateRecord(nextRecord) {
-  // 持久化更新记录并刷新当前待审列表
-  const listAll = getOutRequests().map((item) => (item.id === nextRecord.id ? nextRecord : item));
-  saveOutRequests(listAll);
-  loadList();
-}
-
-function approve(item) {
-  // 当前节点同意并推进到下一节点
-  const now = nowText();
-  const next = { ...item, flowNodes: [...(item.flowNodes || [])], logs: [...(item.logs || [])] };
-  const { idx } = getCurrentNode(next);
-  if (idx < 0) return;
-  next.flowNodes[idx] = {
-    ...next.flowNodes[idx],
-    status: 'approved',
-    comment: '同意',
-    time: now,
-    approverId: currentUser.id,
-    approverName: currentUser.name,
-  };
-  next.logs.push({ action: 'APPROVE', note: `节点同意：${next.flowNodes[idx].role}`, operator: currentUser.name, time: now });
-  const pendingIdx = next.flowNodes.findIndex((node) => node.status === 'pending');
-  if (pendingIdx >= 0) {
-    next.currentNodeKey = next.flowNodes[pendingIdx].role;
-    next.status = 'approving';
-  } else {
-    next.currentNodeKey = 'done';
-    next.status = 'approved';
-  }
-  next.updatedAt = now;
-  updateRecord(next);
-  uni.showToast({ title: '已同意', icon: 'success' });
-}
-
-function reject(item) {
-  // 当前节点驳回并结束流程
-  uni.showModal({
-    title: '驳回原因',
-    editable: true,
-    placeholderText: '请填写驳回原因',
-    success: (res) => {
-      if (!res.confirm) return;
-      if (!res.content) {
-        uni.showToast({ title: '请填写驳回原因', icon: 'none' });
-        return;
-      }
-      const now = nowText();
-      const next = { ...item, flowNodes: [...(item.flowNodes || [])], logs: [...(item.logs || [])] };
-      const { idx } = getCurrentNode(next);
-      if (idx < 0) return;
-      next.flowNodes[idx] = {
-        ...next.flowNodes[idx],
-        status: 'rejected',
-        comment: res.content,
-        time: now,
-        approverId: currentUser.id,
-        approverName: currentUser.name,
-      };
-      next.logs.push({ action: 'REJECT', note: `节点驳回：${res.content}`, operator: currentUser.name, time: now });
-      next.currentNodeKey = 'done';
-      next.status = 'rejected';
-      next.updatedAt = now;
-      updateRecord(next);
-      uni.showToast({ title: '已驳回', icon: 'none' });
-    },
-  });
 }
 
 onShow(() => {
@@ -167,6 +95,15 @@ onShow(() => {
   padding: 16rpx;
   margin-bottom: 12rpx;
   box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08);
+  box-sizing: border-box;
+}
+.clickable-card {
+  // 点击整卡进入详情，避免只点文字区域才可跳转
+  cursor: pointer;
+}
+.card-hover {
+  // 轻微按压态，增强移动端可点击反馈
+  opacity: 0.86;
 }
 .row-top {
   display: flex;
@@ -191,24 +128,13 @@ onShow(() => {
   margin-top: 6rpx;
   font-size: 24rpx;
   color: #1f2b3a;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .row.sub {
   color: #6b7785;
-}
-.actions {
-  margin-top: 10rpx;
-  display: flex;
-  gap: 18rpx;
-}
-.link-btn {
-  color: #1677ff;
-  font-size: 24rpx;
-}
-.link-btn.approve {
-  color: #1b9d5d;
-}
-.link-btn.reject {
-  color: #d64545;
 }
 .empty {
   text-align: center;

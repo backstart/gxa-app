@@ -28,10 +28,10 @@
       </view>
     </scroll-view>
 
-    <view v-if="record" class="bottom-bar">
-      <button v-if="canRevoke" class="ghost-btn" @click="revoke">撤回</button>
-      <button v-if="canApprove" class="approve-btn" @click="approve">同意</button>
-      <button v-if="canApprove" class="reject-btn" @click="reject">驳回</button>
+    <view v-if="record && canApprove" class="bottom-bar">
+      <!-- 按需求：休假审批仅保留“同意/驳回”两个审批动作 -->
+      <button class="approve-btn" @click="approve">同意</button>
+      <button class="reject-btn" @click="reject">驳回</button>
     </view>
   </view>
 </template>
@@ -56,12 +56,6 @@ const canApprove = computed(() => {
   const idx = record.value.currentStepIndex || 0;
   const step = record.value.steps && record.value.steps[idx];
   return step && currentUser.roles.includes(step.role);
-});
-
-const canRevoke = computed(() => {
-  if (!record.value) return false;
-  if (!['pending','approving'].includes(record.value.status)) return false;
-  return record.value.applicantId === currentUser.id;
 });
 
 function typeText(type) {
@@ -179,15 +173,6 @@ function reject() {
       uni.showToast({ title: '已驳回', icon: 'none' });
     },
   });
-}
-
-function revoke() {
-  // 申请人撤回
-  if (!record.value) return;
-  const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
-  const next = { ...record.value, status: 'revoked', updatedAt: now };
-  updateRecord(next);
-  uni.showToast({ title: '已撤回', icon: 'none' });
 }
 
 onLoad((query) => {

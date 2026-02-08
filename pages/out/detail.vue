@@ -12,7 +12,6 @@
           <view class="row">时间：{{ record.startAt }} 至 {{ record.endAt }}</view>
           <view class="row">去向：{{ record.destination }}</view>
           <view class="row">事由：{{ record.reason }}</view>
-          <view class="row">联系电话：{{ record.contactPhone || '—' }}</view>
           <!-- 休假关联外出可跳转回休假详情 -->
           <view v-if="record.linkedLeaveId" class="row">
             关联休假：
@@ -46,10 +45,10 @@
       </view>
     </scroll-view>
 
-    <view v-if="record" class="bottom-bar">
-      <button v-if="canCancel" class="ghost-btn" @click="cancel">撤回</button>
-      <button v-if="canApprove" class="approve-btn" @click="approve">同意</button>
-      <button v-if="canApprove" class="reject-btn" @click="reject">驳回</button>
+    <view v-if="record && canApprove" class="bottom-bar">
+      <!-- 按需求调整按钮顺序：左侧驳回，右侧同意 -->
+      <button class="reject-btn" @click="reject">驳回</button>
+      <button class="approve-btn" @click="approve">同意</button>
     </view>
   </view>
 </template>
@@ -74,13 +73,6 @@ const canApprove = computed(() => {
   if (!['pending', 'approving'].includes(record.value.status)) return false;
   const node = (record.value.flowNodes || []).find((i) => i.role === record.value.currentNodeKey);
   return !!node && currentUser.roles.includes(node.role);
-});
-
-const canCancel = computed(() => {
-  // 仅申请人可在待审批阶段撤回
-  if (!record.value) return false;
-  if (!['pending', 'approving'].includes(record.value.status)) return false;
-  return record.value.applicantId === currentUser.id;
 });
 
 function nowText() {
@@ -124,7 +116,7 @@ function nodeStatusText(status) {
 }
 
 function updateRecord(next) {
-  // 更新单条外出记录并写回存储
+  // 更新单条外出记录并写回存储（仅保留一份 list 声明，避免重复变量）
   const list = getOutRequests().map((item) => (item.id === next.id ? next : item));
   saveOutRequests(list);
   record.value = next;
@@ -192,19 +184,6 @@ function reject() {
       uni.showToast({ title: '已驳回', icon: 'none' });
     },
   });
-}
-
-function cancel() {
-  // 申请人撤回外出申请
-  if (!record.value) return;
-  const now = nowText();
-  const next = { ...record.value, logs: [...(record.value.logs || [])] };
-  next.status = 'cancelled';
-  next.currentNodeKey = 'done';
-  next.updatedAt = now;
-  next.logs.push({ action: 'CANCEL', note: '申请人撤回外出申请', operator: currentUser.name, time: now });
-  updateRecord(next);
-  uni.showToast({ title: '已撤回', icon: 'none' });
 }
 
 function goLeave(leaveId) {
@@ -330,14 +309,6 @@ onLoad((query) => {
   gap: 12rpx;
   background: #fff;
   box-shadow: 0 -6rpx 16rpx rgba(0,0,0,0.08);
-}
-.ghost-btn {
-  flex: 1;
-  height: 72rpx;
-  line-height: 72rpx;
-  border-radius: 12rpx;
-  background: #fff;
-  border: 1px solid #d0d6de;
 }
 .approve-btn {
   flex: 1;

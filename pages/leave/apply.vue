@@ -59,7 +59,6 @@
         </view>
         <view v-if="needOut" class="out-form">
           <input class="text-input" v-model="outDestination" placeholder="外出去向（必填）" />
-          <input class="text-input" v-model="outPhone" placeholder="联系电话（可选）" />
         </view>
       </view>
 
@@ -104,7 +103,6 @@ const reason = ref('');
 const attachments = ref([]);
 const needOut = ref(false);
 const outDestination = ref('');
-const outPhone = ref('');
 
 const startDate = ref('');
 const endDate = ref('');
@@ -381,7 +379,6 @@ function submit() {
       endAt: endDate.value,
       destination: outDestination.value,
       reason: reason.value,
-      contactPhone: outPhone.value,
       status: 'pending',
       currentNodeKey: 'leader_station_dept',
       flowNodes: [

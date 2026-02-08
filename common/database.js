@@ -1856,6 +1856,7 @@ const defaults = {
       archiveList: [],
     },
   ],
+  // 休假模拟数据：覆盖待审批、审批中、已通过、已驳回、已撤回等全流程状态
   leaveRequests: [
     {
       id: 'leave-20260120-1',
@@ -1897,7 +1898,88 @@ const defaults = {
       createdAt: '2026-01-18 08:40',
       updatedAt: '2026-01-18 18:00',
     },
+    {
+      id: 'leave-20260127-1',
+      applicantId: 'u1',
+      applicantName: '李警官',
+      deptName: '桂南派出所',
+      leaveType: 'personal',
+      startDate: '2026-02-03',
+      endDate: '2026-02-03',
+      daysCount: 1,
+      reason: '家中紧急事务',
+      status: 'pending',
+      currentStepIndex: 0,
+      steps: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      createdAt: '2026-01-27 08:12',
+      updatedAt: '2026-01-27 08:12',
+    },
+    {
+      id: 'leave-20260125-1',
+      applicantId: 'u3',
+      applicantName: '张警官',
+      deptName: '龙石派出所',
+      leaveType: 'compensatory',
+      startDate: '2026-01-30',
+      endDate: '2026-01-31',
+      daysCount: 2,
+      reason: '连续加班后调休',
+      status: 'rejected',
+      currentStepIndex: 1,
+      steps: [
+        { role: 'leader_station_dept', approverId: 'r4', approverName: '刘所长', status: 'approved', comment: '同意上报', time: '2026-01-25 11:20' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'rejected', comment: '当前勤务紧张，暂不批准', time: '2026-01-25 16:35' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      createdAt: '2026-01-25 09:05',
+      updatedAt: '2026-01-25 16:35',
+    },
+    {
+      id: 'leave-20260124-1',
+      applicantId: 'u4',
+      applicantName: '陈警官',
+      deptName: '江北派出所',
+      leaveType: 'annual',
+      startDate: '2026-02-06',
+      endDate: '2026-02-08',
+      daysCount: 3,
+      reason: '家庭出行安排',
+      status: 'revoked',
+      currentStepIndex: 1,
+      steps: [
+        { role: 'leader_station_dept', approverId: 'r5', approverName: '周所长', status: 'approved', comment: '同意', time: '2026-01-24 12:10' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      createdAt: '2026-01-24 09:40',
+      updatedAt: '2026-01-24 18:22',
+    },
+    {
+      id: 'leave-20260126-1',
+      applicantId: 'u1',
+      applicantName: '李警官',
+      deptName: '桂南派出所',
+      leaveType: 'annual',
+      startDate: '2026-02-10',
+      endDate: '2026-02-12',
+      daysCount: 3,
+      reason: '年假并安排家庭探亲',
+      status: 'approved',
+      currentStepIndex: 2,
+      steps: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'approved', comment: '同意', time: '2026-01-26 10:20' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'approved', comment: '同意', time: '2026-01-26 14:05' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'approved', comment: '同意', time: '2026-01-26 18:20' },
+      ],
+      createdAt: '2026-01-26 09:08',
+      updatedAt: '2026-01-26 18:20',
+    },
   ],
+  // 外出模拟数据：覆盖普通外出、出差外出、休假关联外出、自动通过和撤回等场景
   outRequests: [
     {
       id: 'out-20260120-1',
@@ -1927,6 +2009,178 @@ const defaults = {
       autoApprovedAt: '',
       createdAt: '2026-01-20 10:58',
       updatedAt: '2026-01-20 11:20',
+    },
+    {
+      id: 'out-20260127-1',
+      type: 'NORMAL',
+      applicantId: 'u1',
+      applicantName: '李警官',
+      deptId: 'dept-1',
+      deptName: '桂南派出所',
+      startAt: '2026-02-03',
+      endAt: '2026-02-03',
+      destination: '市区医院',
+      reason: '陪同家属就医',
+      contactPhone: '13800001111',
+      status: 'pending',
+      currentNodeKey: 'leader_station_dept',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      logs: [{ action: 'CREATE', note: '发起普通外出申请', operator: '李警官', time: '2026-01-27 08:20' }],
+      linkedLeaveId: '',
+      linkedLeaveAutoPass: false,
+      autoApprovedAt: '',
+      createdAt: '2026-01-27 08:20',
+      updatedAt: '2026-01-27 08:20',
+    },
+    {
+      id: 'out-20260123-1',
+      type: 'BUSINESS_TRIP',
+      applicantId: 'u3',
+      applicantName: '张警官',
+      deptId: 'dept-3',
+      deptName: '龙石派出所',
+      startAt: '2026-01-29 08:30',
+      endAt: '2026-01-29 19:00',
+      destination: '市局实战基地',
+      reason: '参加专项演练',
+      contactPhone: '13800003333',
+      status: 'approved',
+      currentNodeKey: 'done',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r4', approverName: '刘所长', status: 'approved', comment: '同意', time: '2026-01-23 10:10' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'approved', comment: '同意', time: '2026-01-23 13:40' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'approved', comment: '同意', time: '2026-01-23 17:20' },
+      ],
+      logs: [
+        { action: 'CREATE', note: '发起出差外出申请', operator: '张警官', time: '2026-01-23 09:12' },
+        { action: 'APPROVE', note: '派出所本部门领导同意', operator: '刘所长', time: '2026-01-23 10:10' },
+        { action: 'APPROVE', note: '分局政工同意', operator: '政工处', time: '2026-01-23 13:40' },
+        { action: 'APPROVE', note: '分局领导同意', operator: '分局领导', time: '2026-01-23 17:20' },
+      ],
+      linkedLeaveId: '',
+      linkedLeaveAutoPass: false,
+      autoApprovedAt: '',
+      createdAt: '2026-01-23 09:12',
+      updatedAt: '2026-01-23 17:20',
+    },
+    {
+      id: 'out-20260125-1',
+      type: 'NORMAL',
+      applicantId: 'u4',
+      applicantName: '陈警官',
+      deptId: 'dept-2',
+      deptName: '江北派出所',
+      startAt: '2026-01-30',
+      endAt: '2026-01-30',
+      destination: '市区办事大厅',
+      reason: '处理个人证件事项',
+      contactPhone: '13800004444',
+      status: 'rejected',
+      currentNodeKey: 'done',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r5', approverName: '周所长', status: 'approved', comment: '同意上报', time: '2026-01-25 10:05' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'rejected', comment: '当前值守压力大，暂缓外出', time: '2026-01-25 15:45' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      logs: [
+        { action: 'CREATE', note: '发起普通外出申请', operator: '陈警官', time: '2026-01-25 09:28' },
+        { action: 'APPROVE', note: '派出所本部门领导同意', operator: '周所长', time: '2026-01-25 10:05' },
+        { action: 'REJECT', note: '分局政工驳回：当前值守压力大，暂缓外出', operator: '政工处', time: '2026-01-25 15:45' },
+      ],
+      linkedLeaveId: '',
+      linkedLeaveAutoPass: false,
+      autoApprovedAt: '',
+      createdAt: '2026-01-25 09:28',
+      updatedAt: '2026-01-25 15:45',
+    },
+    {
+      id: 'out-20260124-1',
+      type: 'NORMAL',
+      applicantId: 'u4',
+      applicantName: '陈警官',
+      deptId: 'dept-2',
+      deptName: '江北派出所',
+      startAt: '2026-02-06',
+      endAt: '2026-02-08',
+      destination: '省内探亲',
+      reason: '家庭行程安排',
+      contactPhone: '13800004444',
+      status: 'cancelled',
+      currentNodeKey: 'done',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r5', approverName: '周所长', status: 'approved', comment: '同意', time: '2026-01-24 11:16' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      logs: [
+        { action: 'CREATE', note: '发起普通外出申请', operator: '陈警官', time: '2026-01-24 09:50' },
+        { action: 'APPROVE', note: '派出所本部门领导同意', operator: '周所长', time: '2026-01-24 11:16' },
+        { action: 'CANCEL', note: '申请人主动撤回', operator: '陈警官', time: '2026-01-24 18:22' },
+      ],
+      linkedLeaveId: '',
+      linkedLeaveAutoPass: false,
+      autoApprovedAt: '',
+      createdAt: '2026-01-24 09:50',
+      updatedAt: '2026-01-24 18:22',
+    },
+    {
+      id: 'out-20260126-1',
+      type: 'LEAVE_LINK',
+      applicantId: 'u1',
+      applicantName: '李警官',
+      deptId: 'dept-1',
+      deptName: '桂南派出所',
+      startAt: '2026-02-10',
+      endAt: '2026-02-12',
+      destination: '广西区内探亲',
+      reason: '随休假外出探亲',
+      contactPhone: '13800001111',
+      status: 'approved',
+      currentNodeKey: 'done',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '系统自动通过', status: 'approved', comment: '休假审批通过后自动同步', time: '2026-01-26 18:20' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '系统自动通过', status: 'approved', comment: '休假审批通过后自动同步', time: '2026-01-26 18:20' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '系统自动通过', status: 'approved', comment: '休假审批通过后自动同步', time: '2026-01-26 18:20' },
+      ],
+      logs: [
+        { action: 'CREATE', note: '由休假申请联动生成外出报备', operator: '李警官', time: '2026-01-26 09:08' },
+        { action: 'AUTO_APPROVED', note: '休假审批通过后自动同步外出审批通过', operator: '系统', time: '2026-01-26 18:20' },
+      ],
+      linkedLeaveId: 'leave-20260126-1',
+      linkedLeaveAutoPass: true,
+      autoApprovedAt: '2026-01-26 18:20',
+      createdAt: '2026-01-26 09:08',
+      updatedAt: '2026-01-26 18:20',
+    },
+    {
+      id: 'out-20260127-2',
+      type: 'LEAVE_LINK',
+      applicantId: 'u1',
+      applicantName: '李警官',
+      deptId: 'dept-1',
+      deptName: '桂南派出所',
+      startAt: '2026-02-03',
+      endAt: '2026-02-03',
+      destination: '市区医院',
+      reason: '随休假处理家庭事务',
+      contactPhone: '13800001111',
+      status: 'pending',
+      currentNodeKey: 'leader_station_dept',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      logs: [{ action: 'CREATE', note: '由休假申请联动生成外出报备', operator: '李警官', time: '2026-01-27 08:21' }],
+      linkedLeaveId: 'leave-20260127-1',
+      linkedLeaveAutoPass: true,
+      autoApprovedAt: '',
+      createdAt: '2026-01-27 08:21',
+      updatedAt: '2026-01-27 08:21',
     },
   ],
   dutyMemos: [],
@@ -2049,11 +2303,33 @@ export const saveVenueDetails = (list) => uni.setStorageSync(KEYS.venueDetails, 
 export const getVenueDetailById = (id) => getVenueDetails().find((item) => item.id === id);
 
 // 休假申请存储
-export const getLeaveRequests = () => ensure(KEYS.leaveRequests, defaults.leaveRequests);
+export function getLeaveRequests() {
+  // 读取缓存后按 id 补齐默认样例，避免历史缓存导致新 mock 不生效
+  const list = ensure(KEYS.leaveRequests, defaults.leaveRequests);
+  const idSet = new Set(list.map((item) => item.id));
+  const append = defaults.leaveRequests.filter((item) => !idSet.has(item.id));
+  if (append.length) {
+    const merged = [...list, ...append];
+    uni.setStorageSync(KEYS.leaveRequests, merged);
+    return merged;
+  }
+  return list;
+}
 export const saveLeaveRequests = (list) => uni.setStorageSync(KEYS.leaveRequests, list);
 
 // 外出申请存储
-export const getOutRequests = () => ensure(KEYS.outRequests, defaults.outRequests);
+export function getOutRequests() {
+  // 读取缓存后按 id 补齐默认样例，方便持续扩充演示数据
+  const list = ensure(KEYS.outRequests, defaults.outRequests);
+  const idSet = new Set(list.map((item) => item.id));
+  const append = defaults.outRequests.filter((item) => !idSet.has(item.id));
+  if (append.length) {
+    const merged = [...list, ...append];
+    uni.setStorageSync(KEYS.outRequests, merged);
+    return merged;
+  }
+  return list;
+}
 export const saveOutRequests = (list) => uni.setStorageSync(KEYS.outRequests, list);
 
 export function addOutRequest(record) {
