@@ -39,7 +39,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getLeaveRequests, saveLeaveRequests } from '@/common/database.js';
+import { getLeaveRequests, saveLeaveRequests, syncLinkedOutOnLeaveApproved } from '@/common/database.js';
 
 const safeTop = ref(0);
 const record = ref(null);
@@ -147,6 +147,10 @@ function approve() {
       }
       next.updatedAt = now;
       updateRecord(next);
+      // 仅在休假最终通过时，联动将关联外出自动审批通过
+      if (next.status === 'approved') {
+        syncLinkedOutOnLeaveApproved(next.id);
+      }
       uni.showToast({ title: '已同意', icon: 'success' });
     },
   });

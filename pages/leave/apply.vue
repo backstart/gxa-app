@@ -51,6 +51,19 @@
       </view>
 
       <view class="card">
+        <view class="section-title">外出关联</view>
+        <!-- 休假申请可选择是否同步生成“休假关联外出” -->
+        <view class="switch-row">
+          <text class="switch-label">需要外出报备</text>
+          <switch :checked="needOut" color="#1677ff" @change="(e) => needOut = e.detail.value" />
+        </view>
+        <view v-if="needOut" class="out-form">
+          <input class="text-input" v-model="outDestination" placeholder="外出去向（必填）" />
+          <input class="text-input" v-model="outPhone" placeholder="联系电话（可选）" />
+        </view>
+      </view>
+
+      <view class="card">
         <view class="section-title">附件（可选）</view>
         <view class="attach-list">
           <view v-for="(img, idx) in attachments" :key="idx" class="attach-item">
@@ -70,7 +83,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { getLeaveRequests, saveLeaveRequests } from '@/common/database.js';
+import { getLeaveRequests, saveLeaveRequests, addOutRequest } from '@/common/database.js';
 
 const safeTop = ref(0);
 const currentUser = {
@@ -89,6 +102,9 @@ const leaveTypes = [
 const leaveType = ref('');
 const reason = ref('');
 const attachments = ref([]);
+const needOut = ref(false);
+const outDestination = ref('');
+const outPhone = ref('');
 
 const startDate = ref('');
 const endDate = ref('');
@@ -318,6 +334,10 @@ function submit() {
     uni.showToast({ title: '请输入事由', icon: 'none' });
     return;
   }
+  if (needOut.value && !outDestination.value) {
+    uni.showToast({ title: '请填写外出去向', icon: 'none' });
+    return;
+  }
 
   const id = `leave-${Date.now()}`;
   const steps = [
@@ -346,6 +366,38 @@ function submit() {
 
   const list = [record, ...getLeaveRequests()];
   saveLeaveRequests(list);
+
+  // 勾选外出报备时，自动创建“休假关联外出”记录
+  if (needOut.value) {
+    const outId = `out-${Date.now()}`;
+    addOutRequest({
+      id: outId,
+      type: 'LEAVE_LINK',
+      applicantId: currentUser.id,
+      applicantName: currentUser.name,
+      deptId: 'dept-1',
+      deptName: currentUser.deptName,
+      startAt: startDate.value,
+      endAt: endDate.value,
+      destination: outDestination.value,
+      reason: reason.value,
+      contactPhone: outPhone.value,
+      status: 'pending',
+      currentNodeKey: 'leader_station_dept',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      logs: [{ action: 'CREATE', note: '由休假申请联动生成外出报备', operator: currentUser.name, time: new Date().toISOString().slice(0, 16).replace('T', ' ') }],
+      linkedLeaveId: id,
+      linkedLeaveAutoPass: true,
+      autoApprovedAt: '',
+      createdAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+      updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
+    });
+  }
+
   uni.showToast({ title: '提交成功', icon: 'success' });
   uni.navigateTo({ url: `/pages/leave/detail?id=${id}` });
 }
@@ -460,6 +512,27 @@ onLoad(() => {
   border-radius: 12rpx;
   padding: 12rpx;
   box-sizing: border-box;
+}
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.switch-label {
+  font-size: 24rpx;
+  color: #1f2b3a;
+}
+.out-form {
+  margin-top: 12rpx;
+}
+.text-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12rpx;
+  background: #f4f6f8;
+  padding: 12rpx;
+  font-size: 24rpx;
+  margin-bottom: 10rpx;
 }
 .attach-list { display: flex; gap: 10rpx; flex-wrap: wrap; }
 .attach-item image { width: 96rpx; height: 96rpx; border-radius: 10rpx; }

@@ -28,6 +28,7 @@
   policeDetails: 'db_police_details',
   venueDetails: 'db_venue_details',
   leaveRequests: 'db_leave_requests',
+  outRequests: 'db_out_requests',
   dutyMemos: 'db_duty_memos',
   dutySwaps: 'db_duty_swaps',
   dutyOverrides: 'db_duty_overrides',
@@ -1897,6 +1898,37 @@ const defaults = {
       updatedAt: '2026-01-18 18:00',
     },
   ],
+  outRequests: [
+    {
+      id: 'out-20260120-1',
+      type: 'BUSINESS_TRIP',
+      applicantId: 'u1',
+      applicantName: '李警官',
+      deptId: 'dept-1',
+      deptName: '桂南派出所',
+      startAt: '2026-01-22 09:00',
+      endAt: '2026-01-23 18:00',
+      destination: '分局培训中心',
+      reason: '参加业务培训',
+      contactPhone: '13800001111',
+      status: 'approving',
+      currentNodeKey: 'leader_bureau_political',
+      flowNodes: [
+        { role: 'leader_station_dept', approverId: 'r1', approverName: '王所长', status: 'approved', comment: '同意', time: '2026-01-20 11:20' },
+        { role: 'leader_bureau_political', approverId: 'r2', approverName: '政工处', status: 'pending', comment: '', time: '' },
+        { role: 'leader_bureau', approverId: 'r3', approverName: '分局领导', status: 'pending', comment: '', time: '' },
+      ],
+      logs: [
+        { action: 'CREATE', note: '发起外出申请', operator: '李警官', time: '2026-01-20 10:58' },
+        { action: 'APPROVE', note: '派出所部门领导同意', operator: '王所长', time: '2026-01-20 11:20' },
+      ],
+      linkedLeaveId: '',
+      linkedLeaveAutoPass: false,
+      autoApprovedAt: '',
+      createdAt: '2026-01-20 10:58',
+      updatedAt: '2026-01-20 11:20',
+    },
+  ],
   dutyMemos: [],
   dutySwaps: [],
   dutyOverrides: [],
@@ -2019,6 +2051,81 @@ export const getVenueDetailById = (id) => getVenueDetails().find((item) => item.
 // 休假申请存储
 export const getLeaveRequests = () => ensure(KEYS.leaveRequests, defaults.leaveRequests);
 export const saveLeaveRequests = (list) => uni.setStorageSync(KEYS.leaveRequests, list);
+
+// 外出申请存储
+export const getOutRequests = () => ensure(KEYS.outRequests, defaults.outRequests);
+export const saveOutRequests = (list) => uni.setStorageSync(KEYS.outRequests, list);
+
+export function addOutRequest(record) {
+  // 新增外出申请并返回最新列表
+  const list = [record, ...getOutRequests()];
+  saveOutRequests(list);
+  return list;
+}
+
+export function updateOutRequest(outId, patch) {
+  // 按 ID 更新外出申请，支持传入对象补丁
+  const list = getOutRequests().map((item) => (item.id === outId ? { ...item, ...patch } : item));
+  saveOutRequests(list);
+  return list;
+}
+
+export const findOutRequestById = (outId) =>
+  getOutRequests().find((item) => item.id === outId);
+
+export function queryOutRequests(filters = {}) {
+  // 按申请人、状态、类型、关联休假进行筛选查询
+  const { applicantId = '', status = '', type = '', linkedLeaveId = '' } = filters;
+  return getOutRequests().filter((item) => {
+    if (applicantId && item.applicantId !== applicantId) return false;
+    if (status && item.status !== status) return false;
+    if (type && item.type !== type) return false;
+    if (linkedLeaveId && item.linkedLeaveId !== linkedLeaveId) return false;
+    return true;
+  });
+}
+
+export function syncLinkedOutOnLeaveApproved(leaveId) {
+  // 休假通过后自动同步“关联外出”为通过状态（幂等处理）
+  const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const list = getOutRequests();
+  const next = list.map((item) => {
+    // 仅处理关联休假且开启自动通过的记录
+    if (item.linkedLeaveId !== leaveId || !item.linkedLeaveAutoPass) return item;
+    // 已审批结束的不再覆盖，避免与人工审批冲突
+    if (!['pending', 'approving', 'linked_wait'].includes(item.status)) return item;
+    // 已自动通过过的记录不重复写日志，保证幂等
+    if (item.autoApprovedAt) return item;
+    const flowNodes = (item.flowNodes || []).map((node) => ({
+      ...node,
+      status: 'approved',
+      comment: node.comment || '休假审批通过后自动同步',
+      time: node.time || now,
+      approverName: node.approverName || '系统自动通过',
+    }));
+    const logs = [...(item.logs || [])];
+    const hasAutoLog = logs.some((log) => log.action === 'AUTO_APPROVED' && log.note && log.note.includes('休假审批通过后自动同步外出审批通过'));
+    if (!hasAutoLog) {
+      logs.push({
+        action: 'AUTO_APPROVED',
+        note: '休假审批通过后自动同步外出审批通过',
+        operator: '系统',
+        time: now,
+      });
+    }
+    return {
+      ...item,
+      status: 'approved',
+      currentNodeKey: 'done',
+      flowNodes,
+      logs,
+      autoApprovedAt: now,
+      updatedAt: now,
+    };
+  });
+  saveOutRequests(next);
+  return next;
+}
 
 // 值班备忘录存储
 export const getDutyMemos = () => ensure(KEYS.dutyMemos, defaults.dutyMemos);

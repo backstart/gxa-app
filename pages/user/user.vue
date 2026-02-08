@@ -23,6 +23,7 @@
 			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" @click="goDetail('car')" />
 			<l-grid-item text="交接班" badge="4" image="/static/userFuns/handwork.png" @click="goDetail('handwork')" />
 			<l-grid-item text="申领" badge="4" image="/static/userFuns/applyfor.png" @click="goDetail('applyfor')" />
+			<l-grid-item text="外出" badge="4" image="/static/userFuns/GoOut.png" @click="goDetail('out')" />
 		</l-grid>
 
 	</view>
@@ -37,7 +38,7 @@ const barheight = ref(getStatusBarHeight());
 
 
 function goDetail(item) {
-  
+  // 根据功能标识跳转对应页面
  let target ='';
   if (item === 'car') {
 	  //用车
@@ -49,8 +50,10 @@ function goDetail(item) {
     target = '/pages/leave/index';
   } else if (item === 'duty') {
     target = '/pages/duty/index';
+  } else if (item === 'out') {
+    target = '/pages/out/index';
   } 
-  console.log(target);
+  if (!target) return;
   uni.navigateTo({ url: target });
 }
 </script>
