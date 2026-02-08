@@ -61,7 +61,8 @@
 		 
 		if (e === 'a') {
 			uni.navigateTo({
-				url: '/pages/place/index'
+				// 功能页“娱乐场所”直接进入列表页，默认定位到娱乐场所相关分类
+				url: '/pages/place/list?type=KTV&title=娱乐场所'
 				 
 				// url:  '/pages/venue/KTVVenue'
 			})
