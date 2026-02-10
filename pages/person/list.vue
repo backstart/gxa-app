@@ -93,13 +93,13 @@
             </view>
             <view class="addrRow">{{ item.address || '居住地未录入' }}</view>
             <view class="metaRow">
-              <text class="metaLabel">责任民警</text>
-              <text class="metaValue ellipsis">{{ item.officerName || '—' }}</text>
+              <text class="metaText ellipsis">责任民警：{{ item.officerName || '未录入' }}</text>
+              <text class="metaText">{{ item.area || '未分区' }}</text>
             </view>
-            <view class="tagRow">
-              <text class="typeTag">{{ normalizeDisplayLabel(item.personType) || '未分类' }}</text>
-            </view>
-            <view class="footRow">
+            <view class="bottomRow">
+              <view class="tagRow">
+                <text class="typeTag">{{ normalizeDisplayLabel(item.personType) || '未分类' }}</text>
+              </view>
               <text :class="['dueText', dueTextClass(item.nextVisitDue)]">{{ dueText(item.nextVisitDue) }}</text>
             </view>
           </view>
@@ -749,9 +749,9 @@ onReady(() => {
 
 .personCard {
   display: flex;
-  align-items: flex-start;
-  gap: 16rpx;
-  padding: 20rpx;
+  align-items: center;
+  gap: 14rpx;
+  padding: 18rpx;
   margin-bottom: 16rpx;
   background: #fff;
   border-radius: 20rpx;
@@ -764,8 +764,8 @@ onReady(() => {
 }
 
 .personCover {
-  width: 128rpx;
-  height: 128rpx;
+  width: 116rpx;
+  height: 116rpx;
   border-radius: 12rpx;
   background: #e9edf2;
   flex-shrink: 0;
@@ -774,11 +774,13 @@ onReady(() => {
 .personMain {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .titleRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8rpx;
 }
@@ -802,9 +804,9 @@ onReady(() => {
 }
 
 .addrRow {
-  margin-top: 6rpx;
+  margin-top: 4rpx;
   color: #6e7a89;
-  font-size: 25rpx;
+  font-size: 24rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -815,6 +817,7 @@ onReady(() => {
   border-radius: 12rpx;
   font-size: 22rpx;
   line-height: 32rpx;
+  flex-shrink: 0;
   background: #eaf3ff;
   color: #1677ff;
 }
@@ -850,46 +853,51 @@ onReady(() => {
 }
 
 .metaRow {
-  margin-top: 6rpx;
+  margin-top: 4rpx;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10rpx;
   min-width: 0;
 }
 
-.metaLabel {
-  flex-shrink: 0;
-  color: #6e7a89;
-  font-size: 24rpx;
-}
-
-.metaValue {
-  color: #1f2b3a;
-  font-size: 25rpx;
-}
-
-.metaValue.ellipsis {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.metaText {
+  font-size: 22rpx;
+  color: #7a8594;
   white-space: nowrap;
 }
 
-.tagRow {
+.metaText.ellipsis {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bottomRow {
   margin-top: 8rpx;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.tagRow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 8rpx;
-  min-height: 40rpx;
   overflow: hidden;
 }
 
-.footRow {
-  margin-top: 10rpx;
-}
-
 .dueText {
-  font-size: 30rpx;
+  flex-shrink: 0;
+  font-size: 28rpx;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .dueText.danger {

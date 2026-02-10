@@ -93,20 +93,21 @@
               <text :class="['riskTag', riskClass(place.riskLevel)]">{{ place.riskLevel || '中' }}</text>
             </view>
             <view class="addrRow">{{ place.address || '地址未录入' }}</view>
-            <view class="tagRow">
-              <text class="typeTag">{{ typeLabel(place.primaryType) }}</text>
-              <text
-                v-for="moduleTag in placeModuleTags(place)"
-                :key="`${place.placeId}-${moduleTag}`"
-                class="moduleTag"
-              >
-                {{ moduleTag }}
-              </text>
+            <view class="metaRow">
+              <text class="metaText ellipsis">负责人：{{ place.ownerName || '未录入' }}</text>
+              <text class="metaText">{{ place.area || '未分区' }}</text>
             </view>
-            <view class="footRow">
-              <text :class="['dueText', dueClass(place.nextVisitDue)]">
-                {{ dueText(place.nextVisitDue) }}
-              </text>
+            <view class="bottomRow">
+              <view class="tagRow">
+                <text
+                  v-for="tag in placeDisplayTags(place)"
+                  :key="`${place.placeId}-${tag}`"
+                  :class="tag === typeLabel(place.primaryType) ? 'typeTag' : 'moduleTag'"
+                >
+                  {{ tag }}
+                </text>
+              </view>
+              <text :class="['dueText', dueClass(place.nextVisitDue)]">{{ dueText(place.nextVisitDue) }}</text>
             </view>
           </view>
         </view>
@@ -566,11 +567,12 @@ function moduleLabel(moduleKey) {
   return normalizeDisplayLabel(TYPE_LABEL_MAP[key] || key);
 }
 
-function placeModuleTags(place) {
-  // 列表卡片模块标签去重并限量展示，避免标签过多撑高卡片
+function placeDisplayTags(place) {
+  // 卡片标签统一为“主类型 + 模块补充”最多 3 个，避免只在左侧堆叠造成右侧大片留白
   const primaryLabel = typeLabel(place.primaryType);
-  const tags = (place.modules || []).map((m) => moduleLabel(m));
-  return Array.from(new Set(tags.filter((tag) => tag && tag !== primaryLabel))).slice(0, 2);
+  const tags = [primaryLabel, ...(place.modules || []).map((m) => moduleLabel(m))]
+    .filter(Boolean);
+  return Array.from(new Set(tags)).slice(0, 3);
 }
 
 function normalizeDisplayLabel(label) {
@@ -864,9 +866,9 @@ onReady(() => {
 
 .placeCard {
   display: flex;
-  align-items: flex-start;
-  gap: 16rpx;
-  padding: 20rpx;
+  align-items: center;
+  gap: 14rpx;
+  padding: 18rpx;
   margin-bottom: 16rpx;
   background: #fff;
   border-radius: 20rpx;
@@ -879,8 +881,8 @@ onReady(() => {
 }
 
 .placeCover {
-  width: 128rpx;
-  height: 128rpx;
+  width: 116rpx;
+  height: 116rpx;
   border-radius: 14rpx;
   background: #e9edf2;
   flex-shrink: 0;
@@ -889,11 +891,13 @@ onReady(() => {
 .placeMain {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .titleRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8rpx;
 }
@@ -932,20 +936,52 @@ onReady(() => {
 }
 
 .addrRow {
-  margin-top: 6rpx;
+  margin-top: 4rpx;
   color: #6e7a89;
-  font-size: 25rpx;
+  font-size: 24rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tagRow {
+.metaRow {
+  margin-top: 4rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.metaText {
+  font-size: 22rpx;
+  color: #7a8594;
+  white-space: nowrap;
+}
+
+.metaText.ellipsis {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bottomRow {
   margin-top: 8rpx;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.tagRow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
   gap: 8rpx;
-  min-height: 40rpx;
   overflow: hidden;
 }
 
@@ -955,6 +991,7 @@ onReady(() => {
   border-radius: 12rpx;
   font-size: 22rpx;
   line-height: 32rpx;
+  flex-shrink: 0;
 }
 
 .typeTag {
@@ -967,12 +1004,11 @@ onReady(() => {
   color: #344150;
 }
 
-.footRow {
-  margin-top: 10rpx;
-}
-
 .dueText {
-  font-size: 30rpx;
+  flex-shrink: 0;
+  font-size: 28rpx;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .dueText.overdue {

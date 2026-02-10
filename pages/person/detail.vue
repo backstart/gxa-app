@@ -1,6 +1,6 @@
 <template>
   <AppPage>
-    <view class="person-detail pageBg">
+    <view class="person-detail">
       <AppHeaderCard
         :title="maskName(person?.name)"
         :subTitle="person?.personType || '重点人员'"
@@ -375,6 +375,10 @@ onShow(loadAll);
 @import '@/common/styles/app-ui.scss';
 .person-detail {
   padding: 0 24rpx 140rpx;
+  /* 统一详情页底色，避免 pageBg 渐变导致上下出现两段背景色 */
+  background: #f6f7fb;
+  min-height: 100%;
+  box-sizing: border-box;
   .card {
     background: rgba(255, 255, 255, 0.92);
     border-radius: 16rpx;

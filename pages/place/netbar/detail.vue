@@ -1,6 +1,6 @@
 <template>
   <AppPage>
-    <view class="place-detail pageBg">
+    <view class="place-detail">
       <AppHeaderCard
         v-if="place"
         :title="place.name"
@@ -418,6 +418,10 @@ onShow(loadData);
 @import '@/common/styles/app-ui.scss';
 .place-detail {
   padding: 0 24rpx 140rpx;
+  /* 统一详情页底色，避免 pageBg 渐变造成下半区双色不协调 */
+  background: #f6f7fb;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 .card {
   background: #fff;
