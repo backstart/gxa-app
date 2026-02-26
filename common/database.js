@@ -33,6 +33,10 @@
   dutySwaps: 'db_duty_swaps',
   dutyOverrides: 'db_duty_overrides',
   dutyAnchor: 'db_duty_anchor',
+  visitRecords: 'db_visit_records',
+  visitDrafts: 'db_visit_drafts',
+  visitQueue: 'db_visit_queue',
+  tempVisitRecords: 'db_temp_visit_records',
 };
 
 export const statusText = {
@@ -2194,6 +2198,154 @@ const defaults = {
       cycleDays: 4,
     },
   ],
+  // 走访记录：submitted/pending/failed 分别代表已提交、待提交、提交失败
+  visitRecords: [
+    {
+      recordId: 'visit-rec-001',
+      objectId: 'PLACE:pl-1',
+      objectSource: 'PLACE',
+      objectType: 'KTV',
+      objectName: '龙井坊KTV',
+      area: '龙石',
+      riskLevel: '高',
+      visitType: '例行检查',
+      visitAt: '2026-02-08 10:20',
+      checkinAt: '2026-02-08 10:16',
+      locationText: '龙井路88号门口',
+      locationMode: 'gps',
+      result: 'normal',
+      content: '抽查包厢与消防通道，未发现异常。',
+      rectifications: [],
+      nextVisitAt: '2026-02-15 10:00',
+      attachments: ['/static/logo.png'],
+      voiceTexts: [],
+      links: { taskId: 'task-1', incidentId: '', dispatchId: '' },
+      status: 'submitted',
+      createdAt: '2026-02-08 10:16',
+      updatedAt: '2026-02-08 10:23',
+      submittedAt: '2026-02-08 10:23',
+    },
+    {
+      recordId: 'visit-rec-002',
+      objectId: 'PERSON:kp-003',
+      objectSource: 'PERSON',
+      objectType: '重点人',
+      objectName: '王某',
+      area: '龙石',
+      riskLevel: '高',
+      visitType: '回访',
+      visitAt: '2026-02-09 16:00',
+      checkinAt: '2026-02-09 15:54',
+      locationText: '龙石街道12号',
+      locationMode: 'gps',
+      result: 'issue',
+      content: '监护人反馈近期服药不规律，存在失访风险。',
+      rectifications: [
+        { id: 'rect-001', issue: '服药记录缺失', owner: '监护人', deadline: '2026-02-11', done: false },
+      ],
+      nextVisitAt: '2026-02-11 09:30',
+      attachments: ['/static/logo.png'],
+      voiceTexts: [],
+      links: { taskId: '', incidentId: 'inc-3', dispatchId: '' },
+      status: 'submitted',
+      createdAt: '2026-02-09 15:54',
+      updatedAt: '2026-02-09 16:08',
+      submittedAt: '2026-02-09 16:08',
+    },
+    {
+      recordId: 'visit-rec-003',
+      objectId: 'TASK:task-2',
+      objectSource: 'TASK',
+      objectType: '任务对象',
+      objectName: '桂南市场守点',
+      area: '桂南',
+      riskLevel: '高',
+      visitType: '核查',
+      visitAt: '2026-02-10 11:40',
+      checkinAt: '2026-02-10 11:34',
+      locationText: '',
+      locationMode: 'manual',
+      locationReason: '地下停车场无定位信号',
+      result: 'need_revisit',
+      content: '现场人流密集，需夜间再次回访确认秩序。',
+      rectifications: [
+        { id: 'rect-002', issue: '夜间守点安排不足', owner: '巡逻组', deadline: '2026-02-10', done: false },
+      ],
+      nextVisitAt: '2026-02-10 20:30',
+      attachments: ['/static/logo.png'],
+      voiceTexts: [],
+      links: { taskId: 'task-2', incidentId: '', dispatchId: '' },
+      status: 'pending',
+      createdAt: '2026-02-10 11:34',
+      updatedAt: '2026-02-10 11:46',
+      submittedAt: '',
+    },
+  ],
+  // 走访草稿：现场弱网时可先保存，不丢数据
+  visitDrafts: [
+    {
+      draftId: 'visit-draft-001',
+      objectId: 'PLACE:pl-6',
+      objectSource: 'PLACE',
+      objectType: '网吧',
+      objectName: '星际网吧+台球+棋牌',
+      area: '江北',
+      riskLevel: '高',
+      visitType: '专项检查',
+      visitAt: '2026-02-10 18:20',
+      checkinAt: '2026-02-10 18:10',
+      locationText: '城西工业区12号',
+      locationMode: 'gps',
+      result: 'normal',
+      content: '已完成巡查，待补充附件后提交。',
+      rectifications: [],
+      nextVisitAt: '',
+      attachments: ['/static/logo.png'],
+      voiceTexts: [],
+      links: { taskId: '', incidentId: '', dispatchId: '' },
+      status: 'draft',
+      createdAt: '2026-02-10 18:10',
+      updatedAt: '2026-02-10 18:25',
+    },
+  ],
+  // 走访提交队列：无网/弱网时进入队列，后续统一重试
+  visitQueue: [
+    {
+      queueId: 'visit-queue-001',
+      recordId: 'visit-rec-003',
+      status: 'pending',
+      retryCount: 0,
+      lastError: '',
+      createdAt: '2026-02-10 11:46',
+      updatedAt: '2026-02-10 11:46',
+    },
+  ],
+  // 临时走访记录：用于“自发性走访/路过即访”未绑定对象时的本地保存与后续补绑
+  tempVisitRecords: [
+    {
+      id: 'temp-visit-001',
+      mode: 'temp',
+      startTime: '2026-02-10 19:10',
+      endTime: '2026-02-10 19:28',
+      duration: 18,
+      visitType: '巡查',
+      result: '正常',
+      note: '夜巡路过临时检查，现场秩序正常。',
+      medias: [],
+      bound: {
+        placeIds: [],
+        personIds: [],
+      },
+      location: {
+        lat: '',
+        lng: '',
+        address: '桂南路口周边',
+      },
+      status: 'unlinked',
+      createdAt: '2026-02-10 19:10',
+      updatedAt: '2026-02-10 19:28',
+    },
+  ],
 };
 
 function clone(data) {
@@ -2418,6 +2570,526 @@ export const saveDutyOverrides = (list) => uni.setStorageSync(KEYS.dutyOverrides
 // 值班锚点存储
 export const getDutyAnchor = () => ensure(KEYS.dutyAnchor, defaults.dutyAnchor);
 export const saveDutyAnchor = (list) => uni.setStorageSync(KEYS.dutyAnchor, list);
+
+const VISIT_PLACE_TYPE_LABEL = {
+  KTV: '娱乐场所',
+  RENTAL: '出租屋',
+  NETBAR: '网吧',
+  FOOTBATH: '足浴',
+  CHESS_CARD: '棋牌',
+};
+
+const VISIT_MODULE_LABEL = {
+  BILLIARD: '台球',
+  CHESS_CARD: '棋牌',
+  NIGHTCLUB: '夜场',
+};
+
+// 走访列表 Tab 配置，按固定顺序输出，避免前端每次刷新顺序抖动
+export const VISIT_TAB_OPTIONS = [
+  { value: 'ALL', label: '全部' },
+  { value: 'KTV', label: '娱乐场所' },
+  { value: 'RENTAL', label: '出租屋' },
+  { value: 'NETBAR', label: '网吧' },
+  { value: 'FOOTBATH', label: '足浴' },
+  { value: 'CHESS_CARD', label: '棋牌' },
+  { value: 'BILLIARD', label: '台球' },
+  { value: 'KEY_PERSON', label: '重点人' },
+  { value: 'TASK_OBJECT', label: '任务对象' },
+];
+
+// 统一生成当前时间字符串，便于本地草稿/队列/记录状态维护
+function visitNowText() {
+  return new Date().toISOString().slice(0, 16).replace('T', ' ');
+}
+
+// 将日期字符串转换为时间戳，兼容 YYYY-MM-DD 与 YYYY-MM-DD HH:mm
+function visitToTime(value) {
+  if (!value) return 0;
+  const text = String(value).replace('T', ' ').replace(/-/g, '/');
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+// 归一化日期到 YYYY-MM-DD，便于比对“今天/逾期”
+function normalizeDateOnly(value) {
+  if (!value) return '';
+  const text = String(value);
+  if (text.length >= 10) return text.slice(0, 10);
+  return text;
+}
+
+// 根据地址/警务区文本推断辖区，保证筛选可统一使用
+function inferVisitArea(text = '') {
+  if (text.includes('桂南')) return '桂南';
+  if (text.includes('长命水')) return '长命水';
+  if (text.includes('龙石')) return '龙石';
+  if (text.includes('江北')) return '江北';
+  return '其他';
+}
+
+// 生成稳定“伪距离”，用于列表展示附近对象时避免每次刷新随机跳动
+function pseudoDistanceKm(seed = '') {
+  let total = 0;
+  for (let i = 0; i < seed.length; i += 1) total += seed.charCodeAt(i);
+  return Number(((total % 70) / 10 + 0.3).toFixed(1));
+}
+
+// 计算到期状态，供“待走访/逾期/临期”筛选与排序复用
+function calcDueStatus(nextVisitAt) {
+  if (!nextVisitAt) return 'none';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueDate = new Date(normalizeDateOnly(nextVisitAt).replace(/-/g, '/'));
+  dueDate.setHours(0, 0, 0, 0);
+  const diff = Math.floor((dueDate.getTime() - today.getTime()) / 86400000);
+  if (diff < 0) return 'overdue';
+  if (diff === 0) return 'today';
+  return 'upcoming';
+}
+
+// 读取走访记录，自动补齐默认样例，方便演示完整流程
+export function getVisitRecords() {
+  const list = ensure(KEYS.visitRecords, defaults.visitRecords);
+  const idSet = new Set(list.map((item) => item.recordId));
+  const append = defaults.visitRecords.filter((item) => !idSet.has(item.recordId));
+  if (append.length) {
+    const merged = [...list, ...append];
+    uni.setStorageSync(KEYS.visitRecords, merged);
+    return merged;
+  }
+  return list;
+}
+export const saveVisitRecords = (list) => uni.setStorageSync(KEYS.visitRecords, list);
+
+// 读取走访草稿，草稿用于弱网/临时中断场景
+export function getVisitDrafts() {
+  const list = ensure(KEYS.visitDrafts, defaults.visitDrafts);
+  const idSet = new Set(list.map((item) => item.draftId));
+  const append = defaults.visitDrafts.filter((item) => !idSet.has(item.draftId));
+  if (append.length) {
+    const merged = [...list, ...append];
+    uni.setStorageSync(KEYS.visitDrafts, merged);
+    return merged;
+  }
+  return list;
+}
+export const saveVisitDrafts = (list) => uni.setStorageSync(KEYS.visitDrafts, list);
+
+// 读取走访提交队列，队列用于离线重试
+export function getVisitQueue() {
+  const list = ensure(KEYS.visitQueue, defaults.visitQueue);
+  const idSet = new Set(list.map((item) => item.queueId));
+  const append = defaults.visitQueue.filter((item) => !idSet.has(item.queueId));
+  if (append.length) {
+    const merged = [...list, ...append];
+    uni.setStorageSync(KEYS.visitQueue, merged);
+    return merged;
+  }
+  return list;
+}
+export const saveVisitQueue = (list) => uni.setStorageSync(KEYS.visitQueue, list);
+
+// 读取临时走访记录：用于临时走访补绑流程（与草稿箱上传队列分开）
+export function getTempVisitRecords() {
+  const list = ensure(KEYS.tempVisitRecords, defaults.tempVisitRecords);
+  const idSet = new Set(list.map((item) => item.id));
+  const append = defaults.tempVisitRecords.filter((item) => !idSet.has(item.id));
+  if (append.length) {
+    const merged = [...list, ...append];
+    uni.setStorageSync(KEYS.tempVisitRecords, merged);
+    return merged;
+  }
+  return list;
+}
+
+// 保存临时走访记录：外层页面统一写入，后续接接口时只替换这里
+export const saveTempVisitRecords = (list) => uni.setStorageSync(KEYS.tempVisitRecords, list);
+
+// 将场所数据转换为统一走访对象结构
+function mapPlaceToVisitObject(place) {
+  const tags = [
+    { tag: VISIT_PLACE_TYPE_LABEL[place.primaryType] || place.primaryType || '场所', type: 'key' },
+    ...(place.modules || []).map((m) => ({ tag: VISIT_MODULE_LABEL[m] || m, type: 'normal' })),
+  ];
+  return {
+    objectId: `PLACE:${place.placeId}`,
+    refId: place.placeId,
+    objectSource: 'PLACE',
+    objectType: place.primaryType || 'PLACE',
+    tabType: place.primaryType || 'KTV',
+    name: place.name || '未命名场所',
+    subName: VISIT_PLACE_TYPE_LABEL[place.primaryType] || '重点场所',
+    address: place.address || '',
+    area: inferVisitArea(place.address || ''),
+    officerName: place.officerName || '',
+    contactName: place.contactName || place.principal || '',
+    riskLevel: place.riskLevel || '中',
+    nextVisitAt: place.nextVisitDue || '',
+    lastVisitAt: place.lastVisitAt || '',
+    tags,
+    distanceKm: pseudoDistanceKm(place.placeId || place.name || ''),
+    detailUrl: `/pages/visit/detail?objectId=PLACE:${place.placeId}`,
+    sourceUrl: place.url || `/pages/place/list?type=${place.primaryType || ''}`,
+  };
+}
+
+// 将重点人数据转换为统一走访对象结构
+function mapPersonToVisitObject(person) {
+  return {
+    objectId: `PERSON:${person.personId}`,
+    refId: person.personId,
+    objectSource: 'PERSON',
+    objectType: person.personType || '重点人',
+    tabType: 'KEY_PERSON',
+    name: person.name || '未命名人员',
+    subName: person.personType || '重点人',
+    address: person.address || '',
+    area: inferVisitArea(person.area || person.address || ''),
+    officerName: person.officerName || '',
+    contactName: '',
+    riskLevel: person.riskLevel || '中',
+    nextVisitAt: person.nextVisitDue || '',
+    lastVisitAt: person.lastVisitAt || '',
+    tags: [{ tag: person.personType || '重点人', type: 'key' }],
+    distanceKm: pseudoDistanceKm(person.personId || person.name || ''),
+    detailUrl: `/pages/visit/detail?objectId=PERSON:${person.personId}`,
+    sourceUrl: `/pages/person/detail?personId=${person.personId}`,
+  };
+}
+
+// 将任务类对象转换为统一走访对象结构
+function mapTaskLikeToVisitObject(item, source = 'TASK') {
+  const refId = item.id || item.taskId || item.incidentId || `ref-${Date.now()}`;
+  return {
+    objectId: `${source}:${refId}`,
+    refId,
+    objectSource: source,
+    objectType: source === 'DISPUTE' ? '纠纷回访' : source === 'INCIDENT' ? '警情对象' : '任务对象',
+    tabType: 'TASK_OBJECT',
+    name: item.title || item.name || '未命名对象',
+    subName: source === 'DISPUTE' ? '纠纷' : source === 'INCIDENT' ? '警情' : '任务',
+    address: item.address || '',
+    area: inferVisitArea(item.address || ''),
+    officerName: item.officerName || '',
+    contactName: '',
+    riskLevel: item.riskLevel || '中',
+    nextVisitAt: item.deadline || '',
+    lastVisitAt: '',
+    tags: [{ tag: source === 'DISPUTE' ? '回访' : '核查', type: 'normal' }],
+    distanceKm: pseudoDistanceKm(refId),
+    detailUrl: `/pages/visit/detail?objectId=${source}:${refId}`,
+    sourceUrl: item.url || '/pages/task/list',
+  };
+}
+
+// 聚合所有可走访对象，解决“信息分散”问题
+export function getVisitObjects() {
+  const places = getPlaces().map(mapPlaceToVisitObject);
+  const persons = getKeyPersons().map(mapPersonToVisitObject);
+  const tasks = getTasks().map((item) => mapTaskLikeToVisitObject(item, 'TASK'));
+  const disputes = getDisputes().map((item) => mapTaskLikeToVisitObject(item, 'DISPUTE'));
+  const incidents = getIncidents().map((item) => mapTaskLikeToVisitObject(item, 'INCIDENT'));
+  return [...places, ...persons, ...tasks, ...disputes, ...incidents];
+}
+
+// 根据对象 ID 获取该对象最近一次走访记录
+export function getLatestVisitRecord(objectId) {
+  const list = getVisitRecords()
+    .filter((item) => item.objectId === objectId)
+    .sort((a, b) => visitToTime(b.visitAt || b.updatedAt) - visitToTime(a.visitAt || a.updatedAt));
+  return list[0] || null;
+}
+
+// 获取对象对应草稿（最近更新优先）
+export function getVisitDraftByObject(objectId) {
+  const list = getVisitDrafts()
+    .filter((item) => item.objectId === objectId)
+    .sort((a, b) => visitToTime(b.updatedAt) - visitToTime(a.updatedAt));
+  return list[0] || null;
+}
+
+// 计算对象当前走访状态：todo/doing/done/overdue
+function calcVisitObjectStatus(objectId, nextVisitAt) {
+  const draft = getVisitDraftByObject(objectId);
+  if (draft) return 'doing';
+  const dueStatus = calcDueStatus(nextVisitAt);
+  if (dueStatus === 'overdue') return 'overdue';
+  const latest = getLatestVisitRecord(objectId);
+  if (latest && normalizeDateOnly(latest.visitAt) === normalizeDateOnly(visitNowText())) return 'done';
+  return 'todo';
+}
+
+// 查询走访对象列表（搜索/筛选/排序统一入口）
+export function queryVisitObjects(filters = {}) {
+  const {
+    keyword = '',
+    tab = 'ALL',
+    area = 'ALL',
+    risk = 'ALL',
+    status = 'ALL',
+    due = 'ALL',
+  } = filters;
+
+  const words = keyword.trim();
+  let list = getVisitObjects().map((item) => {
+    const visitStatus = calcVisitObjectStatus(item.objectId, item.nextVisitAt);
+    const dueStatus = calcDueStatus(item.nextVisitAt);
+    return {
+      ...item,
+      visitStatus,
+      dueStatus,
+      latestVisit: getLatestVisitRecord(item.objectId),
+      draftVisit: getVisitDraftByObject(item.objectId),
+    };
+  });
+
+  if (words) {
+    list = list.filter((item) => {
+      const text = `${item.name}|${item.address}|${item.officerName}|${item.contactName}`.toLowerCase();
+      return text.includes(words.toLowerCase());
+    });
+  }
+  if (tab !== 'ALL') {
+    list = list.filter((item) => {
+      if (tab === 'BILLIARD') return (item.tags || []).some((tag) => String(tag.tag || '').includes('台球'));
+      return item.tabType === tab || item.objectType === tab;
+    });
+  }
+  if (area !== 'ALL') list = list.filter((item) => item.area === area);
+  if (risk !== 'ALL') list = list.filter((item) => item.riskLevel === risk);
+  if (status !== 'ALL') list = list.filter((item) => item.visitStatus === status);
+  if (due !== 'ALL') list = list.filter((item) => item.dueStatus === due);
+
+  // 默认按状态优先级与到期时间排序，保证首页优先看到逾期与高风险对象
+  const statusRank = { overdue: 0, todo: 1, doing: 2, done: 3 };
+  return list.sort((a, b) => {
+    const rank = (statusRank[a.visitStatus] ?? 9) - (statusRank[b.visitStatus] ?? 9);
+    if (rank !== 0) return rank;
+    const timeA = visitToTime(a.nextVisitAt);
+    const timeB = visitToTime(b.nextVisitAt);
+    if (timeA !== timeB) return timeA - timeB;
+    return (b.riskLevel || '').localeCompare(a.riskLevel || '');
+  });
+}
+
+// 读取对象历史记录（按时间倒序）
+export function getVisitRecordsByObject(objectId) {
+  return getVisitRecords()
+    .filter((item) => item.objectId === objectId)
+    .sort((a, b) => visitToTime(b.visitAt || b.updatedAt) - visitToTime(a.visitAt || a.updatedAt));
+}
+
+// 保存或更新走访草稿（现场无网可持续保存）
+export function upsertVisitDraft(payload) {
+  const now = visitNowText();
+  const draftId = payload.draftId || `visit-draft-${Date.now()}`;
+  const draft = {
+    ...payload,
+    draftId,
+    status: 'draft',
+    createdAt: payload.createdAt || now,
+    updatedAt: now,
+  };
+  const list = getVisitDrafts();
+  const idx = list.findIndex((item) => item.draftId === draftId);
+  if (idx >= 0) list[idx] = draft;
+  else list.unshift(draft);
+  saveVisitDrafts(list);
+  return draft;
+}
+
+// 删除草稿
+export function removeVisitDraft(draftId) {
+  const list = getVisitDrafts().filter((item) => item.draftId !== draftId);
+  saveVisitDrafts(list);
+  return list;
+}
+
+// 将走访结果回写到对象基础信息，确保“最近走访/下次走访”闭环
+function syncVisitResultToObject(record) {
+  const visitDate = normalizeDateOnly(record.visitAt || record.updatedAt);
+  const nextVisitDate = normalizeDateOnly(record.nextVisitAt || '');
+  if (record.objectSource === 'PLACE') {
+    const placeId = String(record.objectId).replace('PLACE:', '');
+    const list = getPlaces().map((item) =>
+      item.placeId === placeId
+        ? {
+            ...item,
+            lastVisitAt: visitDate || item.lastVisitAt,
+            nextVisitDue: nextVisitDate || item.nextVisitDue,
+            riskLevel: record.riskLevel || item.riskLevel,
+          }
+        : item
+    );
+    savePlaces(list);
+  } else if (record.objectSource === 'PERSON') {
+    const personId = String(record.objectId).replace('PERSON:', '');
+    const list = getKeyPersons().map((item) =>
+      item.personId === personId
+        ? {
+            ...item,
+            lastVisitAt: visitDate || item.lastVisitAt,
+            nextVisitDue: nextVisitDate || item.nextVisitDue,
+            riskLevel: record.riskLevel || item.riskLevel,
+          }
+        : item
+    );
+    saveKeyPersons(list);
+  }
+}
+
+// 正式提交走访记录：有网写 submitted，无网写 pending 并进入队列
+export function submitVisitRecord(payload, options = {}) {
+  const now = visitNowText();
+  const online = options.online !== false;
+  const recordId = payload.recordId || `visit-rec-${Date.now()}`;
+  const record = {
+    ...payload,
+    recordId,
+    status: online ? 'submitted' : 'pending',
+    createdAt: payload.createdAt || now,
+    updatedAt: now,
+    submittedAt: online ? now : '',
+  };
+  const records = getVisitRecords();
+  const idx = records.findIndex((item) => item.recordId === recordId);
+  if (idx >= 0) records[idx] = { ...records[idx], ...record };
+  else records.unshift(record);
+  saveVisitRecords(records);
+
+  // 成功提交后移除关联草稿，避免“重复编辑/重复提交”
+  if (options.draftId) {
+    removeVisitDraft(options.draftId);
+  }
+
+  if (online) {
+    // 在线成功时同步对象状态并清理残留队列
+    syncVisitResultToObject(record);
+    const queue = getVisitQueue().filter((item) => item.recordId !== record.recordId);
+    saveVisitQueue(queue);
+  } else {
+    // 离线提交写入队列，后续可在首页一键重试
+    const queue = getVisitQueue();
+    const queueItem = {
+      queueId: `visit-queue-${Date.now()}`,
+      recordId: record.recordId,
+      status: 'pending',
+      retryCount: 0,
+      lastError: '当前网络不可用，待恢复后重试',
+      createdAt: now,
+      updatedAt: now,
+    };
+    queue.unshift(queueItem);
+    saveVisitQueue(queue);
+  }
+  return record;
+}
+
+// 重试单条队列记录：有网时转 submitted，无网时标记 failed
+export function retryVisitQueueItem(queueId, options = {}) {
+  const now = visitNowText();
+  const online = options.online !== false;
+  const queue = getVisitQueue();
+  const idx = queue.findIndex((item) => item.queueId === queueId);
+  if (idx < 0) return null;
+  const current = queue[idx];
+  const records = getVisitRecords();
+  const recordIdx = records.findIndex((item) => item.recordId === current.recordId);
+  if (recordIdx < 0) {
+    queue.splice(idx, 1);
+    saveVisitQueue(queue);
+    return null;
+  }
+  if (online) {
+    records[recordIdx] = {
+      ...records[recordIdx],
+      status: 'submitted',
+      submittedAt: now,
+      updatedAt: now,
+    };
+    saveVisitRecords(records);
+    syncVisitResultToObject(records[recordIdx]);
+    queue.splice(idx, 1);
+    saveVisitQueue(queue);
+    return { success: true, record: records[recordIdx] };
+  }
+  queue[idx] = {
+    ...queue[idx],
+    status: 'failed',
+    retryCount: (queue[idx].retryCount || 0) + 1,
+    lastError: '网络仍不可用，重试失败',
+    updatedAt: now,
+  };
+  saveVisitQueue(queue);
+  records[recordIdx] = {
+    ...records[recordIdx],
+    status: 'failed',
+    updatedAt: now,
+  };
+  saveVisitRecords(records);
+  return { success: false, record: records[recordIdx] };
+}
+
+// 批量重试队列，供“我的草稿/失败队列”模块一键提交使用
+export function flushVisitQueue(options = {}) {
+  const queue = getVisitQueue();
+  const result = { total: queue.length, success: 0, failed: 0 };
+  queue.forEach((item) => {
+    const ret = retryVisitQueueItem(item.queueId, options);
+    if (!ret) return;
+    if (ret.success) result.success += 1;
+    else result.failed += 1;
+  });
+  return result;
+}
+
+// 走访统计：用于统计页、首页四宫格统一读取
+export function getVisitStats(filters = {}) {
+  const { area = 'ALL', type = 'ALL', risk = 'ALL' } = filters;
+  const records = getVisitRecords().filter((item) => item.status === 'submitted');
+  const filtered = records.filter((item) => {
+    if (area !== 'ALL' && item.area !== area) return false;
+    if (type !== 'ALL' && item.objectType !== type && item.objectSource !== type) return false;
+    if (risk !== 'ALL' && item.riskLevel !== risk) return false;
+    return true;
+  });
+  const today = normalizeDateOnly(visitNowText());
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - 6);
+  weekStart.setHours(0, 0, 0, 0);
+
+  const trendMap = {};
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date(weekStart.getTime() + i * 86400000);
+    const key = `${d.getMonth() + 1}/${d.getDate()}`;
+    trendMap[key] = 0;
+  }
+  filtered.forEach((item) => {
+    const time = visitToTime(item.visitAt || item.submittedAt);
+    if (!time) return;
+    const d = new Date(time);
+    const label = `${d.getMonth() + 1}/${d.getDate()}`;
+    if (Object.prototype.hasOwnProperty.call(trendMap, label)) trendMap[label] += 1;
+  });
+
+  const areaMap = {};
+  const typeMap = {};
+  filtered.forEach((item) => {
+    areaMap[item.area || '其他'] = (areaMap[item.area || '其他'] || 0) + 1;
+    typeMap[item.objectType || item.objectSource || '其他'] = (typeMap[item.objectType || item.objectSource || '其他'] || 0) + 1;
+  });
+
+  return {
+    total: filtered.length,
+    todayDone: filtered.filter((item) => normalizeDateOnly(item.visitAt) === today).length,
+    issueCount: filtered.filter((item) => item.result === 'issue').length,
+    revisitCount: filtered.filter((item) => item.result === 'need_revisit').length,
+    trend: Object.entries(trendMap).map(([date, value]) => ({ date, value })),
+    byArea: Object.entries(areaMap).map(([name, value]) => ({ name, value })),
+    byType: Object.entries(typeMap).map(([name, value]) => ({ name, value })),
+  };
+}
 
 // 场所辅助方法
 export const getPlaceById = (placeId) => getPlaces().find((p) => p.placeId === placeId);

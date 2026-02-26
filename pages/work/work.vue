@@ -20,6 +20,18 @@
       </view>
     </view>
 
+    <!-- 走访合并入口：工作台仅保留一个入口卡片，避免与走访页主列表重复 -->
+    <view class="card visit-entry" @click="goVisitEntry">
+      <view class="section-head">
+        <text class="section-title">待走访</text>
+        <text class="section-sub">人员+场所合计</text>
+      </view>
+      <view class="visit-entry-main">
+        <text class="visit-entry-text">逾期 {{ visitSummary.overdue }} · 今日 {{ visitSummary.today }}</text>
+        <text class="visit-entry-link">进入走访</text>
+      </view>
+    </view>
+
     <view class="card todo">
       <view class="section-head">
         <text class="section-title">我的待办</text>
@@ -59,13 +71,14 @@
 <script setup>
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { getMetrics, getTodos, getShortcuts } from '@/common/database.js';
+import { getMetrics, getTodos, getShortcuts, queryVisitObjects } from '@/common/database.js';
 
 const today = ref(new Date().toLocaleDateString());
 
 const metrics = ref([]);
 const todos = ref([]);
 const shortcuts = ref([]);
+const visitSummary = ref({ today: 0, overdue: 0 });
 
 const statusText = {
   pending: '待处理',
@@ -83,6 +96,18 @@ const typeText = {
 function loadData() {
   metrics.value = getMetrics();
   todos.value = getTodos();
+  // 走访入口统计：按统一对象查询结果聚合，确保口径与走访首页一致
+  const allVisitObjects = queryVisitObjects({
+    tab: 'ALL',
+    area: 'ALL',
+    risk: 'ALL',
+    status: 'ALL',
+    due: 'ALL',
+    keyword: '',
+  });
+  const overdue = allVisitObjects.filter((item) => item.dueStatus === 'overdue').length;
+  const today = allVisitObjects.filter((item) => item.dueStatus === 'today' || item.dueStatus === 'upcoming' || item.visitStatus === 'todo' || item.visitStatus === 'doing').length;
+  visitSummary.value = { overdue, today };
   const baseShortcuts = getShortcuts();
   const extra = [
     { key: 'taskList', title: '任务列表', emoji: '📋', url: '/pages/task/list' },
@@ -91,6 +116,12 @@ function loadData() {
     { key: 'command', title: '图上指挥', emoji: '🗺️', url: '/subPackages/map/index' },
   ];
   shortcuts.value = [...baseShortcuts, ...extra];
+}
+
+function goVisitEntry() {
+  // 工作台跳转规则：有逾期优先进入逾期视角，否则进入今日视角
+  const tab = visitSummary.value.overdue > 0 ? 'overdue' : 'today';
+  uni.navigateTo({ url: `/pages/visit/index?tab=${tab}` });
 }
 
 // 待办跳转，根据类型或配置的 url 导航
@@ -278,6 +309,24 @@ onShow(loadData);
       color: #97a1ad;
       padding: 20rpx 0;
     }
+  }
+
+  .visit-entry-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12rpx;
+  }
+
+  .visit-entry-text {
+    font-size: 30rpx;
+    color: #1f2b3a;
+    font-weight: 600;
+  }
+
+  .visit-entry-link {
+    color: #1677ff;
+    font-size: 26rpx;
   }
 
   .shortcuts {

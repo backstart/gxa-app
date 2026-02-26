@@ -70,6 +70,11 @@
 			uni.navigateTo({
 				url: '/pages/venue/rentalhouseVenue'
 			})
+		}else if (e === 'd') {
+			// “走访”入口直达走访首页，统一承载待走访、草稿、离线队列
+			uni.navigateTo({
+				url: '/pages/visit/index'
+			})
 		}else if (e === 'g') {
 			 uni.navigateTo({
 			 	url: '/pages/dispatch/assign'
