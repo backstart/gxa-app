@@ -1,7 +1,7 @@
 <template>
   <view class="car-list pageBg">
-    <view class="header-wrap">
-      <view class="statuBar" :style="{ height: barheight + 'px' }"></view>
+    <!-- 头部整卡下移：给系统状态栏预留空间，避免卡片背景顶到系统栏区域。 -->
+    <view class="header-wrap" :style="{ marginTop: (statusBarH + 8) + 'px' }">
       <view class="header-inner">
         <view class="header-title-row">
           <text class="title">{{ selectMode ? '选择警车' : '警车调度' }}</text>
@@ -75,12 +75,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getCarUseLogs, getCars } from '@/common/database.js';
 import { getStatusBarHeight } from '@/utils/system.js';
 
-const barheight = ref(getStatusBarHeight());
+// 先用工具函数兜底，再在 mounted 时用系统信息覆盖，兼容不同 Android ROM 状态栏高度。
+const statusBarH = ref(getStatusBarHeight() || 0);
 const cars = ref([]);
 const logs = ref([]);
 const currentUser = ref('');
@@ -290,6 +291,12 @@ function getEventChannel() {
 onLoad((query) => {
   selectMode.value = String(query.selectMode || '') === '1';
   incidentId.value = query.incidentId || '';
+});
+
+onMounted(() => {
+  // 页面挂载后读取最新系统状态栏高度，确保刘海屏/沉浸式机型间距准确。
+  const sys = uni.getSystemInfoSync();
+  statusBarH.value = sys.statusBarHeight || statusBarH.value || 0;
 });
 
 onShow(loadData);
