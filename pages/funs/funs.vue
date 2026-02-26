@@ -82,9 +82,9 @@
 		}
 		else if (e === 'h') {
 			
-			uni.navigateTo({
-				url: '/pages/analysis/analysis'
-			})
+			// uni.navigateTo({
+			// 	url: '/pages/analysis/analysis'
+			// })
 		}
 	else if (e === 'e') {
 			
