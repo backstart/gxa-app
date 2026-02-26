@@ -165,6 +165,8 @@ const displayCars = computed(() => {
       const openLog = logs.value.find((log) => log.carId === car.carId && String(log.status || '').toUpperCase() === 'OPEN');
       const usingUser = openLog?.user || openLog?.applicant || car.usingInfo?.user || '';
       const usingStart = openLog?.startTime || car.usingInfo?.startTime || '';
+      // 兼容旧数据：未提供 keyPicked 时按 false 处理，确保默认显示“取钥匙”。
+      const keyPicked = car.usingInfo?.keyPicked === true;
       const hours = status === 'using' ? durationHours(usingStart) : 0;
       let overtimeBadge = '';
       if (hours >= 24) overtimeBadge = 'critical';
@@ -187,6 +189,7 @@ const displayCars = computed(() => {
         openLog,
         usingUser,
         usingStart,
+        keyPicked,
         usingSummary,
         overtimeBadge,
         overtimeText: overtimeBadge === 'critical' ? '严重超时' : overtimeBadge === 'warn' ? '超时' : '',
@@ -209,7 +212,10 @@ function goDetail(id) {
 function actionText(car) {
   if (selectMode.value) return car.status === 'idle' ? '选择' : '不可选';
   if (car.status === 'idle') return '立即用车';
-  if (car.status === 'using' && car.usingUser === currentUser.value) return '结束用车';
+  if (car.status === 'using' && car.usingUser === currentUser.value) {
+    // 使用中状态改为“取钥匙 -> 结束用”两段式，避免未取钥匙就结束。
+    return car.keyPicked ? '结束用车' : '取钥匙';
+  }
   if (car.status === 'using') return '查看占用';
   return '维护中';
 }
@@ -223,7 +229,7 @@ function actionDisabled(car) {
 function btnClass(car) {
   if (selectMode.value) return car.status === 'idle' ? 'primary-btn' : 'disabled-btn';
   if (car.status === 'idle') return 'primary-btn';
-  if (car.status === 'using' && car.usingUser === currentUser.value) return 'warn-btn';
+  if (car.status === 'using' && car.usingUser === currentUser.value) return car.keyPicked ? 'warn-btn' : 'primary-btn';
   if (car.status === 'using') return 'ghost-btn';
   return 'disabled-btn';
 }
@@ -244,6 +250,13 @@ function handleAction(car) {
     return;
   }
   if (car.status === 'using' && car.usingUser === currentUser.value) {
+    // 未取钥匙时先进入取钥匙页，取钥匙成功后列表按钮会自动切换为“结束用车”。
+    if (!car.keyPicked) {
+      const targetLogId = car.openLog?.id || '';
+      const query = targetLogId ? `carId=${car.carId}&logId=${targetLogId}` : `carId=${car.carId}`;
+      uni.navigateTo({ url: `/pages/car/keyPickup?${query}` });
+      return;
+    }
     uni.navigateTo({ url: `/pages/car/detail?carId=${car.carId}&end=1` });
     return;
   }

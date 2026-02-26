@@ -5,6 +5,7 @@
     {"path":"pages/car/list","style":{"navigationBarTitleText":"警车列表","navigationStyle":"custom"}},
     {"path":"pages/car/detail","style":{"navigationBarTitleText":"警车详情","navigationStyle":"custom"}},
     {"path":"pages/car/usecar","style":{"navigationBarTitleText":"用车登记","navigationStyle":"custom"}},
+    {"path":"pages/car/keyPickup","style":{"navigationBarTitleText":"取钥匙开箱"}},
     {"path":"pages/funs/funs","style":{"navigationBarTitleText":"","navigationStyle":"custom"}},
     {"path":"pages/work/work","style":{"navigationBarTitleText":""}},
     {"path":"pages/policeDetail/policeDetail","style":{"navigationBarTitleText":""}},

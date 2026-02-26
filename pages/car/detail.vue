@@ -159,10 +159,11 @@ const historyList = computed(() => {
 });
 
 const canEnd = computed(() => status.value === 'using' && openLog.value?.user === currentUser.value);
+const keyPicked = computed(() => car.value?.usingInfo?.keyPicked === true);
 
 const bottomLabel = computed(() => {
   if (status.value === 'idle') return '用这辆车登记';
-  if (canEnd.value) return '提交结束用车';
+  if (canEnd.value) return keyPicked.value ? '提交结束用车' : '去取钥匙';
   return '仅查看';
 });
 
@@ -205,6 +206,12 @@ function handleBottomAction() {
     return;
   }
   if (canEnd.value) {
+    // 详情页同样执行“先取钥匙再结束用车”的状态机约束。
+    if (!keyPicked.value) {
+      const query = openLog.value?.id ? `carId=${carId.value}&logId=${openLog.value.id}` : `carId=${carId.value}`;
+      uni.navigateTo({ url: `/pages/car/keyPickup?${query}` });
+      return;
+    }
     submitEnd();
   }
 }

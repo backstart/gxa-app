@@ -1,0 +1,18 @@
+{
+  "name": "GXA-NfcHce",
+  "id": "GXA-NfcHce",
+  "version": "1.0.0",
+  "description": "Android HCE 卡模拟插件，用于钥匙盒读取手机授权数据",
+  "_dp_type": "nativeplugin",
+  "_dp_nativeplugin": {
+    "android": {
+      "plugins": [
+        {
+          "type": "module",
+          "name": "GXA-NfcHce",
+          "class": "io.gxa.nfchce.NfcHceModule"
+        }
+      ]
+    }
+  }
+}

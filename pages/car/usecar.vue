@@ -61,6 +61,8 @@ import { computed, ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getCarById, getCarUseLogs, saveCarUseLogs, updateCar } from '@/common/database.js';
 import { getStatusBarHeight } from '@/utils/system.js';
+import { buildOpenBoxPayload } from '@/utils/nfcPayload.js';
+import { isHcePluginReady, setHcePayload, startHceSession } from '@/utils/nfcHce.js';
 
 const barheight = ref(getStatusBarHeight());
 const carId = ref('');
@@ -111,11 +113,13 @@ function validate() {
 }
 
 function submit() {
+  // 第一步：前端表单校验，避免空字段或非法里程进入后续流程。
   const error = validate();
   if (error) {
     uni.showToast({ title: error, icon: 'none' });
     return;
   }
+  // 第二步：构造本次用车登记记录，并写入本地日志。
   const now = formatNow();
   const startMileage = Number(form.value.startMileage || currentMileage.value || 0);
   const record = {
@@ -131,6 +135,7 @@ function submit() {
   };
   const list = [record, ...getCarUseLogs()];
   saveCarUseLogs(list);
+  // 第三步：同步更新车辆状态为“使用中”，写入 usingInfo 供列表/详情联动展示。
   updateCar(carId.value, {
     status: 'using',
     currentMileage: startMileage,
@@ -141,10 +146,41 @@ function submit() {
       purpose: form.value.purpose,
       destination: form.value.destination,
       relatedIncidentId: incidentId.value || '',
+      // keyPicked 默认 false：取钥匙成功后才允许结束用车。
+      keyPicked: false,
+      keyPickedAt: '',
+      boxTxnId: '',
     },
   });
+  // 第四步：预启动 5 分钟 HCE 授权。
+  // 说明：授权生命周期提升到“会话级”，即便用户退出取钥匙页，5 分钟内仍可刷盒子。
+  preStartHceAuth(record.id);
   uni.showToast({ title: '登记成功', icon: 'success' });
-  setTimeout(() => uni.navigateBack(), 400);
+  // 用车登记完成后进入“取钥匙/开箱”页面，发起 NFC-HCE 授权流程。
+  // 注意：这里不再立即返回上一页，改为引导用户靠近钥匙盒感应区。
+  setTimeout(() => {
+    uni.navigateTo({
+      url: `/pages/car/keyPickup?carId=${carId.value}&logId=${record.id}`,
+    });
+  }, 300);
+}
+
+function preStartHceAuth(logId) {
+  // 非 APP-PLUS 或插件未集成时直接跳过，由 keyPickup 页面继续兜底提示。
+  // #ifndef APP-PLUS
+  return;
+  // #endif
+
+  // #ifdef APP-PLUS
+  if (plus.os.name !== 'Android') return;
+  if (!isHcePluginReady()) return;
+  // 统一授权报文生成逻辑，避免页面间签名不一致。
+  const payload = buildOpenBoxPayload({ carId: carId.value, logId });
+  const ok = setHcePayload(JSON.stringify(payload));
+  if (!ok) return;
+  // 默认授权时长 300 秒（5 分钟）。
+  startHceSession(300);
+  // #endif
 }
 
 function formatNow() {
