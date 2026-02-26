@@ -1,48 +1,35 @@
 <template>
   <view class="car-list pageBg">
-    <view class="top-hero">
+    <view class="header-wrap">
       <view class="statuBar" :style="{ height: barheight + 'px' }"></view>
-      <view class="hero-content">
-        <view>
-          <view class="hero-title">{{ selectMode ? '选择警车' : '警车调度' }}</view>
-          <view class="hero-sub">
-            {{ selectMode ? '仅可选择空闲车辆' : '空闲车快速登记，占用车支持结束使用' }}
-          </view>
+      <view class="header-inner">
+        <view class="header-title-row">
+          <text class="title">{{ selectMode ? '选择警车' : '警车调度' }}</text>
+          <text class="sub">共 {{ totalCount }} 辆</text>
         </view>
-        <view class="hero-pill">共 {{ displayCars.length }} 辆</view>
-      </view>
-    </view>
 
-    <view class="card filter-card">
-      <view class="filter-row">
-        <text class="label">状态</text>
-        <view class="chips">
+        <view class="search-bar">
+          <text class="icon-search">🔍</text>
+          <input
+            class="search-input"
+            v-model="searchKey"
+            placeholder="输入车牌过滤"
+            placeholder-class="search-placeholder"
+          />
+          <text v-if="searchKey" class="icon-clear" @click="searchKey = ''">✕</text>
+        </view>
+
+        <view class="status-card-grid">
           <view
             v-for="s in statusOptions"
             :key="s.value"
-            :class="['chip', statusFilter === s.value ? 'active' : '']"
+            :class="statusCardClass(s.value)"
             @click="statusFilter = s.value"
           >
-            {{ s.label }}
+            <text class="status-label">{{ s.label }}</text>
+            <text class="status-count">{{ statusCountMap[s.value] || 0 }}</text>
           </view>
         </view>
-      </view>
-      <view class="filter-row">
-        <text class="label">车型</text>
-        <view class="chips">
-          <view
-            v-for="t in typeOptions"
-            :key="t"
-            :class="['chip', typeFilter === t ? 'active' : '']"
-            @click="typeFilter = t"
-          >
-            {{ t }}
-          </view>
-        </view>
-      </view>
-      <view class="filter-row">
-        <text class="label">车牌</text>
-        <input class="input" v-model="searchKey" placeholder="输入车牌过滤" />
       </view>
     </view>
 
@@ -100,7 +87,6 @@ const currentUser = ref('');
 const selectMode = ref(false);
 const incidentId = ref('');
 const statusFilter = ref('all');
-const typeFilter = ref('全部');
 const searchKey = ref('');
 
 const statusOptions = [
@@ -109,11 +95,6 @@ const statusOptions = [
   { value: 'using', label: '使用中' },
   { value: 'maintain', label: '维护' },
 ];
-
-const typeOptions = computed(() => {
-  const list = cars.value.map((c) => c.type).filter(Boolean);
-  return ['全部', ...Array.from(new Set(list))];
-});
 
 function loadData() {
   cars.value = getCars();
@@ -155,8 +136,8 @@ function durationHours(startTime) {
   return (Date.now() - t.getTime()) / 3600000;
 }
 
-const displayCars = computed(() => {
-  const key = searchKey.value.trim();
+// 先做统一数据映射：状态标准化、占用摘要、按钮判断依赖字段都在此准备。
+const mappedCars = computed(() => {
   return cars.value
     .map((car) => {
       const status = normalizeStatus(car.status);
@@ -195,15 +176,45 @@ const displayCars = computed(() => {
         overtimeText: overtimeBadge === 'critical' ? '严重超时' : overtimeBadge === 'warn' ? '超时' : '',
         maintainText,
       };
-    })
-    .filter((car) => {
-      if (selectMode.value && car.status !== 'idle') return false;
-      if (statusFilter.value !== 'all' && car.status !== statusFilter.value) return false;
-      if (typeFilter.value !== '全部' && car.type !== typeFilter.value) return false;
-      if (key && !String(car.plateNo || '').includes(key)) return false;
-      return true;
     });
 });
+
+// 先按车牌关键字过滤，状态卡片数量会跟随关键字变化，避免出现“点了状态却没有数据”的认知落差。
+const keywordCars = computed(() => {
+  const key = searchKey.value.trim();
+  return mappedCars.value.filter((car) => (key ? String(car.plateNo || '').includes(key) : true));
+});
+
+// 状态卡片数量映射：用于卡片式筛选展示“全部/空闲/使用中/维护”的当前计数。
+const statusCountMap = computed(() => {
+  const map = { all: keywordCars.value.length, idle: 0, using: 0, maintain: 0 };
+  keywordCars.value.forEach((car) => {
+    if (map[car.status] !== undefined) map[car.status] += 1;
+  });
+  return map;
+});
+
+// 页面总车辆数用于头部轻量展示，不随筛选切换变化。
+const totalCount = computed(() => mappedCars.value.length);
+
+const displayCars = computed(() => {
+  return keywordCars.value.filter((car) => {
+    if (selectMode.value && car.status !== 'idle') return false;
+    if (statusFilter.value !== 'all' && car.status !== statusFilter.value) return false;
+    return true;
+  });
+});
+
+function statusCardClass(status) {
+  // 状态卡片分色：全部/空闲/使用中/维护各自独立色系，提升识别度。
+  const colorClass = {
+    all: 'card-all',
+    idle: 'card-idle',
+    using: 'card-using',
+    maintain: 'card-maintain',
+  }[status] || 'card-all';
+  return ['status-card', colorClass, statusFilter.value === status ? 'card-active' : ''];
+}
 
 function goDetail(id) {
   uni.navigateTo({ url: `/pages/car/detail?carId=${id}` });
@@ -229,7 +240,10 @@ function actionDisabled(car) {
 function btnClass(car) {
   if (selectMode.value) return car.status === 'idle' ? 'primary-btn' : 'disabled-btn';
   if (car.status === 'idle') return 'primary-btn';
-  if (car.status === 'using' && car.usingUser === currentUser.value) return car.keyPicked ? 'warn-btn' : 'primary-btn';
+  if (car.status === 'using' && car.usingUser === currentUser.value) {
+    // “取钥匙”使用独立淡绿色样式，避免与“立即用车”的蓝色主按钮混淆。
+    return car.keyPicked ? 'warn-btn' : 'btn-pickup';
+  }
   if (car.status === 'using') return 'ghost-btn';
   return 'disabled-btn';
 }
@@ -286,79 +300,155 @@ onShow(loadData);
   min-height: 100vh;
   padding: 0 24rpx 40rpx;
 
-  .top-hero {
-    background: linear-gradient(135deg, #0f75ff, #56a0ff);
-    border-radius: 0 0 24rpx 24rpx;
-    padding: 20rpx;
-    color: #fff;
-    box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.12);
-    .hero-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10rpx 4rpx 6rpx;
-    }
-    .hero-title {
-      font-size: 44rpx;
-      font-weight: 700;
-    }
-    .hero-sub {
-      margin-top: 6rpx;
-      font-size: 26rpx;
-      opacity: 0.9;
-    }
-    .hero-pill {
-      padding: 10rpx 18rpx;
-      border-radius: 999rpx;
-      background: rgba(255,255,255,0.15);
-      font-size: 26rpx;
-      font-weight: 600;
-    }
+  .header-wrap {
+    margin-top: 4rpx;
+    border-radius: 20rpx;
+    background: linear-gradient(135deg, #edf6ff 0%, #f3fbf6 100%);
+    box-shadow: 0 12rpx 28rpx rgba(22, 55, 90, 0.08);
+    overflow: hidden;
+  }
+
+  .header-inner {
+    padding: 12rpx 20rpx 20rpx;
+  }
+
+  .header-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14rpx;
+  }
+
+  .title {
+    font-size: 40rpx;
+    font-weight: 700;
+    color: #1d2f45;
+  }
+
+  .sub {
+    font-size: 24rpx;
+    color: #6f7f93;
   }
 
   .card {
     background: rgba(255,255,255,0.92);
-    border-radius: 16rpx;
-    padding: 16rpx;
-    box-shadow: 0 10rpx 28rpx rgba(0,0,0,0.08);
+    border-radius: 18rpx;
+    padding: 18rpx;
+    box-shadow: 0 8rpx 22rpx rgba(20, 34, 52, 0.08);
     margin-top: 16rpx;
   }
 
-  .filter-row {
+  .search-bar {
     display: flex;
     align-items: center;
-    margin-bottom: 12rpx;
-    .label {
-      width: 80rpx;
-      font-size: 24rpx;
-      color: #344150;
-    }
-  }
-
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
     gap: 10rpx;
+    padding: 12rpx 18rpx;
+    border-radius: 999rpx;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: inset 0 0 0 1px rgba(15, 117, 255, 0.08), 0 6rpx 16rpx rgba(15, 39, 64, 0.06);
   }
 
-  .chip {
-    padding: 6rpx 12rpx;
-    border-radius: 12rpx;
-    background: #f4f6f8;
-    font-size: 22rpx;
+  .icon-search {
+    font-size: 28rpx;
+    line-height: 1;
   }
 
-  .chip.active {
-    background: #0f75ff;
-    color: #fff;
-  }
-
-  .input {
+  .search-input {
     flex: 1;
-    background: #f4f6f8;
-    border-radius: 12rpx;
-    padding: 10rpx 12rpx;
+    min-width: 0;
+    background: transparent;
+    padding: 6rpx 0;
+    font-size: 26rpx;
+    color: #1f2b3a;
+  }
+
+  .search-placeholder {
+    color: #96a0ab;
+  }
+
+  .icon-clear {
+    color: #0f75ff;
     font-size: 24rpx;
+    flex-shrink: 0;
+    padding: 4rpx 8rpx;
+    border-radius: 999rpx;
+    background: rgba(15, 117, 255, 0.08);
+  }
+
+  .status-card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12rpx;
+    margin-top: 14rpx;
+  }
+
+  .status-card {
+    min-width: 0;
+    padding: 14rpx 12rpx;
+    border-radius: 16rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 6rpx;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .card-all {
+    background: #f1ecff;
+    color: #5a3fd3;
+  }
+
+  .card-idle {
+    background: #e9f8ee;
+    color: #1d7a3a;
+  }
+
+  .card-using {
+    background: #e8f2ff;
+    color: #1d55c2;
+  }
+
+  .card-maintain {
+    background: #fff3e6;
+    color: #b45309;
+  }
+
+  .card-active {
+    transform: translateY(-2rpx);
+    box-shadow: 0 8rpx 20rpx rgba(22, 55, 90, 0.1);
+  }
+
+  .card-all.card-active {
+    border-color: #cdc0ff;
+  }
+
+  .card-idle.card-active {
+    border-color: #bfe8cd;
+  }
+
+  .card-using.card-active {
+    border-color: #bed7ff;
+  }
+
+  .card-maintain.card-active {
+    border-color: #f3d7ba;
+  }
+
+  .status-label {
+    font-size: 24rpx;
+    line-height: 1.2;
+  }
+
+  .card-active .status-label {
+    font-weight: 700;
+  }
+
+  .status-count {
+    font-size: 30rpx;
+    font-weight: 700;
+    line-height: 1.1;
   }
 
   .car-grid {
@@ -370,9 +460,9 @@ onShow(loadData);
 
   .car-card {
     padding: 14rpx;
-    border-radius: 14rpx;
+    border-radius: 18rpx;
     background: linear-gradient(180deg, #fafdff, #ffffff);
-    box-shadow: 0 6rpx 16rpx rgba(0,0,0,0.06);
+    box-shadow: 0 8rpx 18rpx rgba(0,0,0,0.07);
     display: flex;
     flex-direction: column;
     min-height: 320rpx;
@@ -491,6 +581,13 @@ onShow(loadData);
   .warn-btn {
     background: linear-gradient(90deg, #ff9a5f, #ff6a3d);
     color: #fff;
+  }
+
+  .btn-pickup {
+    // 取钥匙按钮：淡绿色语义，表示“下一步待完成动作”。
+    background: #dff5e6;
+    color: #1d7a3a;
+    border: 1px solid #bfe8cd;
   }
 
   .disabled-btn {

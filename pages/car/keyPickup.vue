@@ -35,6 +35,7 @@
     <view class="bottom-bar">
       <button class="btn ghost" @click="retrySession">重新开始</button>
       <button class="btn danger" @click="revokeSession">撤销授权</button>
+      <button class="btn cancel-use" @click="confirmCancelUse">取消使用</button>
     </view>
   </view>
 </template>
@@ -267,7 +268,7 @@ function revokeSession() {
   // 用户主动撤销授权：立刻失效，后续盒子读取会返回 6985。
   stopSession();
   uni.showToast({ title: '已撤销授权', icon: 'none' });
-  uni.navigateBack();
+  backToCarList();
 }
 
 function applyPickupSuccess(boxTxnId = '') {
@@ -305,10 +306,67 @@ function applyPickupSuccess(boxTxnId = '') {
   stopHceSession();
   stopFinishTimer();
   finishTimer = setTimeout(() => {
-    const pages = getCurrentPages();
-    const delta = pages.length >= 3 ? 2 : 1;
-    uni.navigateBack({ delta });
+    backToCarList();
   }, 1000);
+}
+
+function confirmCancelUse() {
+  // 取消使用属于“登记后未实际用车”的撤销路径，需二次确认防误触。
+  uni.showModal({
+    title: '确认取消使用？',
+    content: '将撤销本次用车登记并释放车辆，是否继续？',
+    confirmText: '继续',
+    cancelText: '返回',
+    success: (res) => {
+      if (res.confirm) cancelUseAndRelease();
+    },
+  });
+}
+
+function cancelUseAndRelease() {
+  // 第一步：立即停止 HCE 会话，确保钥匙盒后续无法继续读取授权。
+  stopSession();
+
+  // 第二步：释放车辆占用，恢复空闲状态。
+  // 说明：取消使用不等于结束用车，不回填结束里程，仅清理 usingInfo。
+  const currentCar = getCarById(carId.value) || {};
+  updateCar(carId.value, {
+    status: 'idle',
+    currentMileage: currentCar.currentMileage ?? currentCar.currentOdo ?? currentCar.mileage ?? 0,
+    usingInfo: null,
+  });
+
+  // 第三步：将对应日志标记为 canceled，保留审计链路，不做物理删除。
+  const list = getCarUseLogs();
+  const targetIndex = list.findIndex((item) => item.id === logId.value);
+  const fallbackIndex = targetIndex >= 0
+    ? targetIndex
+    : list.findIndex((item) => item.carId === carId.value && String(item.status || '').toUpperCase() === 'OPEN');
+  if (fallbackIndex >= 0) {
+    list[fallbackIndex] = {
+      ...list[fallbackIndex],
+      status: 'CANCELED',
+      canceledAt: formatNow(),
+      cancelReason: 'user_cancel_before_pickup',
+    };
+    saveCarUseLogs(list);
+  }
+
+  uni.showToast({ title: '已取消使用，车辆已释放', icon: 'success' });
+  setTimeout(() => backToCarList(), 350);
+}
+
+function backToCarList() {
+  // 统一返回到警车调度页：按页面栈查找最近 car/list，避免落在 usecar/detail 中间页。
+  const pages = getCurrentPages();
+  const listIndex = pages.map((p) => p.route).lastIndexOf('pages/car/list');
+  if (listIndex >= 0) {
+    const delta = pages.length - listIndex - 1;
+    uni.navigateBack({ delta: delta > 0 ? delta : 1 });
+    return;
+  }
+  // 兜底：若栈内不存在列表页，则直接跳转列表，避免用户停留在中间页。
+  uni.reLaunch({ url: '/pages/car/list' });
 }
 
 function formatNow() {
@@ -468,5 +526,12 @@ onUnload(() => {
 .danger {
   background: #ffeded;
   color: #d93025;
+}
+
+.cancel-use {
+  // 取消使用按钮使用浅红描边，和“撤销授权”区分但保持警示语义。
+  background: #fff;
+  color: #c0392b;
+  border: 1px solid #f3b5ae;
 }
 </style>
