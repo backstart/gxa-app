@@ -23,7 +23,7 @@
 			<!-- <l-grid-item @click="lgClick('f')" text="棋牌室" badge="New" image="/static/fun/棋牌室.png" /> -->
 			<l-grid-item @click="lgClick('g')" text="任务指派" badge="New" image="/static/fun/任务.png" />
 			<l-grid-item @click="lgClick('h')" text="数据分析" badge="New" image="/static/fun/分析.png" />
-			<l-grid-item @click="lgClick('h')" text="无人机平台" badge="New" image="/static/fun/无人机.png" />
+			<l-grid-item @click="lgClick('w')" text="无人机平台" badge="New" image="/static/fun/无人机.png" />
 		</l-grid>
 	</view>
 
@@ -82,9 +82,9 @@
 		}
 		else if (e === 'h') {
 			
-			// uni.navigateTo({
-			// 	url: '/pages/analysis/analysis'
-			// })
+			uni.navigateTo({
+				url: '/pages/analysis/analysis'
+			})
 		}
 	else if (e === 'e') {
 			
