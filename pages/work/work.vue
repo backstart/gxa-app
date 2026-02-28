@@ -1,13 +1,14 @@
 <template>
   <view class="workbench pageBg">
     <!-- 顶部态势头：保留渐变背景，并根据状态栏高度下移内容，避免遮挡系统信息。 -->
-    <view class="header-wrap" :style="{ paddingTop: (statusBarH + 12) + 'px' }">
+    <!-- 头部内容下移但收紧高度：保留状态栏安全区，减少首屏空白。 -->
+    <view class="header-wrap" :style="{ paddingTop: (statusBarH + 4) + 'px' }">
       <view class="header-row">
         <text class="title">工作台</text>
         <text class="date">{{ todayText }}</text>
       </view>
       <view class="summary-line">
-        今日待办 {{ stats.todoTotal }} ｜ 超期 {{ stats.overdueTotal }} ｜ 高风险 {{ stats.highRiskTotal }}
+        全辖区：今日待办 {{ zoneSummary.todayTotal }} ｜ 超期 {{ zoneSummary.overdueTotal }} ｜ 高风险 {{ zoneSummary.highRiskTotal }}
       </view>
     </view>
 
@@ -33,7 +34,7 @@
     <!-- 风险提醒：只突出“严重超期/高风险/24小时临期”三件最紧急的事。 -->
     <view class="card risk-panel">
       <view class="section-head">
-        <text class="section-title">风险提醒</text>
+        <text class="section-title">全辖区风险提醒</text>
         <text class="section-sub">红橙优先</text>
       </view>
       <view
@@ -49,14 +50,14 @@
       </view>
     </view>
 
-    <!-- 今日必做：按超期/临期/普通分组，避免全部混在一起难以判断优先级。 -->
+    <!-- 个人待办：按超期/紧急/一般分组，避免不同紧急程度混在一起。 -->
     <view class="card todo-card">
       <view class="section-head">
-        <text class="section-title">今日必做</text>
-        <text class="section-sub">按紧急排序</text>
+        <text class="section-title">个人待办</text>
+        <text class="section-sub">按紧急程度</text>
       </view>
 
-      <view v-if="stats.todoTotal === 0" class="empty">暂无待办</view>
+      <view v-if="myTodoStats.total === 0" class="empty">暂无待办</view>
 
       <template v-else>
         <view v-if="todoGroups.overdueList.length" class="group-block">
@@ -87,10 +88,10 @@
           </view>
         </view>
 
-        <view v-if="todoGroups.dueSoonList.length" class="group-block">
-          <view class="group-title warn">24小时内到期（{{ todoGroups.dueSoonList.length }}）</view>
+        <view v-if="todoGroups.urgentList.length" class="group-block">
+          <view class="group-title warn">紧急（{{ todoGroups.urgentList.length }}）</view>
           <view
-            v-for="item in todoGroups.dueSoonList"
+            v-for="item in todoGroups.urgentList"
             :key="item.id"
             class="todo-item"
             hover-class="pressing"
@@ -116,7 +117,7 @@
         </view>
 
         <view v-if="todoGroups.normalList.length" class="group-block">
-          <view class="group-title normal">其他待办（{{ todoGroups.normalList.length }}）</view>
+          <view class="group-title normal">一般（{{ todoGroups.normalList.length }}）</view>
           <view
             v-for="item in todoGroups.normalList"
             :key="item.id"
@@ -152,16 +153,21 @@ import { computed, onMounted, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import {
   getTodos,
-  queryVisitObjects,
   saveTodos,
 } from '@/common/database.js';
 import { getStatusBarHeight } from '@/utils/system.js';
+import { getZoneModuleStats } from '@/common/data/zoneTasks.js';
 
 // 状态栏高度：优先读取系统值，确保顶部摘要在刘海屏/沉浸式机型中不被压住。
 const statusBarH = ref(getStatusBarHeight() || 0);
 const todayText = ref('');
 const todos = ref([]);
-const visitObjects = ref([]);
+const zoneSnapshot = ref({
+  summary: { todoTotal: 0, overdueTotal: 0, highRiskTotal: 0 },
+  modules: {},
+  listMap: { alarm: [], visit: [], revisit: [], case: [] },
+});
+const currentOfficer = ref('');
 
 const typeTextMap = {
   alert: '警情',
@@ -185,7 +191,6 @@ function formatDateForHeader(date = new Date()) {
 function parseDeadline(deadline) {
   const raw = String(deadline || '').trim();
   if (!raw) return null;
-  const now = new Date();
   if (/^\d{1,2}:\d{2}$/.test(raw)) {
     const [h, m] = raw.split(':');
     const t = new Date();
@@ -218,14 +223,12 @@ function buildDeadlineText(deadlineTs) {
   return `剩余 ${formatDuration(diff)}`;
 }
 
-function isTodayTime(ts) {
-  if (!ts) return false;
-  const d = new Date(ts);
-  const n = new Date();
-  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+function resolveTodoOwner(item) {
+  // 个人待办口径：优先用待办本身的 officerName，没有则默认当前登录警员。
+  return item.officerName || currentOfficer.value || '李警官';
 }
 
-// 基础待办装饰：在不改原数据结构的前提下补齐排序与分组字段。
+// 基础待办装饰：在不改原数据结构的前提下补齐排序与分组字段，并标记是否属于当前警员。
 const decoratedTodos = computed(() => {
   return todos.value
     .map((item) => {
@@ -234,8 +237,10 @@ const decoratedTodos = computed(() => {
       const isOverdue = deadlineTs ? deadlineTs < Date.now() : false;
       const isDueSoon = deadlineTs ? deadlineTs >= Date.now() && deadlineTs - Date.now() <= 24 * 3600 * 1000 : false;
       const riskScore = riskWeightMap[item.risk] || 0;
+      const officerName = resolveTodoOwner(item);
       return {
         ...item,
+        officerName,
         typeText: typeTextMap[item.type] || '其他',
         deadlineTs,
         isOverdue,
@@ -243,6 +248,7 @@ const decoratedTodos = computed(() => {
         overdueHours: deadlineTs ? Math.floor((Date.now() - deadlineTs) / 3600000) : 0,
         riskScore,
         deadlineText: buildDeadlineText(deadlineTs),
+        isMine: !officerName || officerName === currentOfficer.value,
       };
     })
     .filter((item) => item.status !== 'done');
@@ -258,110 +264,68 @@ function sortByUrgency(a, b) {
   return 0;
 }
 
-const sortedTodos = computed(() => [...decoratedTodos.value].sort(sortByUrgency));
+const myTodos = computed(() => decoratedTodos.value.filter((item) => item.isMine));
+const sortedTodos = computed(() => [...myTodos.value].sort(sortByUrgency));
 
-// 今日必做分组：超期、24小时内临期、普通待办三段展示。
+// 个人待办分组：超期 > 紧急（24h内或高风险） > 一般。
 const todoGroups = computed(() => {
   const overdueList = sortedTodos.value.filter((item) => item.isOverdue);
-  const dueSoonList = sortedTodos.value.filter((item) => !item.isOverdue && item.isDueSoon);
-  const normalList = sortedTodos.value.filter((item) => !item.isOverdue && !item.isDueSoon);
-  return { overdueList, dueSoonList, normalList };
+  const urgentList = sortedTodos.value.filter((item) => !item.isOverdue && (item.isDueSoon || item.risk === '高'));
+  const normalList = sortedTodos.value.filter((item) => !item.isOverdue && !item.isDueSoon && item.risk !== '高');
+  return { overdueList, urgentList, normalList };
 });
 
-const visitOverview = computed(() => {
-  const visitList = visitObjects.value;
-  const total = visitList.filter((item) => item.visitStatus !== 'done').length;
-  const today = visitList.filter((item) => item.dueStatus === 'today' || item.dueStatus === 'upcoming').length;
-  const overdue = visitList.filter((item) => item.dueStatus === 'overdue').length;
-  const highRisk = visitList.filter((item) => item.riskLevel === '高' && item.visitStatus !== 'done').length;
-  return { total, today, overdue, highRisk };
+const myTodoStats = computed(() => ({
+  total: sortedTodos.value.length,
+  overdue: todoGroups.value.overdueList.length,
+  urgent: todoGroups.value.urgentList.length,
+  normal: todoGroups.value.normalList.length,
+}));
+
+const zoneSummary = computed(() => {
+  const summary = zoneSnapshot.value.summary || { todoTotal: 0, overdueTotal: 0, highRiskTotal: 0 };
+  const listMap = zoneSnapshot.value.listMap || {};
+  // 今日待办口径：全辖区内“今天需处理且未完成”的总数，避免与个人待办混用。
+  const todayTotal = ['alarm', 'visit', 'revisit', 'case'].reduce((acc, key) => {
+    const list = Array.isArray(listMap[key]) ? listMap[key] : [];
+    return acc + list.filter((item) => item.isPending && item.isToday).length;
+  }, 0);
+  return {
+    ...summary,
+    todayTotal,
+  };
 });
 
-const alarmTodos = computed(() => sortedTodos.value.filter((item) => item.type === 'alert'));
-const disputeTodos = computed(() => sortedTodos.value.filter((item) => item.type === 'dispute'));
-const caseTodos = computed(() => sortedTodos.value.filter((item) => item.type === 'task' || item.type === 'order'));
-
-const stats = computed(() => {
-  const todoTotal = sortedTodos.value.length;
-  const overdueTotal = todoGroups.value.overdueList.length + visitOverview.value.overdue;
-  const highRiskTotal =
-    sortedTodos.value.filter((item) => item.risk === '高').length + visitOverview.value.highRisk;
-  return { todoTotal, overdueTotal, highRiskTotal };
-});
-
-// 四大战区态势卡：统一从本地待办+走访对象聚合，便于后续替换 API。
+// 四大战区态势卡：统一读取 zoneSnapshot，保证工作台与统一列表页口径一致。
 const moduleCards = computed(() => {
-  const closedToday = todos.value.filter((item) => item.status === 'done' && isTodayTime(parseDeadline(item.deadline)?.getTime())).length;
+  const modules = zoneSnapshot.value.modules || {};
   return [
-    {
-      key: 'alarm',
-      title: '警情',
-      total: alarmTodos.value.length,
-      subA: { label: '未回告', value: alarmTodos.value.filter((item) => item.status === 'pending').length },
-      subB: { label: '超期', value: alarmTodos.value.filter((item) => item.isOverdue).length },
-      warningCount: alarmTodos.value.filter((item) => item.isOverdue || item.risk === '高').length,
-      // 警情卡片统一进入警情列表页，列表再承接详情与处理动作。
-      url: '/pages/alarm/list',
-    },
-    {
-      key: 'visit',
-      title: '走访',
-      total: visitOverview.value.total,
-      subA: { label: '今日', value: visitOverview.value.today },
-      subB: { label: '逾期', value: visitOverview.value.overdue },
-      warningCount: visitOverview.value.overdue,
-      url: '/pages/visit/index',
-    },
-    {
-      key: 'revisit',
-      title: '回访纠纷',
-      total: disputeTodos.value.length,
-      subA: { label: '待回访', value: disputeTodos.value.length },
-      subB: { label: '临期(24h)', value: disputeTodos.value.filter((item) => item.isDueSoon).length },
-      warningCount: disputeTodos.value.filter((item) => item.isOverdue || item.risk === '高').length,
-      // 回访纠纷卡片进入纠纷回访列表页，便于统一筛选与处理。
-      url: '/pages/revisit/list',
-    },
-    {
-      key: 'case',
-      title: '案件执法',
-      total: caseTodos.value.length,
-      subA: { label: '临期任务', value: caseTodos.value.filter((item) => item.isDueSoon).length },
-      subB: { label: '今日闭环', value: closedToday },
-      warningCount: caseTodos.value.filter((item) => item.isOverdue || item.risk === '高').length,
-      // 案件执法卡片进入案件执法列表页，聚合任务与派单。
-      url: '/pages/case/list',
-    },
+    modules.alarm || { key: 'alarm', title: '警情', total: 0, subA: { label: '未回告', value: 0 }, subB: { label: '超期', value: 0 }, warningCount: 0, url: '/pages/zoneTasks/list?type=alarm' },
+    modules.visit || { key: 'visit', title: '走访', total: 0, subA: { label: '今日', value: 0 }, subB: { label: '逾期', value: 0 }, warningCount: 0, url: '/pages/zoneTasks/list?type=visit' },
+    modules.revisit || { key: 'revisit', title: '回访纠纷', total: 0, subA: { label: '待回访', value: 0 }, subB: { label: '临期(24h)', value: 0 }, warningCount: 0, url: '/pages/zoneTasks/list?type=revisit' },
+    modules.case || { key: 'case', title: '案件执法', total: 0, subA: { label: '临期任务', value: 0 }, subB: { label: '今日闭环', value: 0 }, warningCount: 0, url: '/pages/zoneTasks/list?type=case' },
   ];
 });
 
 const riskPanel = computed(() => {
-  const severeOverdue =
-    sortedTodos.value.filter((item) => item.isOverdue && item.overdueHours >= 24).length +
-    visitObjects.value.filter((item) => item.dueStatus === 'overdue' && item.riskLevel === '高').length;
-  const highRisk =
-    sortedTodos.value.filter((item) => item.risk === '高').length +
-    visitObjects.value.filter((item) => item.riskLevel === '高' && item.visitStatus !== 'done').length;
-  const due24h = sortedTodos.value.filter((item) => item.isDueSoon).length;
+  const listMap = zoneSnapshot.value.listMap || {};
+  const allZoneItems = ['alarm', 'visit', 'revisit', 'case'].flatMap((key) => listMap[key] || []);
+  const severeOverdue = allZoneItems.filter((item) => item.isOverdue && item.deadlineTs && Date.now() - item.deadlineTs >= 24 * 3600 * 1000).length;
+  const highRisk = allZoneItems.filter((item) => item.isPending && item.isHighRisk).length;
+  const due24h = allZoneItems.filter((item) => item.isPending && item.isDueSoon).length;
   return [
-    { key: 'severeOverdue', label: '严重超期', value: severeOverdue, tone: 'danger', url: '/pages/task/list' },
-    { key: 'highRisk', label: '高风险对象/任务', value: highRisk, tone: 'warn', url: '/pages/visit/index?tab=overdue' },
-    { key: 'due24h', label: '24小时内到期', value: due24h, tone: 'normal', url: '/pages/work/work' },
+    { key: 'severeOverdue', label: '严重超期', value: severeOverdue, tone: 'danger', url: '/pages/zoneTasks/list?type=alarm' },
+    { key: 'highRisk', label: '高风险对象/任务', value: highRisk, tone: 'warn', url: '/pages/zoneTasks/list?type=visit' },
+    { key: 'due24h', label: '24小时内到期', value: due24h, tone: 'normal', url: '/pages/zoneTasks/list?type=revisit' },
   ];
 });
 
 function loadData() {
-  // 统一数据入口：本地 mock / storage 读取，后续替换 API 仅需改这里。
+  // 数据入口拆分：zoneSnapshot 只做全辖区口径；todos 则用于个人待办分组。
   todayText.value = formatDateForHeader();
+  currentOfficer.value = uni.getStorageSync('userName') || '李警官';
   todos.value = getTodos();
-  visitObjects.value = queryVisitObjects({
-    tab: 'ALL',
-    area: 'ALL',
-    risk: 'ALL',
-    status: 'ALL',
-    due: 'ALL',
-    keyword: '',
-  });
+  zoneSnapshot.value = getZoneModuleStats();
 }
 
 function goModule(item) {
@@ -375,10 +339,6 @@ function goModule(item) {
 function goRisk(item) {
   if (!item?.url) {
     uni.showToast({ title: '功能开发中', icon: 'none' });
-    return;
-  }
-  if (item.url === '/pages/work/work') {
-    uni.showToast({ title: '当前已在工作台', icon: 'none' });
     return;
   }
   uni.navigateTo({ url: item.url });
@@ -457,7 +417,7 @@ onShow(loadData);
 
 .header-wrap {
   margin: 0 -24rpx 16rpx;
-  padding: 0 24rpx 20rpx;
+  padding: 0 24rpx 10rpx;
   background: linear-gradient(135deg, #e8f7ef 0%, #edf6ff 100%);
 }
 
@@ -482,7 +442,7 @@ onShow(loadData);
 }
 
 .summary-line {
-  margin-top: 10rpx;
+  margin-top: 6rpx;
   font-size: 26rpx;
   color: #405166;
 }

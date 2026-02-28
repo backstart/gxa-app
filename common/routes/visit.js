@@ -10,7 +10,7 @@
  * @returns {string} 可用于 uni.navigateTo 的 url
  */
 export function getVisitStartUrl({ targetType, targetId }) {
-  const id = String(targetId || '').trim();
+  const id = normalizeTargetId(targetId);
   if (!id) return '';
 
   // 兼容页面层传入的人类可读类型与数据库对象源枚举
@@ -36,4 +36,17 @@ function normalizeTargetType(targetType) {
   if (raw === 'PERSON') return 'person';
   if (raw === 'PLACE') return 'place';
   return '';
+}
+
+/**
+ * 统一提取目标 ID：
+ * 兼容传入 PERSON:kp-001 / PLACE:pl-001 以及纯 ID，避免页面跳转后查不到对象。
+ * @param {string} targetId
+ * @returns {string}
+ */
+function normalizeTargetId(targetId) {
+  const raw = String(targetId || '').trim();
+  if (!raw) return '';
+  if (raw.includes(':')) return raw.split(':').slice(1).join(':');
+  return raw;
 }
