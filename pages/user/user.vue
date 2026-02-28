@@ -16,7 +16,7 @@
 		</view>
 
 		<l-grid>
-		    <l-grid-item text="会议" :dot="true" image="/static/userFuns/meet.png" />
+		    <l-grid-item text="会议" :dot="true" image="/static/userFuns/meet.png" @click="goDetail('meeting')" />
 		    <l-grid-item text="OA" badge="5" image="/static/userFuns/oa.png" />
 		    <l-grid-item text="休假" badge="15" image="/static/userFuns/leave.png" @click="goDetail('leave')" />
 		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" @click="goDetail('duty')" />
@@ -52,6 +52,9 @@ function goDetail(item) {
     target = '/pages/duty/index';
   } else if (item === 'out') {
     target = '/pages/out/index';
+  } else if (item === 'meeting') {
+    // 会议入口：跳转到会议通知列表页
+    target = '/pages/meeting/list';
   } 
   if (!target) return;
   uni.navigateTo({ url: target });

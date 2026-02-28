@@ -37,6 +37,7 @@
   visitDrafts: 'db_visit_drafts',
   visitQueue: 'db_visit_queue',
   tempVisitRecords: 'db_temp_visit_records',
+  meetings: 'db_meetings',
 };
 
 export const statusText = {
@@ -2446,12 +2447,57 @@ export function updateCar(carId, patch) {
   return list;
 }
 
+// 会议默认示例数据：用于第一阶段无后端演示“通知+确认”流程
+const defaultMeetings = [
+  {
+    id: 'meet-001',
+    title: '早例会-辖区警情通报',
+    location: '桂南派出所三楼会议室',
+    startTime: new Date().setHours(9, 30, 0, 0),
+    endTime: new Date().setHours(10, 30, 0, 0),
+    hostId: 'u-001',
+    hostName: '张三',
+    creatorId: 'u-001',
+    participants: ['u-001', 'u-002', 'u-003'],
+    participantConfirm: {
+      'u-001': { status: 'confirmed', confirmTime: Date.now() - 3600000 },
+      'u-002': { status: 'unconfirmed' },
+      'u-003': { status: 'confirmed', confirmTime: Date.now() - 1800000 },
+    },
+    isImportant: true,
+    createTime: Date.now() - 7200000,
+  },
+  {
+    id: 'meet-002',
+    title: '回访纠纷专项研判会',
+    location: '长命水警务室',
+    startTime: new Date().setHours(15, 0, 0, 0),
+    endTime: new Date().setHours(16, 0, 0, 0),
+    hostId: 'u-002',
+    hostName: '李警官',
+    creatorId: 'u-002',
+    participants: ['u-001', 'u-002', 'u-004', 'u-005'],
+    participantConfirm: {
+      'u-001': { status: 'unconfirmed' },
+      'u-002': { status: 'confirmed', confirmTime: Date.now() - 3600000 },
+      'u-004': { status: 'unconfirmed' },
+      'u-005': { status: 'unconfirmed' },
+    },
+    isImportant: false,
+    createTime: Date.now() - 3600000,
+  },
+];
+
 export const getPoliceDetails = () => ensure(KEYS.policeDetails, defaults.policeDetails);
 export const savePoliceDetails = (list) => uni.setStorageSync(KEYS.policeDetails, list);
 export const getPoliceDetailById = (id) => getPoliceDetails().find((item) => item.id === id);
 
 export const getVenueDetails = () => ensure(KEYS.venueDetails, defaults.venueDetails);
 export const saveVenueDetails = (list) => uni.setStorageSync(KEYS.venueDetails, list);
+
+// 会议通知存储：第一阶段只做本地持久化，后续可无缝替换为接口
+export const getMeetings = () => ensure(KEYS.meetings, defaultMeetings);
+export const saveMeetings = (list) => uni.setStorageSync(KEYS.meetings, list);
 export const getVenueDetailById = (id) => getVenueDetails().find((item) => item.id === id);
 
 // 休假申请存储
