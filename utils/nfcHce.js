@@ -3,14 +3,40 @@
 
 let nativeModule = null;
 
+// 全项目统一的原生插件 ID。
+// 注意：manifest.json、nativeplugins/GXA-NfcHce/package.json、JS 调用必须完全一致。
+const PLUGIN_ID = 'GXA-NfcHce';
+
+function isModuleShapeValid(mod) {
+  // 只有核心方法都存在，才认为插件真正可用，避免空对象误判。
+  return !!(
+    mod &&
+    typeof mod.setPayload === 'function' &&
+    typeof mod.startSession === 'function' &&
+    typeof mod.stopSession === 'function' &&
+    typeof mod.onEvent === 'function'
+  );
+}
+
 function getNativeModule() {
   // 单例缓存：避免每次调用都重复 requireNativePlugin。
   if (nativeModule !== null) return nativeModule;
   try {
     // 仅 APP-PLUS 环境支持原生插件。
-    nativeModule = (typeof uni !== 'undefined' && typeof uni.requireNativePlugin === 'function')
-      ? uni.requireNativePlugin('GXA-NfcHce')
-      : null;
+    if (!(typeof uni !== 'undefined' && typeof uni.requireNativePlugin === 'function')) {
+      nativeModule = null;
+      return nativeModule;
+    }
+
+    // 只按统一 ID 加载插件，避免大小写/下划线混用带来的行为不一致。
+    const mod = uni.requireNativePlugin(PLUGIN_ID);
+    if (isModuleShapeValid(mod)) {
+      nativeModule = mod;
+      return nativeModule;
+    }
+
+    // 未命中有效模块时，统一回退 null，交给上层展示错误提示。
+    nativeModule = null;
   } catch (error) {
     nativeModule = null;
   }
@@ -19,7 +45,7 @@ function getNativeModule() {
 
 export function isHcePluginReady() {
   // 供业务页快速判断“插件是否可用”。
-  return !!getNativeModule();
+  return isModuleShapeValid(getNativeModule());
 }
 
 export function setHcePayload(payload) {

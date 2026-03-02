@@ -185,7 +185,7 @@
 		covers.value = [{
 			latitude: (latitude.value + x),
 			longitude: (longitude.value + y),
-			iconPath: "/common/img/地图标点.png",
+			iconPath: "/common/img/map_marker.png",
 			width: '80rpx',
 			height: '80rpx',
 			callout: {
@@ -223,7 +223,10 @@
 
 	.search-input {
 		flex: 1;
-		border: none;
+		/* nvue 不支持 border:none，这里用 0 宽边框实现“无边框”效果 */
+		border-width: 0;
+		border-style: solid;
+		border-color: transparent;
 		background: transparent;
 		font-size: 16px;
 		outline: none;

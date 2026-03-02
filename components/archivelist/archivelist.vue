@@ -26,7 +26,7 @@
 				return [{
 					title: "营业执照",
 					maintxt: "贵州省贵阳市南明区龙洞堡见龙路138-15号",
-					img: "/static/demofile/营业执照.png",
+					img: "/static/demofile/business_license.png",
 					id: '1',
 				}]
 			}

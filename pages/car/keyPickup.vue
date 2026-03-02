@@ -182,9 +182,35 @@ function checkEnvironment() {
     return { ok: false, message: '无法读取 NFC 状态，请检查系统权限。' };
   }
   if (!isHcePluginReady()) {
-    return { ok: false, message: '未检测到 HCE 模块，请确认已集成原生插件。' };
+    // 该提示通常代表当前运行基座未打入本地插件（最常见于默认基座）。
+    return { ok: false, message: '未检测到 HCE 模块，请使用已集成 GXA-NfcHce 的自定义基座。' };
   }
   return { ok: true, message: '' };
+  // #endif
+}
+
+function logPluginDiagnostics() {
+  // 运行时插件诊断日志（仅用于排查“是否已打入基座/安装包”）。
+  // 判定标准：
+  // 1) mod 不为 null；
+  // 2) setPayload/startSession/stopSession/onEvent 四个方法都存在。
+  // 满足以上两点，说明当前运行包内已包含 GXA-NfcHce 插件。
+  // #ifdef APP-PLUS
+  try {
+    const mod = typeof uni !== 'undefined' && typeof uni.requireNativePlugin === 'function'
+      ? uni.requireNativePlugin('GXA-NfcHce')
+      : null;
+    console.log(
+      '[NFC插件检测]',
+      !!mod,
+      mod && typeof mod.setPayload,
+      mod && typeof mod.startSession,
+      mod && typeof mod.stopSession,
+      mod && typeof mod.onEvent,
+    );
+  } catch (error) {
+    console.log('[NFC插件检测] require 异常', error && error.message ? error.message : error);
+  }
   // #endif
 }
 
@@ -379,6 +405,8 @@ onLoad((query) => {
   // 入口参数由 usecar.vue 或列表“取钥匙”按钮传入。
   carId.value = query.carId || '';
   logId.value = query.logId || '';
+  // 页面加载即输出一次插件诊断信息，便于在真机控制台快速确认是否已集成插件。
+  logPluginDiagnostics();
   loadData();
   startSessionFlow(false);
 });

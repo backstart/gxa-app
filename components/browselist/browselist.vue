@@ -31,7 +31,7 @@
  		 default(){
  		 	return [{title:"安全检查",
 			maintxt:"抽查了三间包厢，暂未发现问题",
-			img:"/static/demofile/包房.jpg",
+			img:"/static/demofile/room_private.jpg",
 			time:"2025-9-17",
 			inspector:"张三、李四",
 			id:'1'

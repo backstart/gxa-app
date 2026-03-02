@@ -17,11 +17,11 @@
       <!-- 功能入口行：参考详情页按钮行样式，仅保留“统计/草稿箱”两项 -->
       <view class="quick-row">
         <view class="quick-btn" hover-class="quick-btn-hover" @tap="goDashboard">
-          <image class="quick-icon" src="/static/icons/统计.png" mode="aspectFit" />
+          <image class="quick-icon" src="/static/icons/stats.png" mode="aspectFit" />
           <text class="quick-text">统计</text>
         </view>
         <view class="quick-btn" hover-class="quick-btn-hover" @tap="goUnlinked">
-          <image class="quick-icon" src="/static/icons/归档.png" mode="aspectFit" />
+          <image class="quick-icon" src="/static/icons/archive.png" mode="aspectFit" />
           <text class="quick-text">草稿箱</text>
           <text v-if="draftBoxCount > 0" class="quick-badge">{{ draftBoxCount }}</text>
         </view>
@@ -622,3 +622,4 @@ onShow(() => {
   color: #98a2b3;
 }
 </style>
+

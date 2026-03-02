@@ -42,7 +42,7 @@
 					name: "上官玩儿",
 					maintxt: "贵州省贵阳市南明区龙洞堡见龙路138-15号",
 					age: '25岁',
-					img: "/static/demofile/大头照.jpg",
+					img: "/static/demofile/headshot_1.jpg",
 					time: "2025-9-17",
 					position: "经理",
 					id: '1',

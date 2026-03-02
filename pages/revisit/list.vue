@@ -16,11 +16,11 @@
 
       <view class="quick-row">
         <view class="quick-btn" hover-class="quick-btn-hover" @tap="goStats">
-          <image class="quick-icon" src="/static/icons/统计.png" mode="aspectFit" />
+          <image class="quick-icon" src="/static/icons/stats.png" mode="aspectFit" />
           <text class="quick-text">统计</text>
         </view>
         <view class="quick-btn" hover-class="quick-btn-hover" @tap="goDrafts">
-          <image class="quick-icon" src="/static/icons/归档.png" mode="aspectFit" />
+          <image class="quick-icon" src="/static/icons/archive.png" mode="aspectFit" />
           <text class="quick-text">草稿箱</text>
           <text v-if="draftCount > 0" class="quick-badge">{{ draftCount }}</text>
         </view>
@@ -488,3 +488,4 @@ onShow(loadData);
   color: #98a2b3;
 }
 </style>
+

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:description="@string/app_name"
+    android:description="@string/gxa_hce_service_desc"
     android:requireDeviceUnlock="false">
 
     <!-- AID 组：钥匙盒先发送 SELECT AID，命中后再发 READ DATA -->
     <aid-group
-        android:description="GXA Key Box HCE AID"
+        android:description="@string/gxa_hce_aid_desc"
         android:category="other">
         <aid-filter android:name="F0010203040506" />
     </aid-group>

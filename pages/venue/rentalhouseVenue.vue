@@ -198,14 +198,14 @@
 	const list = ref([{
 		title: "安全检查",
 		maintxt: "房间内一切正常",
-		img: "/static/demofile/检查出租房 (2).jpg",
+		img: "/static/demofile/rental_check_2.jpg",
 		time: "2025-9-17",
 		inspector: "张三、李四",
 		id: '1'
 	}, {
 		title: "安全检查",
 		maintxt: "手续齐全，粤居码如实登记",
-		img: "/static/demofile/检查出租房 (1).jpg",
+		img: "/static/demofile/rental_check_1.jpg",
 		time: "2025-9-17",
 		inspector: "李四",
 		id: '2'
@@ -215,7 +215,7 @@
 		name: "上官婉儿",
 		maintxt: "贵州省贵阳市南明区龙洞堡见龙路138-15号",
 		age: '25岁',
-		img: "/static/demofile/大头照.jpg",
+		img: "/static/demofile/headshot_1.jpg",
 		time: "2025-9-17",
 		position: "经理",
 		id: '1',
@@ -223,7 +223,7 @@
 		name: "大司命",
 		maintxt: "广东省深圳市南山区海天二路33号腾讯滨海大厦",
 		age: '25岁',
-		img: "/static/demofile/大头照2.jpg",
+		img: "/static/demofile/headshot_2.jpg",
 		time: "2021-4-17",
 		position: "前台",
 		id: '2',
@@ -232,45 +232,45 @@
 	const archivelists = ref([{
 		title: "营业执照",
 		maintxt: "这是一张营业执照，有效期截至2022年",
-		img: "/static/demofile/营业执照.png",
+		img: "/static/demofile/business_license.png",
 		id: '1',
 	}, {
 		title: "保安证",
 		maintxt: "张三的保安证",
-		img: "/static/demofile/保安证.png",
+		img: "/static/demofile/security_license.png",
 		id: '2',
 	}])
 
 	//出租房数据
 	const customHouseList = ref([{
 			id: 1,
-			image: '/static/demofile/人像 (1).png',
+			image: '/static/demofile/portrait_1.png',
 			roomInfo: '201',
 			tenantName: '入住人：小明'
 		},
 		{
 			id: 2,
-			image: '/static/demofile/人像 (2).png',
+			image: '/static/demofile/portrait_2.png',
 			roomInfo: '202',
 			tenantName: '入住人：小红'
 		},
 
 		{
 			id: 3,
-			image: '/static/demofile/房间 (1).png',
+			image: '/static/demofile/room_1.png',
 			roomInfo: '203',
 			tenantName: '入住人：无'
 		},
 
 		{
 			id: 4,
-			image: '/static/demofile/人像 (3).png',
+			image: '/static/demofile/portrait_3.png',
 			roomInfo: '204',
 			tenantName: '入住人：小英'
 		},
 		{
 			id: 5,
-			image: '/static/demofile/人像 (4).png',
+			image: '/static/demofile/portrait_4.png',
 			roomInfo: '205',
 			tenantName: '入住人：小美'
 		}
@@ -327,3 +327,4 @@
 		width: 100%;
 	}
 </style>
+
