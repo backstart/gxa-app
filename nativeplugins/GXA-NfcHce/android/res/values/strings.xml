@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HCE Service 描述文案，避免依赖宿主 app_name 资源 -->
+    <string name="gxa_hce_service_desc">GXA Key Box HCE Service</string>
+    <!-- HCE AID 分组描述文案，必须使用资源引用，不能直接写裸字符串 -->
+    <string name="gxa_hce_aid_desc">GXA Key Box HCE AID</string>
+</resources>
