@@ -6,6 +6,16 @@ let nativeModule = null;
 // 全项目统一的原生插件 ID。
 // 注意：manifest.json、nativeplugins/GXA-NfcHce/package.json、JS 调用必须完全一致。
 const PLUGIN_ID = 'GXA-NfcHce';
+const MAX_HCE_PAYLOAD_BYTES = 59;
+
+function utf8Length(value) {
+  const text = String(value || '');
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(text).length;
+  }
+  // 兼容旧环境：通过 URI 编码估算 UTF-8 字节数。
+  return unescape(encodeURIComponent(text)).length;
+}
 
 function isModuleShapeValid(mod) {
   // 只有核心方法都存在，才认为插件真正可用，避免空对象误判。
@@ -52,7 +62,9 @@ export function setHcePayload(payload) {
   // 写入本次会话 payload，HCE Service 收到 READ APDU 时会返回该数据。
   const mod = getNativeModule();
   if (!mod || typeof mod.setPayload !== 'function') return false;
-  mod.setPayload(String(payload || ''));
+  const text = String(payload || '');
+  if (utf8Length(text) > MAX_HCE_PAYLOAD_BYTES) return false;
+  mod.setPayload(text);
   return true;
 }
 

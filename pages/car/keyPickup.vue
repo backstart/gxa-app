@@ -44,7 +44,7 @@
 import { computed, ref } from 'vue';
 import { onLoad, onUnload } from '@dcloudio/uni-app';
 import { getCarById, getCarUseLogs, saveCarUseLogs, updateCar } from '@/common/database.js';
-import { buildOpenBoxPayload } from '@/utils/nfcPayload.js';
+import { buildOpenBoxNfcPayload, buildOpenBoxPayload } from '@/utils/nfcPayload.js';
 import {
   getHceSessionStatus,
   isHcePluginReady,
@@ -55,6 +55,7 @@ import {
 } from '@/utils/nfcHce.js';
 
 const SESSION_TIMEOUT_SECONDS = 300;
+const STOP_HCE_DELAY_MS = 450;
 
 const carId = ref('');
 const logId = ref('');
@@ -65,6 +66,10 @@ const remainSeconds = ref(SESSION_TIMEOUT_SECONDS);
 const errorText = ref('');
 let countdownTimer = null;
 let finishTimer = null;
+let readWatchdogTimer = null;
+let debugProbeTimer = null;
+let stopSessionTimer = null;
+let sawNativeDebugEvent = false;
 let eventBound = false;
 
 const statusText = computed(() => {
@@ -103,10 +108,57 @@ function stopFinishTimer() {
   }
 }
 
+function stopReadWatchdog() {
+  // 清理读数看门狗，避免残留定时器导致误报“读取超时”。
+  if (readWatchdogTimer) {
+    clearTimeout(readWatchdogTimer);
+    readWatchdogTimer = null;
+  }
+}
+
+function stopDebugProbe() {
+  if (debugProbeTimer) {
+    clearTimeout(debugProbeTimer);
+    debugProbeTimer = null;
+  }
+}
+
+function stopStopSessionTimer() {
+  if (stopSessionTimer) {
+    clearTimeout(stopSessionTimer);
+    stopSessionTimer = null;
+  }
+}
+
+function startDebugProbe() {
+  // 新插件会在 startSession 后主动上报 DEBUG 事件。
+  // 若长时间收不到，通常说明运行包仍是旧基座/旧插件。
+  stopDebugProbe();
+  debugProbeTimer = setTimeout(() => {
+    if (!sawNativeDebugEvent && (sessionState.value === 'waiting' || sessionState.value === 'ready')) {
+      errorText.value = '未收到插件调试事件，当前很可能是旧基座/旧安装包。请重新打包并重装 App。';
+    }
+  }, 1500);
+}
+
+function startReadWatchdog() {
+  // 已收到 SELECT_AID 但迟迟没有 READ/SUCCESS，给出明确诊断提示。
+  stopReadWatchdog();
+  readWatchdogTimer = setTimeout(() => {
+    if (sessionState.value === 'waiting') {
+      sessionState.value = 'error';
+      errorText.value = '已识别钥匙盒，但未读取到授权数据（READ 超时）。请重试并检查盒子固件。';
+    }
+  }, 3000);
+}
+
 function stopSession() {
   // 主动停止会话：用于用户“撤销授权”或成功后清理状态。
   stopCountdown();
   stopFinishTimer();
+  stopReadWatchdog();
+  stopDebugProbe();
+  stopStopSessionTimer();
   stopHceSession();
 }
 
@@ -138,13 +190,40 @@ function normalizeEventType(evt) {
 function onNativeEvent(evt) {
   // 处理原生插件事件流：READY -> TAG_READ -> SUCCESS / ERROR。
   const type = normalizeEventType(evt);
+  const message = String((evt && evt.message) || '');
   if (type === 'READY') {
     sessionState.value = 'ready';
     errorText.value = '';
+    stopReadWatchdog();
     return;
   }
   if (type === 'TAG_READ') {
+    // 链路已断开但仍收到 TAG_READ 的场景，直接给出可见错误提示，避免停留“等待感应中”。
+    if (message.startsWith('DEACTIVATED_')) {
+      sessionState.value = 'error';
+      errorText.value = `NFC 链路中断（${message}），请重试。`;
+      stopCountdown();
+      stopReadWatchdog();
+      return;
+    }
     sessionState.value = 'waiting';
+    if (message === 'SELECT_AID') {
+      errorText.value = '已识别钥匙盒，正在读取授权数据...';
+      startReadWatchdog();
+    } else if (message === 'READ_DATA') {
+      errorText.value = '';
+      stopReadWatchdog();
+    }
+    return;
+  }
+  if (type === 'APDU') {
+    sawNativeDebugEvent = true;
+    console.log('[HCE APDU]', message);
+    return;
+  }
+  if (type === 'DEBUG') {
+    sawNativeDebugEvent = true;
+    console.log('[HCE DEBUG]', message);
     return;
   }
   if (type === 'SUCCESS') {
@@ -156,6 +235,7 @@ function onNativeEvent(evt) {
     sessionState.value = 'error';
     errorText.value = (evt && evt.message) || 'NFC 会话异常，请重试。';
     stopCountdown();
+    stopReadWatchdog();
   }
 }
 
@@ -266,12 +346,15 @@ function startSessionFlow(forceRestart = false) {
 
   // 先设置 payload，再启动会话；盒子端 READ DATA 读取到该数据后即可开箱。
   const payloadObject = buildOpenBoxPayload({ carId: carId.value, logId: logId.value });
-  const payloadOk = setHcePayload(JSON.stringify(payloadObject));
+  const payloadOk = setHcePayload(buildOpenBoxNfcPayload(payloadObject));
   if (!payloadOk) {
     sessionState.value = 'error';
-    errorText.value = 'HCE 载荷写入失败，请检查插件。';
+    errorText.value = 'HCE 载荷写入失败（可能超长），请重试。';
     return;
   }
+
+  sawNativeDebugEvent = false;
+  stopDebugProbe();
 
   const startOk = startHceSession(SESSION_TIMEOUT_SECONDS);
   if (!startOk) {
@@ -282,6 +365,8 @@ function startSessionFlow(forceRestart = false) {
 
   sessionState.value = 'waiting';
   errorText.value = '';
+  stopReadWatchdog();
+  startDebugProbe();
   startCountdown(SESSION_TIMEOUT_SECONDS);
 }
 
@@ -327,9 +412,14 @@ function applyPickupSuccess(boxTxnId = '') {
   sessionState.value = 'success';
   errorText.value = '';
   stopCountdown();
+  stopReadWatchdog();
   uni.showToast({ title: '取钥匙成功', icon: 'success' });
-  // 成功后手动 stop，保证授权立即失效（再次读取返回 6985）。
-  stopHceSession();
+  // 成功后延迟 stop，给钥匙盒侧留出完整接收 READ 响应的时间窗口。
+  stopStopSessionTimer();
+  stopSessionTimer = setTimeout(() => {
+    stopHceSession();
+    stopSessionTimer = null;
+  }, STOP_HCE_DELAY_MS);
   stopFinishTimer();
   finishTimer = setTimeout(() => {
     backToCarList();
@@ -416,6 +506,8 @@ onUnload(() => {
   // 这样可满足“退出页面/锁屏后，5 分钟内仍可刷盒子”的业务要求。
   stopCountdown();
   stopFinishTimer();
+  stopReadWatchdog();
+  stopDebugProbe();
 });
 </script>
 

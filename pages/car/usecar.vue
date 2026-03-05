@@ -61,7 +61,7 @@ import { computed, ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
 import { getCarById, getCarUseLogs, saveCarUseLogs, updateCar } from '@/common/database.js';
 import { getStatusBarHeight } from '@/utils/system.js';
-import { buildOpenBoxPayload } from '@/utils/nfcPayload.js';
+import { buildOpenBoxNfcPayload, buildOpenBoxPayload } from '@/utils/nfcPayload.js';
 import { isHcePluginReady, setHcePayload, startHceSession } from '@/utils/nfcHce.js';
 
 const barheight = ref(getStatusBarHeight());
@@ -176,7 +176,7 @@ function preStartHceAuth(logId) {
   if (!isHcePluginReady()) return;
   // 统一授权报文生成逻辑，避免页面间签名不一致。
   const payload = buildOpenBoxPayload({ carId: carId.value, logId });
-  const ok = setHcePayload(JSON.stringify(payload));
+  const ok = setHcePayload(buildOpenBoxNfcPayload(payload));
   if (!ok) return;
   // 默认授权时长 300 秒（5 分钟）。
   startHceSession(300);

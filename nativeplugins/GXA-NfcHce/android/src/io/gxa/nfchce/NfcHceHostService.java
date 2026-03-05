@@ -12,7 +12,6 @@ import android.os.Bundle;
 public class NfcHceHostService extends HostApduService {
     private static final String AID = "F0010203040506";
     private static final String SELECT_APDU_HEADER = "00A40400";
-    private static final String READ_APDU = "00B0000000";
     private static final byte[] SW_SUCCESS = hexToBytes("9000");
     private static final byte[] SW_INS_NOT_SUPPORTED = hexToBytes("6D00");
     private static final byte[] SW_CONDITION_NOT_SATISFIED = hexToBytes("6985");
@@ -23,6 +22,7 @@ public class NfcHceHostService extends HostApduService {
         if (commandApdu == null || commandApdu.length == 0) {
             return SW_INS_NOT_SUPPORTED;
         }
+        NfcHceModule.emitFromService("APDU", briefHex(commandApdu));
 
         if (isSelectAidApdu(commandApdu)) {
             // 盒子先 SELECT AID：
@@ -50,6 +50,7 @@ public class NfcHceHostService extends HostApduService {
             return out;
         }
 
+        NfcHceModule.emitFromService("ERROR", "UNSUPPORTED_APDU_" + briefHex(commandApdu));
         return SW_INS_NOT_SUPPORTED;
     }
 
@@ -67,8 +68,15 @@ public class NfcHceHostService extends HostApduService {
     }
 
     private static boolean isReadApdu(byte[] apdu) {
-        // 自定义读取指令：00B0000000。
-        return READ_APDU.equals(toHex(apdu));
+        // 兼容读取指令：00B0xxxx[Le]，允许不同偏移/长度。
+        if (apdu == null || apdu.length < 4) return false;
+        return (apdu[0] == (byte) 0x00) && (apdu[1] == (byte) 0xB0);
+    }
+
+    private static String briefHex(byte[] data) {
+        String hex = toHex(data);
+        if (hex.length() <= 32) return hex;
+        return hex.substring(0, 32);
     }
 
     private static byte[] concat(byte[] a, byte[] b) {
