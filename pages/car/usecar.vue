@@ -175,7 +175,12 @@ function preStartHceAuth(logId) {
   if (plus.os.name !== 'Android') return;
   if (!isHcePluginReady()) return;
   // 统一授权报文生成逻辑，避免页面间签名不一致。
-  const payload = buildOpenBoxPayload({ carId: carId.value, logId });
+  const payload = buildOpenBoxPayload({
+    carId: carId.value,
+    logId,
+    plateNo: car.value?.plateNo || '',
+    user: form.value.user || '',
+  });
   const ok = setHcePayload(buildOpenBoxNfcPayload(payload));
   if (!ok) return;
   // 默认授权时长 300 秒（5 分钟）。

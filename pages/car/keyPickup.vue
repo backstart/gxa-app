@@ -345,7 +345,12 @@ function startSessionFlow(forceRestart = false) {
   }
 
   // 先设置 payload，再启动会话；盒子端 READ DATA 读取到该数据后即可开箱。
-  const payloadObject = buildOpenBoxPayload({ carId: carId.value, logId: logId.value });
+  const payloadObject = buildOpenBoxPayload({
+    carId: carId.value,
+    logId: logId.value,
+    plateNo: carInfo.value?.plateNo || '',
+    user: useLog.value?.user || '',
+  });
   const payloadOk = setHcePayload(buildOpenBoxNfcPayload(payloadObject));
   if (!payloadOk) {
     sessionState.value = 'error';
