@@ -1,5 +1,5 @@
 <template>
-  <AppPage bg="transparent">
+  <AppPage :bg="PAGE_BG">
     <view class="analysis pageBg" @tap="handlePageTap">
       <view id="filterBarRef" class="filterBar card">
         <view
@@ -135,7 +135,7 @@
         <view class="card sectionCard">
           <view class="sectionHead">
             <text class="sectionTitle">趋势图</text>
-            <text class="sectionSub">本期 / 上期 / 去年同期</text>
+            <text class="sectionSub">本期 / 环比 / 同比</text>
           </view>
           <qiun-data-charts type="line" :chartData="trendChartData" background="none" :height="360" />
         </view>
@@ -286,6 +286,7 @@ const AREA_ADDRESS_MAP = {
 };
 
 const TOP_BAR_COLORS = ['#2B7FFF', '#4EA1FF', '#73BEFF', '#7D8CFF', '#FF9F43', '#F66F6A', '#7CCB8A', '#5AD1C5', '#C387FF', '#F7C24A'];
+const PAGE_BG = 'linear-gradient(to bottom, rgba(0,0,0,0), #fff 400rpx), linear-gradient(to right, #beecd8 20%, #f4E2D8)';
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -746,8 +747,8 @@ function buildTrendChart(sets) {
     categories: currentBuckets.map((item) => item.label),
     series: [
       { name: '本期', data: countByBuckets(sets.cur, currentBuckets) },
-      { name: '上期', data: countByBuckets(sets.prev, previousBuckets) },
-      { name: '去年同期', data: countByBuckets(sets.ly, lastYearBuckets) },
+      { name: '环比', data: countByBuckets(sets.prev, previousBuckets) },
+      { name: '同比', data: countByBuckets(sets.ly, lastYearBuckets) },
     ],
   };
 }
@@ -758,8 +759,8 @@ function buildAreaCompareChart(sets) {
     categories,
     series: [
       { name: '本期', data: categories.map((area) => sets.cur.filter((item) => item.area === area).length) },
-      { name: '上期', data: categories.map((area) => sets.prev.filter((item) => item.area === area).length) },
-      { name: '去年同期', data: categories.map((area) => sets.ly.filter((item) => item.area === area).length) },
+      { name: '环比', data: categories.map((area) => sets.prev.filter((item) => item.area === area).length) },
+      { name: '同比', data: categories.map((area) => sets.ly.filter((item) => item.area === area).length) },
     ],
   };
 }
