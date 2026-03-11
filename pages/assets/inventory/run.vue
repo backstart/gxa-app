@@ -27,7 +27,7 @@
           <view class="actionBtn primary" @tap="scanInventory">扫码盘点</view>
           <view class="actionBtn ghost" @tap="fillNextUnchecked">取未盘点资产</view>
         </view>
-        <view class="manualRow">
+        <view class="manualRow manualCard">
           <input v-model.trim="manualCode" class="manualInput" placeholder="输入资产编号盘点，如 ASSET-000105" />
           <view class="manualBtn" @tap="resolveManualCode">查询</view>
         </view>
@@ -50,17 +50,20 @@
         <view class="formBlock">
           <input v-model.trim="verifyForm.actualLocation" class="fieldInput" placeholder="现场实际位置" />
           <input v-model.trim="verifyForm.actualOwnerName" class="fieldInput" placeholder="现场责任人" />
+          <text class="fieldGroupTitle compactTop">标签状态</text>
           <view class="chipWrap compactTop">
             <view v-for="item in labelOptions" :key="item" :class="['optionChip', verifyForm.labelStatus === item ? 'optionChipActive' : '']" @tap="verifyForm.labelStatus = item">
               {{ item }}
             </view>
           </view>
+          <text class="fieldGroupTitle compactTop">实物状态</text>
           <view class="chipWrap compactTop">
             <view v-for="item in physicalOptions" :key="item" :class="['optionChip', verifyForm.physicalStatus === item ? 'optionChipActive' : '']" @tap="verifyForm.physicalStatus = item">
               {{ item }}
             </view>
           </view>
-          <view class="chipWrap compactTop">
+          <text class="fieldGroupTitle compactTop">异常类型</text>
+          <view class="chipGrid compactTop">
             <view v-for="item in exceptionOptions" :key="item" :class="['optionChip', verifyForm.exceptionType === item ? 'optionChipActive' : '']" @tap="verifyForm.exceptionType = item">
               {{ item }}
             </view>
@@ -420,6 +423,23 @@ onShow(load);
   gap: 12rpx;
 }
 
+.actionBtns {
+  margin-top: 18rpx;
+  gap: 16rpx;
+}
+
+.manualRow {
+  align-items: center;
+  margin-top: 18rpx;
+  gap: 16rpx;
+}
+
+.manualCard {
+  padding: 14rpx 16rpx;
+  border-radius: 18rpx;
+  background: #f5f9ff;
+}
+
 .summaryActions,
 .compactTop {
   margin-top: 16rpx;
@@ -430,8 +450,8 @@ onShow(load);
 .manualBtn,
 .primaryBtn {
   flex: 1;
-  height: 76rpx;
-  border-radius: 14rpx;
+  height: 80rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -456,7 +476,7 @@ onShow(load);
 .fieldInput,
 .textarea {
   width: 100%;
-  border-radius: 14rpx;
+  border-radius: 16rpx;
   background: #f7f9fc;
   font-size: 24rpx;
   box-sizing: border-box;
@@ -464,16 +484,18 @@ onShow(load);
 
 .manualInput,
 .fieldInput {
-  height: 76rpx;
+  height: 80rpx;
   padding: 0 20rpx;
 }
 
 .manualInput {
   flex: 1;
+  background: #ffffff;
 }
 
 .manualBtn {
-  max-width: 140rpx;
+  width: 152rpx;
+  flex: 0 0 152rpx;
   background: #edf4ff;
   color: #0f75ff;
 }
@@ -508,24 +530,56 @@ onShow(load);
 }
 
 .formBlock {
-  margin-top: 16rpx;
+  margin-top: 18rpx;
 }
 
 .noTop {
   margin-top: 0;
 }
 
+.fieldGroupTitle {
+  display: block;
+  font-size: 24rpx;
+  color: #6f7d91;
+  font-weight: 600;
+}
+
+.fieldInput + .fieldInput {
+  margin-top: 12rpx;
+}
+
 .optionChip {
+  min-height: 72rpx;
   padding: 12rpx 18rpx;
-  border-radius: 999rpx;
+  border-radius: 18rpx;
   background: #f3f6fb;
   color: #66788f;
   font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .optionChipActive {
   background: #edf4ff;
   color: #0f75ff;
+}
+
+.chipGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.chipGrid .optionChip {
+  white-space: normal;
+  min-height: 84rpx;
+  padding: 14rpx 12rpx;
+  word-break: keep-all;
 }
 
 .statsGrid {
