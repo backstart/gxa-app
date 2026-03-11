@@ -22,7 +22,7 @@
 		    <l-grid-item text="值班" badge="New" image="/static/userFuns/duty.png" @click="goDetail('duty')" />
 			<l-grid-item text="用车" badge="4" image="/static/userFuns/car.png" @click="goDetail('car')" />
 			<l-grid-item text="交接班" badge="4" image="/static/userFuns/handwork.png" @click="goDetail('handwork')" />
-			<l-grid-item text="申领" badge="4" image="/static/userFuns/applyfor.png" @click="goDetail('applyfor')" />
+			<l-grid-item text="申领资产" badge="4" image="/static/userFuns/applyfor.png" @click="goDetail('applyfor')" />
 			<l-grid-item text="外出" badge="4" image="/static/userFuns/GoOut.png" @click="goDetail('out')" />
 		</l-grid>
 
@@ -55,6 +55,8 @@ function goDetail(item) {
   } else if (item === 'meeting') {
     // 会议入口：跳转到会议通知列表页
     target = '/pages/meeting/list';
+  } else if (item === 'applyfor') {
+    target = '/pages/assets/index';
   } 
   if (!target) return;
   uni.navigateTo({ url: target });

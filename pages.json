@@ -84,7 +84,17 @@
     {"path":"pages/duty/swap","style":{"navigationBarTitleText":"换班","navigationStyle":"custom"}},
     {"path":"pages/duty/swapApply","style":{"navigationBarTitleText":"发起换班","navigationStyle":"custom"}},
     {"path":"pages/analysis/analysis","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
-    {"path":"pages/analysis/alarmList","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}}
+    {"path":"pages/analysis/alarmList","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/index","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/scan","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/claim","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/inventory","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/inventory/index","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/inventory/create","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/inventory/run","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/ledger","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/detail","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/assets/reportDetail","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}}
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
