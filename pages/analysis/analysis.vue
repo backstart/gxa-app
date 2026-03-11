@@ -193,19 +193,19 @@
         <scroll-view v-if="tableMode !== 'hot'" scroll-x class="tableWrap">
           <view class="thead">
             <text class="cell name">{{ tableMode === 'area' ? '辖区' : '类型' }}</text>
-            <text class="cell">本期</text>
-            <text class="cell">上期</text>
-            <text class="cell">环比%</text>
-            <text class="cell">去年同期</text>
-            <text class="cell">同比%</text>
+            <text class="cell metricCell">本期</text>
+            <text class="cell metricCell">上期</text>
+            <text class="cell deltaCell">环比</text>
+            <text class="cell metricCell">同期</text>
+            <text class="cell deltaCell">同比</text>
           </view>
           <view v-for="row in currentTableRows" :key="row.name" class="trow">
             <text class="cell name">{{ row.name }}</text>
-            <text class="cell">{{ row.cur }}</text>
-            <text class="cell">{{ row.prev }}</text>
-            <text class="cell">{{ row.mom }}</text>
-            <text class="cell">{{ row.yoyBase }}</text>
-            <text class="cell">{{ row.yoy }}</text>
+            <text class="cell metricCell">{{ row.cur }}</text>
+            <text class="cell metricCell">{{ row.prev }}</text>
+            <text :class="['cell', 'deltaCell', deltaClass(row.mom)]">{{ formatDelta(row.mom) }}</text>
+            <text class="cell metricCell">{{ row.yoyBase }}</text>
+            <text :class="['cell', 'deltaCell', deltaClass(row.yoy)]">{{ formatDelta(row.yoy) }}</text>
           </view>
           <view v-if="!currentTableRows.length" class="tableEmpty">暂无数据</view>
         </scroll-view>
@@ -1333,7 +1333,9 @@ function openAlarmList() {
 }
 
 .compareMeta {
-  font-size: 22rpx;
+  font-size: 24rpx;
+  line-height: 1.35;
+  font-weight: 500;
   color: var(--text-sub);
 }
 
@@ -1342,7 +1344,8 @@ function openAlarmList() {
 }
 
 .compareValue {
-  font-size: 25rpx;
+  font-size: 26rpx;
+  line-height: 1.2;
   font-weight: 700;
 }
 
@@ -1410,7 +1413,7 @@ function openAlarmList() {
 .categoryTitle {
   display: block;
   text-align: center;
-  font-size: 26rpx;
+  font-size: 28rpx;
   line-height: 1.35;
   color: #324155;
   font-weight: 600;
@@ -1420,7 +1423,7 @@ function openAlarmList() {
   display: block;
   margin-top: 12rpx;
   text-align: center;
-  font-size: 40rpx;
+  font-size: 44rpx;
   line-height: 1;
   color: var(--blue-main);
   font-weight: 700;
@@ -1430,20 +1433,21 @@ function openAlarmList() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
+  gap: 6rpx;
   margin-top: 8rpx;
 }
 
 .categoryDeltaLabel {
-  font-size: 20rpx;
-  line-height: 1.3;
+  font-size: 22rpx;
+  line-height: 1.35;
+  font-weight: 500;
   color: var(--text-sub);
 }
 
 .categoryDeltaValue {
-  font-size: 20rpx;
-  line-height: 1.3;
-  font-weight: 700;
+  font-size: 22rpx;
+  line-height: 1.35;
+  font-weight: 600;
 }
 
 .detailBar {
@@ -1577,7 +1581,7 @@ function openAlarmList() {
 .trow {
   display: flex;
   align-items: center;
-  min-width: 920rpx;
+  min-width: 650rpx;
 }
 
 .thead {
@@ -1592,17 +1596,41 @@ function openAlarmList() {
 }
 
 .cell {
-  flex: 1;
+  flex: 0.6;
   text-align: center;
   font-size: 24rpx;
   color: #273850;
-  padding: 0 8rpx;
+  padding: 0 1rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cell.name {
-  flex: 1.4;
+  flex: 1.1;
   text-align: left;
-  padding-left: 18rpx;
+  padding-left: 8rpx;
+}
+
+.cell.metricCell {
+  font-size: 24rpx;
+}
+
+.cell.deltaCell {
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.cell.deltaCell.deltaUp {
+  color: #eb5757;
+}
+
+.cell.deltaCell.deltaDown {
+  color: #32a852;
+}
+
+.cell.deltaCell.deltaFlat {
+  color: #8b97a8;
 }
 
 .hotTable {
