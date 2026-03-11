@@ -83,7 +83,8 @@
     {"path":"pages/duty/memo","style":{"navigationBarTitleText":"备忘录","navigationStyle":"custom"}},
     {"path":"pages/duty/swap","style":{"navigationBarTitleText":"换班","navigationStyle":"custom"}},
     {"path":"pages/duty/swapApply","style":{"navigationBarTitleText":"发起换班","navigationStyle":"custom"}},
-    {"path":"pages/analysis/analysis","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}}
+    {"path":"pages/analysis/analysis","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}},
+    {"path":"pages/analysis/alarmList","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"popGesture":"close","titleNView":false}}}
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

@@ -7,16 +7,20 @@
           @tap.stop="openDropdown('time')"
         >
           <text class="filterLabel">时间范围</text>
-          <text class="filterValue">{{ timeFilterSummary }}</text>
-          <text class="filterArrow">{{ isDropdownActive('time') ? '▴' : '▾' }}</text>
+          <view class="filterValueWrap">
+            <text class="filterValue">{{ timeFilterSummary }}</text>
+            <text class="filterArrow">{{ isDropdownActive('time') ? '▴' : '▾' }}</text>
+          </view>
         </view>
         <view
           :class="['filterItem', isDropdownActive('area') ? 'filterItemActive' : '']"
           @tap.stop="openDropdown('area')"
         >
           <text class="filterLabel">辖区范围</text>
-          <text class="filterValue">{{ areaLabel }}</text>
-          <text class="filterArrow">{{ isDropdownActive('area') ? '▴' : '▾' }}</text>
+          <view class="filterValueWrap">
+            <text class="filterValue">{{ areaLabel }}</text>
+            <text class="filterArrow">{{ isDropdownActive('area') ? '▴' : '▾' }}</text>
+          </view>
         </view>
       </view>
 
@@ -75,28 +79,23 @@
       </view>
 
       <view class="scopeCard card">
-        <view class="scopeTitleRow">
-          <view class="scopeTitleWrap">
-            <text class="scopeTitle">{{ scopeDisplay.title }}</text>
-            <text class="scopeSub">{{ scopeDisplay.sub }}</text>
-          </view>
+        <view class="scopeMetaRow">
+          <text class="scopeMetaMain">{{ scopeHeadline }}</text>
+          <text class="scopeMetaSide">辖区：{{ areaLabel }}</text>
         </view>
-        <text class="scopeArea">辖区：{{ areaLabel }}</text>
-        <view class="scopeDivider"></view>
         <view class="scopeTotalRow">
-          <text class="scopeTotalLabel">警情总量</text>
-          <view class="scopeTotalMain">
+          <view class="scopeMetricGroup">
+            <text class="scopeTotalLabel">警情总量</text>
             <view class="scopeTotalValueWrap">
               <text class="scopeTotalValue">{{ totalSummary.count }}</text>
               <text class="scopeTotalUnit">起</text>
             </view>
-            <view class="scopeCompareBlock">
-              <text class="compareMeta">环比</text>
-              <text :class="['compareValue', deltaClass(totalSummary.mom)]">{{ formatDelta(totalSummary.mom) }}</text>
-              <text class="compareDivider">|</text>
-              <text class="compareMeta">同比</text>
-              <text :class="['compareValue', deltaClass(totalSummary.yoy)]">{{ formatDelta(totalSummary.yoy) }}</text>
-            </view>
+          </view>
+          <view class="scopeCompareBlock">
+            <text class="compareMeta">环比</text>
+            <text :class="['compareValue', deltaClass(totalSummary.mom)]">{{ formatDelta(totalSummary.mom) }}</text>
+            <text class="compareMeta compareMetaGap">同比</text>
+            <text :class="['compareValue', deltaClass(totalSummary.yoy)]">{{ formatDelta(totalSummary.yoy) }}</text>
           </view>
         </view>
       </view>
@@ -121,8 +120,14 @@
         </view>
       </view>
 
-      <view class="detailBar card">
-        <text class="detailBarTitle">分析报告：{{ activeCategoryLabel }}</text>
+      <view class="detailBar card" hover-class="pressing" @tap.stop="openAlarmList">
+        <view class="detailBarHead">
+          <text class="detailBarTitle">{{ reportTitle }}</text>
+          <view class="detailBarEntry">
+            <text class="detailBarLink">查看明细</text>
+            <text class="detailBarArrow">›</text>
+          </view>
+        </view>
         <text class="detailBarDesc">{{ detailScopeText }}</text>
       </view>
 
@@ -287,6 +292,7 @@ const AREA_ADDRESS_MAP = {
 
 const TOP_BAR_COLORS = ['#2B7FFF', '#4EA1FF', '#73BEFF', '#7D8CFF', '#FF9F43', '#F66F6A', '#7CCB8A', '#5AD1C5', '#C387FF', '#F7C24A'];
 const PAGE_BG = 'linear-gradient(to bottom, rgba(0,0,0,0), #fff 400rpx), linear-gradient(to right, #beecd8 20%, #f4E2D8)';
+const ANALYSIS_ALARM_LIST_KEY = 'analysis_alarm_list_payload';
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -396,6 +402,30 @@ function deltaClass(value) {
   const num = Number(value);
   if (!Number.isFinite(num) || num === 0) return 'deltaFlat';
   return num > 0 ? 'deltaUp' : 'deltaDown';
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function hashText(text) {
+  return String(text || '').split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+}
+
+function buildIncidentStatusMeta(item) {
+  const seed = hashText(`${item.id}${item.address}${item.type}`);
+  const ageHours = Math.max(1, Math.round((Date.now() - new Date(item.time).getTime()) / 3600000));
+  if (ageHours > 24 && seed % 11 < 3) return { key: 'overdue', text: '超期' };
+  if (ageHours > 6 && seed % 10 < 5) return { key: 'pending', text: '未回告' };
+  return { key: 'done', text: '已回告' };
+}
+
+function buildIncidentTitle(item) {
+  if (item.type === '刑事') return '刑事警情';
+  if (item.type === '行政') return '行政警情';
+  return `${item.type}警情`;
 }
 
 function getWeekInfo(date) {
@@ -592,6 +622,11 @@ const topChartOpts = ref({
 const areaLabel = computed(() => getAreaLabel(filter.area));
 const timeFilterSummary = computed(() => (filter.preset === 'CUSTOM' ? '自定义' : presetLabel(filter.preset)));
 const scopeDisplay = computed(() => getScopeDisplay(filter));
+const scopeHeadline = computed(() => {
+  const { title, sub } = scopeDisplay.value;
+  if (!sub || sub === '当天' || sub === '自定义时间范围') return title;
+  return `${title}（${sub}）`;
+});
 
 const scopedIncidents = computed(() => {
   const start = startOfDay(parseDateText(filter.start)).getTime();
@@ -611,6 +646,7 @@ const detailIncidents = computed(() => {
 
 const activeCategoryLabel = computed(() => (activeCategory.value === 'ALL' ? '全部警情' : getCategoryLabel(activeCategory.value)));
 const detailScopeText = computed(() => `${scopeDisplay.value.title}${scopeDisplay.value.sub ? ` · ${scopeDisplay.value.sub}` : ''} · ${areaLabel.value}`);
+const reportTitle = computed(() => (activeCategory.value === 'ALL' ? '分析报告：全部警情' : `分析报告：${activeCategoryLabel.value}警情`));
 
 function getCurrentRange() {
   return {
@@ -963,6 +999,40 @@ function confirmCurrentFilter() {
 function toggleCategory(categoryKey) {
   activeCategory.value = activeCategory.value === categoryKey ? 'ALL' : categoryKey;
 }
+
+function buildAlarmListPayload() {
+  return {
+    reportTitle: reportTitle.value,
+    scopeTitle: scopeDisplay.value.title,
+    scopeSub: scopeDisplay.value.sub,
+    areaLabel: areaLabel.value,
+    categoryKey: activeCategory.value,
+    categoryLabel: activeCategoryLabel.value,
+    items: detailIncidents.value
+      .slice()
+      .sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime())
+      .map((item) => {
+        const statusMeta = buildIncidentStatusMeta(item);
+        return {
+          id: item.id,
+          title: buildIncidentTitle(item),
+          address: item.address,
+          time: item.time,
+          timeText: formatDateTime(item.time),
+          statusKey: statusMeta.key,
+          statusText: statusMeta.text,
+          area: item.area,
+          rawType: item.type,
+          categoryLabel: getCategoryLabel(getCategoryKey(item.type)),
+        };
+      }),
+  };
+}
+
+function openAlarmList() {
+  uni.setStorageSync(ANALYSIS_ALARM_LIST_KEY, buildAlarmListPayload());
+  uni.navigateTo({ url: '/pages/analysis/alarmList' });
+}
 </script>
 
 <style lang="scss" scoped>
@@ -986,21 +1056,22 @@ function toggleCategory(categoryKey) {
 
 .filterBar {
   display: flex;
-  gap: 16rpx;
-  padding: 10rpx;
-  margin-top: 14rpx;
-  margin-bottom: 18rpx;
+  gap: 12rpx;
+  padding: 8rpx;
+  margin-top: 12rpx;
+  margin-bottom: 14rpx;
 }
 
 .filterItem {
   flex: 1;
-  min-height: 70rpx;
-  border-radius: 16rpx;
+  min-height: 72rpx;
+  padding: 0 18rpx;
+  border-radius: 14rpx;
   background: linear-gradient(180deg, #fafdff 0%, #ffffff 100%);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4rpx;
+  justify-content: space-between;
+  gap: 18rpx;
   border: 2rpx solid transparent;
 }
 
@@ -1010,19 +1081,32 @@ function toggleCategory(categoryKey) {
 }
 
 .filterLabel {
-  font-size: 20rpx;
+  font-size: 24rpx;
   color: var(--text-sub);
+  flex-shrink: 0;
+}
+
+.filterValueWrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+  min-width: 0;
+  flex: 1;
 }
 
 .filterValue {
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: var(--text-main);
   font-weight: 600;
+  min-width: 0;
+  text-align: right;
 }
 
 .filterArrow {
   font-size: 18rpx;
   color: var(--blue-main);
+  flex-shrink: 0;
 }
 
 .sheetLayer {
@@ -1196,47 +1280,32 @@ function toggleCategory(categoryKey) {
 }
 
 .scopeCard {
-  padding: 22rpx 20rpx;
+  padding: 18rpx 20rpx;
   margin-bottom: 18rpx;
 }
 
-.scopeTitleRow {
+.scopeMetaRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 18rpx;
+  margin-bottom: 14rpx;
 }
 
-.scopeTitleWrap {
+.scopeMetaMain {
   flex: 1;
-}
-
-.scopeTitle {
-  display: block;
-  font-size: 34rpx;
-  line-height: 1.2;
+  min-width: 0;
+  font-size: 27rpx;
+  line-height: 1.35;
   color: var(--text-main);
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.scopeSub {
-  display: block;
-  margin-top: 8rpx;
+.scopeMetaSide {
+  flex-shrink: 0;
   font-size: 24rpx;
+  line-height: 1.35;
   color: var(--text-sub);
-}
-
-.scopeArea {
-  display: block;
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: var(--text-sub);
-}
-
-.scopeDivider {
-  height: 2rpx;
-  margin: 24rpx 0;
-  background: #ebf0f7;
 }
 
 .scopeTotalRow {
@@ -1244,28 +1313,23 @@ function toggleCategory(categoryKey) {
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
+  min-height: 62rpx;
 }
 
-.scopeTotalMain {
-  flex: 1;
+.scopeMetricGroup {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.scopeCompareText {
-  font-size: 24rpx;
-  text-align: right;
-  flex-shrink: 0;
+  gap: 14rpx;
+  flex: 1;
 }
 
 .scopeCompareBlock {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8rpx;
+  gap: 6rpx;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .compareMeta {
@@ -1273,13 +1337,12 @@ function toggleCategory(categoryKey) {
   color: var(--text-sub);
 }
 
-.compareDivider {
-  font-size: 22rpx;
-  color: #a9b3c2;
+.compareMetaGap {
+  margin-left: 10rpx;
 }
 
 .compareValue {
-  font-size: 24rpx;
+  font-size: 25rpx;
   font-weight: 700;
 }
 
@@ -1304,9 +1367,7 @@ function toggleCategory(categoryKey) {
 .scopeTotalValueWrap {
   display: flex;
   align-items: baseline;
-  justify-content: center;
-  gap: 8rpx;
-  flex: 1;
+  gap: 6rpx;
 }
 
 .scopeTotalValue {
@@ -1390,6 +1451,13 @@ function toggleCategory(categoryKey) {
   margin-bottom: 18rpx;
 }
 
+.detailBarHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
 .detailBarTitle {
   display: block;
   font-size: 30rpx;
@@ -1397,11 +1465,34 @@ function toggleCategory(categoryKey) {
   font-weight: 700;
 }
 
+.detailBarEntry {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  flex-shrink: 0;
+}
+
+.detailBarLink {
+  font-size: 24rpx;
+  color: var(--blue-main);
+  font-weight: 600;
+}
+
+.detailBarArrow {
+  font-size: 28rpx;
+  color: var(--blue-main);
+  line-height: 1;
+}
+
 .detailBarDesc {
   display: block;
   margin-top: 8rpx;
   font-size: 24rpx;
   color: var(--text-sub);
+}
+
+.pressing {
+  opacity: 0.9;
 }
 
 .modeCard {
