@@ -7,7 +7,7 @@ import {
   getIntelligenceSummary,
   getMapMarkersFromItems,
 } from '../services/intelligence.js';
-import { buildMapBridgeSrc, DEFAULT_MAP_VIEW } from '../services/mapEmbed.js';
+import { buildMapBridgeSrc, DEFAULT_MAP_VIEW, shouldAutoLoadMap } from '../services/mapEmbed.js';
 
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
@@ -21,6 +21,7 @@ export function useIntelligencePage() {
   const loading = ref(false);
   const summary = ref({ total: 0, highRisk: 0, mapped: 0, domainCounts: {} });
   const selectedItemId = ref('');
+  const mapEnabled = ref(shouldAutoLoadMap());
   const mapSrc = ref(buildMapBridgeSrc(DEFAULT_MAP_VIEW));
   const mapController = ref(null);
   const lastViewport = ref(null);
@@ -141,6 +142,10 @@ export function useIntelligencePage() {
     mapController.value = controller;
   }
 
+  function handleMapActivate() {
+    mapEnabled.value = true;
+  }
+
   function handleMapEvent(event) {
     if (!event) return;
     if (event.type === 'ready') {
@@ -172,6 +177,7 @@ export function useIntelligencePage() {
   onShow(() => {
     const sys = uni.getSystemInfoSync();
     safeBottom.value = sys.safeAreaInsets?.bottom || 0;
+    mapEnabled.value = shouldAutoLoadMap();
     mapSrc.value = buildMapBridgeSrc({
       ...DEFAULT_MAP_VIEW,
       layers: currentAction.value.mapLayers,
@@ -195,6 +201,7 @@ export function useIntelligencePage() {
     items,
     loading,
     selectedItemId,
+    mapEnabled,
     mapSrc,
     sheetState,
     handleSearch,
@@ -202,6 +209,7 @@ export function useIntelligencePage() {
     handleCardSelect,
     handleCardNavigate,
     handleMapControllerReady,
+    handleMapActivate,
     handleMapEvent,
     handleSheetStateChange,
   };

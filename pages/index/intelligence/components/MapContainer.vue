@@ -1,12 +1,21 @@
 <template>
   <view class="map-container">
     <web-view
-      v-if="shouldRenderWebview"
+      v-if="enabled && shouldRenderWebview"
       ref="webviewRef"
       class="map-webview"
       :src="activeSrc"
       @message="handleMessage"
     />
+    <view v-if="!enabled" class="map-placeholder">
+      <view class="map-placeholder__content">
+        <text class="map-placeholder__title">地图已暂停加载</text>
+        <text class="map-placeholder__desc">当前以安全模式启动，避免 App 在进入情报页时崩溃。</text>
+        <view class="map-placeholder__button" @tap="emit('activate-request')">
+          <text class="map-placeholder__button-text">点击加载地图</text>
+        </view>
+      </view>
+    </view>
     <view v-if="showFallback" class="map-fallback">
       <text class="map-fallback__title">地图暂时不可用</text>
       <text class="map-fallback__desc">{{ fallbackText }}</text>
@@ -21,10 +30,11 @@ import { MAP_ADAPTER_TYPES } from '../adapters/map/types.js';
 
 const props = defineProps({
   src: { type: String, required: true },
+  enabled: { type: Boolean, default: true },
   adapterType: { type: String, default: MAP_ADAPTER_TYPES.WEBVIEW },
 });
 
-const emit = defineEmits(['ready', 'map-event']);
+const emit = defineEmits(['ready', 'map-event', 'activate-request']);
 
 const webviewRef = ref(null);
 const shouldRenderWebview = ref(false);
@@ -100,6 +110,20 @@ watch(
   }
 );
 
+watch(
+  () => props.enabled,
+  (nextEnabled) => {
+    if (nextEnabled) {
+      scheduleWebviewMount(props.src);
+      return;
+    }
+    clearMountTimer();
+    clearReadyTimer();
+    shouldRenderWebview.value = false;
+    activeSrc.value = '';
+  }
+);
+
 onMounted(() => {
   adapter.setHost({
     evalJS(script) {
@@ -112,7 +136,9 @@ onMounted(() => {
     },
   });
   adapter.setSource(props.src);
-  scheduleWebviewMount(props.src);
+  if (props.enabled) {
+    scheduleWebviewMount(props.src);
+  }
   emit('ready', controller);
 });
 
@@ -173,6 +199,60 @@ defineExpose(controller);
 
 .map-container {
   position: relative;
+  background:
+    radial-gradient(circle at top left, rgba(84, 145, 255, 0.22), transparent 28%),
+    linear-gradient(180deg, #eef4f8 0%, #dbe6ef 100%);
+}
+
+.map-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+}
+
+.map-placeholder__content {
+  width: 100%;
+  max-width: 520rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 20rpx 42rpx rgba(20, 44, 65, 0.12);
+}
+
+.map-placeholder__title {
+  display: block;
+  color: #1f3346;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.map-placeholder__desc {
+  display: block;
+  margin-top: 10rpx;
+  color: #667b8f;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.map-placeholder__button {
+  margin-top: 18rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 76rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: #1f7cff;
+  box-shadow: 0 16rpx 28rpx rgba(31, 124, 255, 0.24);
+}
+
+.map-placeholder__button-text {
+  color: #f7fbff;
+  font-size: 26rpx;
+  font-weight: 700;
 }
 
 .map-fallback {

@@ -25,6 +25,7 @@ const MAP_PAGE_URL_KEY = 'intelligence_map_page_url';
 const MAP_EMBED_URL_KEY = 'intelligence_map_embed_url';
 const MAP_DEBUG_FALLBACK_KEY = 'intelligence_map_debug_fallback';
 const MAP_DEBUG_HUD_KEY = 'intelligence_map_debug_hud';
+const MAP_AUTO_LOAD_KEY = 'intelligence_map_auto_load';
 
 export function getConfiguredMapPageUrl() {
   return uni.getStorageSync(MAP_PAGE_URL_KEY) || DEFAULT_REAL_MAP_PAGE_URL;
@@ -42,6 +43,20 @@ export function isDebugMapFallbackEnabled() {
 export function isDebugMapHudEnabled() {
   const value = uni.getStorageSync(MAP_DEBUG_HUD_KEY);
   return value === true || value === '1' || value === 1;
+}
+
+export function shouldAutoLoadMap() {
+  const override = uni.getStorageSync(MAP_AUTO_LOAD_KEY);
+  if (override === true || override === '1' || override === 1) {
+    return true;
+  }
+  if (override === false || override === '0' || override === 0) {
+    return false;
+  }
+
+  const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
+  const platform = String(systemInfo.uniPlatform || systemInfo.platform || '').toLowerCase();
+  return platform !== 'app-plus';
 }
 
 export function buildMapBridgeSrc(options = {}) {

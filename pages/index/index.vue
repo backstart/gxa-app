@@ -2,8 +2,10 @@
   <view class="intelligence-page">
     <MapContainer
       class="map-layer"
+      :enabled="mapEnabled"
       :src="mapSrc"
       @ready="handleMapControllerReady"
+      @activate-request="handleMapActivate"
       @map-event="handleMapEvent"
     />
 
@@ -88,6 +90,7 @@ const {
   items,
   loading,
   selectedItemId,
+  mapEnabled,
   mapSrc,
   sheetState,
   handleSearch,
@@ -95,6 +98,7 @@ const {
   handleCardSelect,
   handleCardNavigate,
   handleMapControllerReady,
+  handleMapActivate,
   handleMapEvent,
   handleSheetStateChange,
 } = useIntelligencePage();
