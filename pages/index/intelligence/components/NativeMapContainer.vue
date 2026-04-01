@@ -15,14 +15,13 @@
         :enable-zoom="true"
         :show-location="false"
         :enable-poi="true"
-        @updated="handleMapUpdated"
         @tap="handleMapTap"
         @markertap="handleMarkerTap"
         @regionchange="handleRegionChange"
       />
       <!-- #endif -->
 
-      <view v-if="!useSystemMap" class="native-map__preview">
+      <view v-if="!useSystemMap" :class="['native-map__preview', previewScene.className]">
         <view class="native-map__grid"></view>
         <view class="native-map__water native-map__water--one"></view>
         <view class="native-map__water native-map__water--two"></view>
@@ -38,11 +37,6 @@
           :class="['native-map__label', label.className]"
         >
           {{ label.text }}
-        </view>
-
-        <view class="native-map__head">
-          <text class="native-map__title">原生地图承载</text>
-          <text class="native-map__meta">{{ mapMetaText }}</text>
         </view>
 
         <view class="native-map__layers">
@@ -67,10 +61,6 @@
             <view class="native-map__marker-dot" :style="{ backgroundColor: marker.color }"></view>
             <text class="native-map__marker-label">{{ marker.label }}</text>
           </view>
-        </view>
-
-        <view v-if="mapStatusText" class="native-map__status">
-          <text class="native-map__status-text">{{ mapStatusText }}</text>
         </view>
 
         <view class="native-map__bottom-shade" :style="{ height: `${viewportBottomPx}px` }"></view>
@@ -107,7 +97,6 @@ const emit = defineEmits(['ready', 'map-event', 'activate-request']);
 
 const instance = getCurrentInstance();
 const mapContext = ref(null);
-const mapUpdated = ref(false);
 const renderState = reactive({
   ready: false,
   center: [113.4445, 22.4915],
@@ -121,41 +110,71 @@ const renderState = reactive({
   geojson: null,
 });
 
-const mapLabels = [
-  { id: 'road-1', text: '桂南路', className: 'native-map__label--one' },
-  { id: 'road-2', text: '福耀片区', className: 'native-map__label--two' },
-  { id: 'road-3', text: '龙井路', className: 'native-map__label--three' },
-];
-
-const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
-const platform = String(systemInfo.uniPlatform || systemInfo.platform || '').toLowerCase();
-const useSystemMap = platform === 'app-plus';
+const useSystemMap = ref(false);
+// #ifdef APP-PLUS
+useSystemMap.value = true;
+// #endif
 
 const visibleLayerPills = computed(() => {
   if (!renderState.layers.length) return ['警情', '场所', '人员'];
   return renderState.layers.slice(0, 4);
 });
 
-const mapMetaText = computed(() => {
-  const center = `${renderState.center[0].toFixed(4)}, ${renderState.center[1].toFixed(4)}`;
-  const sourceText = renderState.source === 'embed-config' ? '服务配置' : '本地默认';
-  return `${sourceText} · 中心 ${center} · Z${Number(renderState.zoom || 0).toFixed(1)}`;
-});
-
-const mapStatusText = computed(() => {
-  if (useSystemMap && mapUpdated.value) {
-    return `原生底图已加载 · ${renderState.markers.length} 个点位`;
-  }
-  if (useSystemMap) {
-    return '原生底图初始化中';
-  }
-  return '当前运行在预览兜底层';
-});
-
 const viewportBottomPx = computed(() => Math.max(Number(renderState.viewportInset?.bottom || 0), 0));
 const mapLongitude = computed(() => Number(renderState.center[0] || 113.4445));
 const mapLatitude = computed(() => Number(renderState.center[1] || 22.4915));
 const mapScale = computed(() => clampZoom(renderState.zoom));
+
+const activeSceneKey = computed(() => resolveSceneKey(renderState.layers));
+
+const previewScene = computed(() => {
+  const sceneMap = {
+    alerts: {
+      className: 'native-map__preview--alerts',
+      labels: [
+        { id: 'road-1', text: '桂南路', className: 'native-map__label--one' },
+        { id: 'road-2', text: '纠纷高发区', className: 'native-map__label--two' },
+        { id: 'road-3', text: '布控网格', className: 'native-map__label--three' },
+      ],
+    },
+    places: {
+      className: 'native-map__preview--places',
+      labels: [
+        { id: 'road-1', text: '龙井坊KTV', className: 'native-map__label--one' },
+        { id: 'road-2', text: '重点场所', className: 'native-map__label--two' },
+        { id: 'road-3', text: '巡查路线', className: 'native-map__label--three' },
+      ],
+    },
+    people: {
+      className: 'native-map__preview--people',
+      labels: [
+        { id: 'road-1', text: '居住片区', className: 'native-map__label--one' },
+        { id: 'road-2', text: '重点人员', className: 'native-map__label--two' },
+        { id: 'road-3', text: '走访路线', className: 'native-map__label--three' },
+      ],
+    },
+    handling: {
+      className: 'native-map__preview--handling',
+      labels: [
+        { id: 'road-1', text: '出警路线', className: 'native-map__label--one' },
+        { id: 'road-2', text: '警力调度', className: 'native-map__label--two' },
+        { id: 'road-3', text: '警情联动', className: 'native-map__label--three' },
+      ],
+    },
+    patrol: {
+      className: 'native-map__preview--patrol',
+      labels: [
+        { id: 'road-1', text: '巡防路线', className: 'native-map__label--one' },
+        { id: 'road-2', text: '卡点布控', className: 'native-map__label--two' },
+        { id: 'road-3', text: '片区边界', className: 'native-map__label--three' },
+      ],
+    },
+  };
+
+  return sceneMap[activeSceneKey.value] || sceneMap.alerts;
+});
+
+const mapLabels = computed(() => previewScene.value.labels);
 
 const nativeMarkerPayload = computed(() => {
   const lookup = {};
@@ -289,7 +308,7 @@ onMounted(async () => {
   adapter.setSource(props.src);
   adapter.init(props.initialView || {});
 
-  if (useSystemMap) {
+  if (useSystemMap.value) {
     await nextTick();
     tryCreateMapContext();
   }
@@ -309,10 +328,6 @@ function tryCreateMapContext() {
     console.warn('[NativeMapContainer] createMapContext failed', error);
     mapContext.value = null;
   }
-}
-
-function handleMapUpdated() {
-  mapUpdated.value = true;
 }
 
 function handleMapTap(event) {
@@ -404,6 +419,14 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
+function resolveSceneKey(layers = []) {
+  if (layers.includes('places')) return 'places';
+  if (layers.includes('pois')) return 'people';
+  if (layers.includes('boundaries')) return 'patrol';
+  if (layers.includes('shops')) return 'handling';
+  return 'alerts';
+}
+
 function toNativePolygons(featureCollection) {
   const features = Array.isArray(featureCollection?.features) ? featureCollection.features : [];
   return features
@@ -477,6 +500,41 @@ function toPolygonPoints(points = []) {
     radial-gradient(circle at top left, rgba(110, 186, 133, 0.18), transparent 22%),
     radial-gradient(circle at 84% 18%, rgba(66, 153, 225, 0.14), transparent 20%),
     linear-gradient(180deg, #eef3eb 0%, #dce6ef 100%);
+}
+
+.native-map__preview--alerts {
+  background:
+    radial-gradient(circle at 12% 30%, rgba(255, 117, 84, 0.18), transparent 18%),
+    radial-gradient(circle at 82% 74%, rgba(255, 187, 92, 0.16), transparent 18%),
+    linear-gradient(180deg, #eef3eb 0%, #dce6ef 100%);
+}
+
+.native-map__preview--places {
+  background:
+    radial-gradient(circle at 12% 30%, rgba(63, 147, 255, 0.18), transparent 18%),
+    radial-gradient(circle at 82% 74%, rgba(116, 176, 255, 0.15), transparent 18%),
+    linear-gradient(180deg, #edf5fb 0%, #d9e6f4 100%);
+}
+
+.native-map__preview--people {
+  background:
+    radial-gradient(circle at 12% 30%, rgba(69, 196, 129, 0.16), transparent 18%),
+    radial-gradient(circle at 82% 74%, rgba(141, 225, 184, 0.14), transparent 18%),
+    linear-gradient(180deg, #eef7f1 0%, #dbece4 100%);
+}
+
+.native-map__preview--handling {
+  background:
+    radial-gradient(circle at 12% 30%, rgba(255, 178, 62, 0.2), transparent 18%),
+    radial-gradient(circle at 82% 74%, rgba(255, 215, 140, 0.18), transparent 18%),
+    linear-gradient(180deg, #fbf4e8 0%, #eee3cf 100%);
+}
+
+.native-map__preview--patrol {
+  background:
+    radial-gradient(circle at 12% 30%, rgba(126, 104, 255, 0.16), transparent 18%),
+    radial-gradient(circle at 82% 74%, rgba(177, 157, 255, 0.16), transparent 18%),
+    linear-gradient(180deg, #f2effb 0%, #e4def5 100%);
 }
 
 .native-map__overlay {
@@ -577,34 +635,10 @@ function toPolygonPoints(points = []) {
   top: 48%;
 }
 
-.native-map__head {
-  position: absolute;
-  left: 24rpx;
-  top: 24rpx;
-  z-index: 9;
-  display: grid;
-  gap: 6rpx;
-  padding: 18rpx 20rpx;
-  border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 16rpx 28rpx rgba(17, 39, 57, 0.1);
-}
-
-.native-map__title {
-  color: #1f3346;
-  font-size: 26rpx;
-  font-weight: 700;
-}
-
-.native-map__meta {
-  color: #5f7386;
-  font-size: 20rpx;
-}
-
 .native-map__layers {
   position: absolute;
   right: 24rpx;
-  top: 30rpx;
+  top: 126rpx;
   z-index: 9;
   display: flex;
   flex-wrap: wrap;
@@ -658,22 +692,6 @@ function toPolygonPoints(points = []) {
 
 .native-map__marker.active .native-map__marker-dot {
   transform: scale(1.2);
-}
-
-.native-map__status {
-  position: absolute;
-  left: 24rpx;
-  bottom: 24rpx;
-  z-index: 9;
-  padding: 10rpx 16rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 14rpx 26rpx rgba(17, 39, 57, 0.1);
-}
-
-.native-map__status-text {
-  color: #4d6275;
-  font-size: 22rpx;
 }
 
 .native-map__bottom-shade {
