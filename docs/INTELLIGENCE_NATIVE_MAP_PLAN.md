@@ -138,6 +138,8 @@ service 层负责：
 - 已落 `NativeMapContainer` 和 `NativeMapAdapter`
 - `APP-PLUS` 下已优先切到 uni-app 原生 `map` 组件
 - 已接入 `/api/embed/config` 作为原生地图初始化配置来源
+- 已接入 `/api/embed/geojson/{type}` 作为当前分类区域绘制来源
+- 已接入 `/api/embed/object/{type}/{id}` 作为选中卡片的对象几何详情来源
 - 当前仍不是正式地图 SDK 深度接入版，图层和 GeoJSON 能力还是最小可用
 
 阶段三：
@@ -156,6 +158,6 @@ service 层负责：
 
 1. 引入真正的原生地图运行时或插件
 2. 用原生 SDK 替换 `NativeMapContainer` 的预览渲染实现
-3. 把 `/api/embed/*` 与原生地图数据请求串起来
-4. 增加真实视野查询、bbox 拉取、附近查询和对象详情联动
+3. 增加真实视野查询、bbox 拉取和附近查询
+4. 把对象详情联动从 mock fallback 收敛到真实业务对象 id
 5. 把 WebView 路线进一步收口到实验页和兼容场景

@@ -49,6 +49,14 @@ export const INTELLIGENCE_ACTIONS = [
   },
 ];
 
+const DOMAIN_GEO_TYPES = {
+  alerts: 'areas',
+  places: 'places',
+  people: 'pois',
+  handling: 'shops',
+  patrol: 'boundaries',
+};
+
 function hashSeed(text) {
   return String(text || '')
     .split('')
@@ -86,6 +94,8 @@ function normalizeAlert(item) {
     url: item.url || '/pages/policeDetail/policeDetail',
     coordinate,
     mapZoom: 14,
+    mapObjectType: item.mapObjectType || '',
+    mapObjectId: item.mapObjectId || '',
   };
 }
 
@@ -105,6 +115,8 @@ function normalizePlace(item) {
     url: item.url || '/pages/place/list',
     coordinate,
     mapZoom: 15,
+    mapObjectType: item.mapObjectType || 'place',
+    mapObjectId: item.mapObjectId || String(item.id),
   };
 }
 
@@ -124,6 +136,8 @@ function normalizePerson(item) {
     url: `/pages/person/detail?personId=${item.personId}`,
     coordinate,
     mapZoom: 15,
+    mapObjectType: item.mapObjectType || '',
+    mapObjectId: item.mapObjectId || '',
   };
 }
 
@@ -144,6 +158,8 @@ function normalizePatrol(item, index) {
     url: item.url || '/pages/work/work',
     coordinate,
     mapZoom: 13,
+    mapObjectType: item.mapObjectType || 'boundary',
+    mapObjectId: item.mapObjectId || String(id),
   };
 }
 
@@ -261,4 +277,90 @@ export function getMapMarkersFromItems(items = []) {
       label: item.title,
       color: item.riskLevel === '高' ? '#de5a39' : item.riskLevel === '低' ? '#28a060' : '#1f7cff',
     }));
+}
+
+export function getMapGeoTypeByDomain(domain = 'alerts') {
+  return DOMAIN_GEO_TYPES[domain] || 'areas';
+}
+
+export function buildMockGeoJSONForDomain(domain = 'alerts', items = []) {
+  const palette = {
+    alerts: '#de5a39',
+    places: '#1f7cff',
+    people: '#28a060',
+    handling: '#f4a524',
+    patrol: '#7b5cff',
+  };
+
+  const seeds = items.filter((item) => Array.isArray(item.coordinate)).slice(0, 3);
+  if (!seeds.length) {
+    return {
+      type: 'FeatureCollection',
+      features: [],
+    };
+  }
+
+  const features = seeds.map((item, index) => {
+    const polygon = buildSquarePolygon(item.coordinate, 0.0032 + index * 0.0012);
+    return {
+      type: 'Feature',
+      id: item.id,
+      properties: {
+        id: item.id,
+        name: item.title,
+        domain,
+        color: palette[domain] || '#1f7cff',
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [polygon],
+      },
+    };
+  });
+
+  return {
+    type: 'FeatureCollection',
+    features,
+  };
+}
+
+export function buildMockGeoJSONForItem(item, domain = 'alerts') {
+  if (!item || !Array.isArray(item.coordinate)) {
+    return {
+      type: 'FeatureCollection',
+      features: [],
+    };
+  }
+
+  const radius = item.type === 'patrol' ? 0.0052 : item.type === 'place' ? 0.0024 : 0.003;
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        id: item.id,
+        properties: {
+          id: item.id,
+          name: item.title,
+          domain,
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [buildSquarePolygon(item.coordinate, radius)],
+        },
+      },
+    ],
+  };
+}
+
+function buildSquarePolygon(center, delta = 0.003) {
+  const lng = Number(center[0]);
+  const lat = Number(center[1]);
+  return [
+    [Number((lng - delta).toFixed(6)), Number((lat - delta * 0.72).toFixed(6))],
+    [Number((lng + delta).toFixed(6)), Number((lat - delta * 0.72).toFixed(6))],
+    [Number((lng + delta).toFixed(6)), Number((lat + delta * 0.72).toFixed(6))],
+    [Number((lng - delta).toFixed(6)), Number((lat + delta * 0.72).toFixed(6))],
+    [Number((lng - delta).toFixed(6)), Number((lat - delta * 0.72).toFixed(6))],
+  ];
 }
