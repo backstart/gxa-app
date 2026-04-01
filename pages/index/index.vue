@@ -1,5 +1,6 @@
 <template>
   <view class="intelligence-page">
+    <!-- #ifndef APP-PLUS -->
     <MapContainer
       class="map-layer"
       :enabled="mapEnabled"
@@ -8,6 +9,17 @@
       @activate-request="handleMapActivate"
       @map-event="handleMapEvent"
     />
+    <!-- #endif -->
+    <!-- #ifdef APP-PLUS -->
+    <view class="map-layer app-safe-map-shell">
+      <view class="app-safe-map-shell__glow app-safe-map-shell__glow--one"></view>
+      <view class="app-safe-map-shell__glow app-safe-map-shell__glow--two"></view>
+      <view class="app-safe-map-shell__card">
+        <text class="app-safe-map-shell__title">情报地图暂以安全模式运行</text>
+        <text class="app-safe-map-shell__desc">当前先关闭原生 `web-view` 地图承载，避免 App 启动时崩溃。底部情报面板和业务列表仍可正常使用。</text>
+      </view>
+    </view>
+    <!-- #endif -->
 
     <view class="top-overlay" :style="{ paddingTop: `${safeTop + 8}px` }">
       <view class="title-pill">
@@ -70,7 +82,9 @@
 </template>
 
 <script setup>
+// #ifndef APP-PLUS
 import MapContainer from './intelligence/components/MapContainer.vue';
+// #endif
 import BottomSheet from './intelligence/components/BottomSheet.vue';
 import SearchBar from './intelligence/components/SearchBar.vue';
 import QuickActions from './intelligence/components/QuickActions.vue';
@@ -115,6 +129,64 @@ const {
 .map-layer {
   position: absolute;
   inset: 0;
+}
+
+.app-safe-map-shell {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(42, 132, 255, 0.24), transparent 24%),
+    radial-gradient(circle at 86% 18%, rgba(0, 194, 168, 0.18), transparent 22%),
+    linear-gradient(180deg, #e8f0f6 0%, #dbe5ef 100%);
+}
+
+.app-safe-map-shell__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(18rpx);
+  opacity: 0.7;
+}
+
+.app-safe-map-shell__glow--one {
+  top: 12%;
+  left: -8%;
+  width: 280rpx;
+  height: 280rpx;
+  background: rgba(47, 128, 237, 0.26);
+}
+
+.app-safe-map-shell__glow--two {
+  right: -10%;
+  top: 28%;
+  width: 360rpx;
+  height: 360rpx;
+  background: rgba(12, 186, 154, 0.16);
+}
+
+.app-safe-map-shell__card {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  top: 180rpx;
+  padding: 28rpx 30rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 20rpx 44rpx rgba(17, 39, 57, 0.1);
+}
+
+.app-safe-map-shell__title {
+  display: block;
+  color: #203243;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.app-safe-map-shell__desc {
+  display: block;
+  margin-top: 12rpx;
+  color: #5f7386;
+  font-size: 24rpx;
+  line-height: 1.7;
 }
 
 .top-overlay {
