@@ -90,6 +90,7 @@ import { computed, ref } from 'vue';
 import { onLoad, onUnload } from '@dcloudio/uni-app';
 import { getStatusBarHeight } from '@/utils/system.js';
 
+const REMOTE_EMBED_LITE_URL = 'http://159.75.54.99:8002/embed/map?readonly=1&debug=1&lite=1';
 const REMOTE_EMBED_URL = 'http://159.75.54.99:8002/embed/map?readonly=1&debug=1';
 const LOCAL_BLANK_URL = '/static/map/lab-blank.html';
 const LOCAL_BRIDGE_URL = '/static/map/fuyaomap-bridge.html?debugFallback=1&showHud=1';
@@ -116,9 +117,15 @@ const modes = [
     src: LOCAL_BRIDGE_URL,
   },
   {
+    key: 'remote-lite',
+    label: '远程轻量页',
+    desc: '加载远程嵌入页，但跳过地图内核初始化。',
+    src: REMOTE_EMBED_LITE_URL,
+  },
+  {
     key: 'remote',
-    label: '远程嵌入页',
-    desc: '直接验证 /embed/map 是否会触发问题。',
+    label: '远程地图内核',
+    desc: '直接验证 /embed/map 的地图内核是否会触发问题。',
     src: REMOTE_EMBED_URL,
   },
 ];
