@@ -1,9 +1,10 @@
 <template>
   <view class="map-container">
     <web-view
+      v-if="shouldRenderWebview"
       ref="webviewRef"
       class="map-webview"
-      :src="src"
+      :src="activeSrc"
       @message="handleMessage"
     />
     <view v-if="showFallback" class="map-fallback">
@@ -14,7 +15,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { createMapAdapter } from '../adapters/map/createMapAdapter.js';
 import { MAP_ADAPTER_TYPES } from '../adapters/map/types.js';
 
@@ -26,9 +27,12 @@ const props = defineProps({
 const emit = defineEmits(['ready', 'map-event']);
 
 const webviewRef = ref(null);
+const shouldRenderWebview = ref(false);
+const activeSrc = ref('');
 const showFallback = ref(false);
 const fallbackText = ref('请稍后重试，底部情报面板仍可继续使用。');
 let readyTimer = null;
+let mountTimer = null;
 
 const adapter = createMapAdapter(props.adapterType, {
   onEvent(event) {
@@ -92,9 +96,7 @@ watch(
   () => props.src,
   (nextSrc) => {
     adapter.setSource(nextSrc);
-    showFallback.value = false;
-    fallbackText.value = '请稍后重试，底部情报面板仍可继续使用。';
-    startReadyTimer();
+    scheduleWebviewMount(nextSrc);
   }
 );
 
@@ -110,11 +112,12 @@ onMounted(() => {
     },
   });
   adapter.setSource(props.src);
-  startReadyTimer();
+  scheduleWebviewMount(props.src);
   emit('ready', controller);
 });
 
 onUnmounted(() => {
+  clearMountTimer();
   clearReadyTimer();
   adapter.destroy();
 });
@@ -130,6 +133,32 @@ function startReadyTimer() {
   readyTimer = setTimeout(() => {
     showFallback.value = true;
   }, 12000);
+}
+
+function clearMountTimer() {
+  if (!mountTimer) return;
+  clearTimeout(mountTimer);
+  mountTimer = null;
+}
+
+function scheduleWebviewMount(nextSrc) {
+  clearMountTimer();
+  clearReadyTimer();
+  showFallback.value = false;
+  fallbackText.value = '请稍后重试，底部情报面板仍可继续使用。';
+  shouldRenderWebview.value = false;
+  activeSrc.value = '';
+
+  if (!nextSrc) {
+    return;
+  }
+
+  mountTimer = setTimeout(async () => {
+    activeSrc.value = nextSrc;
+    shouldRenderWebview.value = true;
+    await nextTick();
+    startReadyTimer();
+  }, 450);
 }
 
 defineExpose(controller);

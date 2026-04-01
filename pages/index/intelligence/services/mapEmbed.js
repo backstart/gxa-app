@@ -62,10 +62,6 @@ export function buildMapBridgeSrc(options = {}) {
     debug: isDebugMapHudEnabled() ? '1' : '',
   })}`;
 
-  if (!isDebugMapFallbackEnabled()) {
-    return embeddedUrl;
-  }
-
   const bridgeQuery = buildQuery({
     embeddedUrl,
     pageUrl,
