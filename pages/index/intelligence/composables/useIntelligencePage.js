@@ -13,6 +13,7 @@ import {
   resolvePreferredMapAdapter,
   shouldAutoLoadMap,
 } from '../services/mapEmbed.js';
+import { getNativeMapBootstrapConfig } from '../services/nativeMap.js';
 
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
@@ -29,6 +30,7 @@ export function useIntelligencePage() {
   const mapAdapterType = ref(resolvePreferredMapAdapter());
   const mapEnabled = ref(shouldAutoLoadMap());
   const mapSrc = ref(buildWebViewMapSrc(DEFAULT_MAP_VIEW));
+  const mapInitialView = ref(null);
   const mapController = ref(null);
   const lastViewport = ref(null);
 
@@ -112,6 +114,12 @@ export function useIntelligencePage() {
     await loadDomain(options);
   }
 
+  async function loadMapBootstrap() {
+    mapInitialView.value = await getNativeMapBootstrapConfig({
+      layers: currentAction.value.mapLayers,
+    });
+  }
+
   function handleSearch() {
     committedKeyword.value = keyword.value.trim();
     refreshPage();
@@ -146,6 +154,9 @@ export function useIntelligencePage() {
 
   function handleMapControllerReady(controller) {
     mapController.value = controller;
+    if (mapInitialView.value) {
+      mapController.value.init(mapInitialView.value);
+    }
     syncMapLayers();
     syncMapMarkers(false);
   }
@@ -192,6 +203,7 @@ export function useIntelligencePage() {
       layers: currentAction.value.mapLayers,
       keyword: committedKeyword.value,
     });
+    loadMapBootstrap();
     refreshPage({ focusSelected: false });
   });
 
@@ -213,6 +225,7 @@ export function useIntelligencePage() {
     mapAdapterType,
     mapEnabled,
     mapSrc,
+    mapInitialView,
     sheetState,
     handleSearch,
     handleActionSelect,

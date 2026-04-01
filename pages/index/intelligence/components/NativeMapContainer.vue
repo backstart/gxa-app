@@ -1,55 +1,86 @@
 <template>
   <view class="native-map">
-    <view v-if="enabled" ref="surfaceRef" class="native-map__surface" @tap="handleSurfaceTap">
-      <view class="native-map__grid"></view>
-      <view class="native-map__water native-map__water--one"></view>
-      <view class="native-map__water native-map__water--two"></view>
-      <view class="native-map__road native-map__road--one"></view>
-      <view class="native-map__road native-map__road--two"></view>
-      <view class="native-map__road native-map__road--three"></view>
+    <view v-if="enabled" class="native-map__surface">
+      <!-- #ifdef APP-PLUS -->
+      <map
+        v-if="useSystemMap"
+        :id="mapId"
+        class="native-map__core"
+        :longitude="mapLongitude"
+        :latitude="mapLatitude"
+        :scale="mapScale"
+        :markers="nativeMarkers"
+        :polygons="nativePolygons"
+        :enable-scroll="true"
+        :enable-zoom="true"
+        :show-location="false"
+        :enable-poi="true"
+        @updated="handleMapUpdated"
+        @tap="handleMapTap"
+        @markertap="handleMarkerTap"
+        @regionchange="handleRegionChange"
+      />
+      <!-- #endif -->
 
-      <view
-        v-for="label in mapLabels"
-        :key="label.id"
-        :class="['native-map__label', label.className]"
-      >
-        {{ label.text }}
+      <view v-if="!useSystemMap" class="native-map__preview">
+        <view class="native-map__grid"></view>
+        <view class="native-map__water native-map__water--one"></view>
+        <view class="native-map__water native-map__water--two"></view>
+        <view class="native-map__road native-map__road--one"></view>
+        <view class="native-map__road native-map__road--two"></view>
+        <view class="native-map__road native-map__road--three"></view>
       </view>
 
-      <view
-        v-for="marker in renderMarkers"
-        :key="marker.id"
-        class="native-map__marker"
-        :class="marker.id === renderState.selectedId ? 'active' : ''"
-        :style="{ left: marker.left, top: marker.top }"
-        @tap.stop="handleMarkerTap(marker)"
-      >
-        <view class="native-map__marker-dot" :style="{ backgroundColor: marker.color }"></view>
-        <text class="native-map__marker-label">{{ marker.label }}</text>
-      </view>
-
-      <view class="native-map__head">
-        <text class="native-map__title">NativeMapAdapter</text>
-        <text class="native-map__meta">中心 {{ renderCenterText }} · Z{{ renderZoomText }}</text>
-      </view>
-
-      <view class="native-map__layers">
-        <text
-          v-for="layer in visibleLayerPills"
-          :key="layer"
-          class="native-map__layer-pill"
+      <view class="native-map__overlay">
+        <view
+          v-for="label in mapLabels"
+          :key="label.id"
+          :class="['native-map__label', label.className]"
         >
-          {{ layer }}
-        </text>
-      </view>
+          {{ label.text }}
+        </view>
 
-      <view class="native-map__bottom-shade" :style="{ height: `${viewportBottomPx}px` }"></view>
+        <view class="native-map__head">
+          <text class="native-map__title">原生地图承载</text>
+          <text class="native-map__meta">{{ mapMetaText }}</text>
+        </view>
+
+        <view class="native-map__layers">
+          <text
+            v-for="layer in visibleLayerPills"
+            :key="layer"
+            class="native-map__layer-pill"
+          >
+            {{ layer }}
+          </text>
+        </view>
+
+        <view v-if="!useSystemMap" class="native-map__preview-markers">
+          <view
+            v-for="marker in renderMarkers"
+            :key="marker.id"
+            class="native-map__marker"
+            :class="marker.id === renderState.selectedId ? 'active' : ''"
+            :style="{ left: marker.left, top: marker.top }"
+            @tap.stop="handlePreviewMarkerTap(marker)"
+          >
+            <view class="native-map__marker-dot" :style="{ backgroundColor: marker.color }"></view>
+            <text class="native-map__marker-label">{{ marker.label }}</text>
+          </view>
+        </view>
+
+        <view v-if="mapStatusText" class="native-map__status">
+          <text class="native-map__status-text">{{ mapStatusText }}</text>
+        </view>
+
+        <view class="native-map__bottom-shade" :style="{ height: `${viewportBottomPx}px` }"></view>
+      </view>
     </view>
 
     <view v-else class="native-map__placeholder">
       <view class="native-map__placeholder-card">
         <text class="native-map__placeholder-title">地图已暂停加载</text>
-        <text class="native-map__placeholder-desc">当前地图承载层已抽象为原生优先模式，可在需要时手动恢复。</text>
+        <text class="native-map__placeholder-desc">当前默认优先使用原生地图承载，可在需要时手动恢复。</text>
         <view class="native-map__placeholder-btn" @tap="emit('activate-request')">
           <text class="native-map__placeholder-btn-text">点击加载地图</text>
         </view>
@@ -59,27 +90,35 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { createMapAdapter } from '../adapters/map/createMapAdapter.js';
 import { MAP_ADAPTER_TYPES } from '../adapters/map/types.js';
+
+const MARKER_ICON_PATH = '/static/tabBar/index-h.png';
+const mapId = 'intelligenceNativeMap';
 
 const props = defineProps({
   enabled: { type: Boolean, default: true },
   src: { type: String, default: '' },
+  initialView: { type: Object, default: null },
 });
 
 const emit = defineEmits(['ready', 'map-event', 'activate-request']);
 
-const surfaceRef = ref(null);
+const instance = getCurrentInstance();
+const mapContext = ref(null);
+const mapUpdated = ref(false);
 const renderState = reactive({
   ready: false,
   center: [113.4445, 22.4915],
-  zoom: 12,
+  zoom: 13,
   layers: [],
   markers: [],
   selectedId: '',
   viewportInset: { bottom: 0 },
   mode: 'native-preview',
+  source: 'local-default',
+  geojson: null,
 });
 
 const mapLabels = [
@@ -88,16 +127,73 @@ const mapLabels = [
   { id: 'road-3', text: '龙井路', className: 'native-map__label--three' },
 ];
 
+const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
+const platform = String(systemInfo.uniPlatform || systemInfo.platform || '').toLowerCase();
+const useSystemMap = platform === 'app-plus';
+
 const visibleLayerPills = computed(() => {
   if (!renderState.layers.length) return ['警情', '场所', '人员'];
-  return renderState.layers.slice(0, 3);
+  return renderState.layers.slice(0, 4);
 });
 
-const renderCenterText = computed(
-  () => `${renderState.center[0].toFixed(4)}, ${renderState.center[1].toFixed(4)}`
-);
-const renderZoomText = computed(() => Number(renderState.zoom || 0).toFixed(1));
+const mapMetaText = computed(() => {
+  const center = `${renderState.center[0].toFixed(4)}, ${renderState.center[1].toFixed(4)}`;
+  const sourceText = renderState.source === 'embed-config' ? '服务配置' : '本地默认';
+  return `${sourceText} · 中心 ${center} · Z${Number(renderState.zoom || 0).toFixed(1)}`;
+});
+
+const mapStatusText = computed(() => {
+  if (useSystemMap && mapUpdated.value) {
+    return `原生底图已加载 · ${renderState.markers.length} 个点位`;
+  }
+  if (useSystemMap) {
+    return '原生底图初始化中';
+  }
+  return '当前运行在预览兜底层';
+});
+
 const viewportBottomPx = computed(() => Math.max(Number(renderState.viewportInset?.bottom || 0), 0));
+const mapLongitude = computed(() => Number(renderState.center[0] || 113.4445));
+const mapLatitude = computed(() => Number(renderState.center[1] || 22.4915));
+const mapScale = computed(() => clampZoom(renderState.zoom));
+
+const nativeMarkerPayload = computed(() => {
+  const lookup = {};
+  const list = renderState.markers.map((marker, index) => {
+    const nativeId = index + 1;
+    lookup[nativeId] = marker;
+    return {
+      id: nativeId,
+      longitude: Number(marker.lng),
+      latitude: Number(marker.lat),
+      iconPath: MARKER_ICON_PATH,
+      width: 26,
+      height: 26,
+      alpha: marker.id === renderState.selectedId ? 1 : 0.9,
+      anchor: {
+        x: 0.5,
+        y: 1,
+      },
+      callout: {
+        content: marker.label || '点位',
+        display: 'ALWAYS',
+        padding: 6,
+        borderRadius: 18,
+        fontSize: 12,
+        color: '#ffffff',
+        bgColor: marker.color || '#1f7cff',
+      },
+    };
+  });
+  return {
+    list,
+    lookup,
+  };
+});
+
+const nativeMarkers = computed(() => nativeMarkerPayload.value.list);
+
+const nativePolygons = computed(() => toNativePolygons(renderState.geojson));
 
 const renderMarkers = computed(() =>
   renderState.markers.map((marker, index) => {
@@ -155,7 +251,25 @@ const controller = {
   },
 };
 
-onMounted(() => {
+watch(
+  () => props.initialView,
+  (nextView) => {
+    if (!nextView || typeof nextView !== 'object') return;
+    adapter.init(nextView);
+  },
+  { deep: true }
+);
+
+watch(
+  () => props.enabled,
+  (nextEnabled) => {
+    if (nextEnabled && props.initialView) {
+      adapter.init(props.initialView);
+    }
+  }
+);
+
+onMounted(async () => {
   adapter.setHost({
     syncState(nextState) {
       if (!nextState || typeof nextState !== 'object') return;
@@ -167,10 +281,19 @@ onMounted(() => {
       if (nextState.viewportInset) renderState.viewportInset = { ...renderState.viewportInset, ...nextState.viewportInset };
       if (typeof nextState.ready === 'boolean') renderState.ready = nextState.ready;
       if (nextState.mode) renderState.mode = nextState.mode;
+      if (nextState.source) renderState.source = nextState.source;
+      if (nextState.geojson !== undefined) renderState.geojson = nextState.geojson;
     },
   });
+
   adapter.setSource(props.src);
-  adapter.init();
+  adapter.init(props.initialView || {});
+
+  if (useSystemMap) {
+    await nextTick();
+    tryCreateMapContext();
+  }
+
   emit('ready', controller);
 });
 
@@ -178,22 +301,85 @@ onUnmounted(() => {
   adapter.destroy();
 });
 
-function handleSurfaceTap(event) {
-  const touch = event.changedTouches && event.changedTouches[0];
-  const system = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
-  const width = Number(system.windowWidth || 375);
-  const height = Number(system.windowHeight || 780);
-  const x = Number(touch?.clientX ?? touch?.x ?? width / 2);
-  const y = Number(touch?.clientY ?? touch?.y ?? height / 2);
-  const relativeX = x / width - 0.5;
-  const relativeY = y / height - 0.5;
-  const lng = Number((renderState.center[0] + relativeX * 0.06).toFixed(6));
-  const lat = Number((renderState.center[1] - relativeY * 0.04).toFixed(6));
-  adapter.notifyMapClick({ lng, lat });
+function tryCreateMapContext() {
+  if (typeof uni.createMapContext !== 'function') return;
+  try {
+    mapContext.value = uni.createMapContext(mapId, instance?.proxy);
+  } catch (error) {
+    console.warn('[NativeMapContainer] createMapContext failed', error);
+    mapContext.value = null;
+  }
 }
 
-function handleMarkerTap(marker) {
+function handleMapUpdated() {
+  mapUpdated.value = true;
+}
+
+function handleMapTap(event) {
+  const detail = event?.detail || {};
+  if (Number.isFinite(Number(detail.longitude)) && Number.isFinite(Number(detail.latitude))) {
+    adapter.notifyMapClick({
+      lng: Number(detail.longitude),
+      lat: Number(detail.latitude),
+    });
+    return;
+  }
+  adapter.notifyMapClick({
+    lng: renderState.center[0],
+    lat: renderState.center[1],
+  });
+}
+
+function handleMarkerTap(event) {
+  const nativeId = Number(event?.detail?.markerId);
+  const marker = nativeMarkerPayload.value.lookup[nativeId];
+  if (!marker) return;
   adapter.notifyMarkerClick(marker);
+}
+
+function handlePreviewMarkerTap(marker) {
+  adapter.notifyMarkerClick(marker);
+}
+
+function handleRegionChange(event) {
+  const stage = event?.type || event?.detail?.type;
+  if (stage && stage !== 'end') return;
+  syncViewportState();
+}
+
+function syncViewportState() {
+  if (!mapContext.value) return;
+
+  try {
+    if (typeof mapContext.value.getCenterLocation === 'function') {
+      mapContext.value.getCenterLocation({
+        success(res) {
+          if (Number.isFinite(Number(res?.longitude)) && Number.isFinite(Number(res?.latitude))) {
+            adapter.setCenter([Number(res.longitude), Number(res.latitude)]);
+          }
+        },
+      });
+    }
+
+    if (typeof mapContext.value.getScale === 'function') {
+      mapContext.value.getScale({
+        success(res) {
+          const scale = Number(res?.scale);
+          if (Number.isFinite(scale)) {
+            adapter.setZoom(scale);
+          }
+        },
+      });
+    }
+  } catch (error) {
+    console.warn('[NativeMapContainer] syncViewportState failed', error);
+  }
+}
+
+function clampZoom(value) {
+  const zoom = Number(value || 13);
+  if (!Number.isFinite(zoom)) return 13;
+  return Math.max(5, Math.min(18, Math.round(zoom)));
 }
 
 function projectMarker(marker, index, center, zoom) {
@@ -217,6 +403,52 @@ function projectMarker(marker, index, center, zoom) {
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
+
+function toNativePolygons(featureCollection) {
+  const features = Array.isArray(featureCollection?.features) ? featureCollection.features : [];
+  return features
+    .map((feature, index) => {
+      const geometry = feature?.geometry;
+      if (!geometry || !Array.isArray(geometry.coordinates)) return null;
+
+      if (geometry.type === 'Polygon') {
+        const points = toPolygonPoints(geometry.coordinates[0]);
+        if (!points.length) return null;
+        return {
+          points,
+          strokeWidth: 2,
+          strokeColor: '#1f7cff',
+          fillColor: 'rgba(31,124,255,0.16)',
+          zIndex: 1 + index,
+        };
+      }
+
+      if (geometry.type === 'MultiPolygon') {
+        const firstPolygon = geometry.coordinates[0];
+        const points = toPolygonPoints(firstPolygon && firstPolygon[0]);
+        if (!points.length) return null;
+        return {
+          points,
+          strokeWidth: 2,
+          strokeColor: '#1f7cff',
+          fillColor: 'rgba(31,124,255,0.16)',
+          zIndex: 1 + index,
+        };
+      }
+
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function toPolygonPoints(points = []) {
+  return points
+    .map((point) => ({
+      longitude: Number(point?.[0]),
+      latitude: Number(point?.[1]),
+    }))
+    .filter((point) => Number.isFinite(point.longitude) && Number.isFinite(point.latitude));
+}
 </script>
 
 <style lang="scss" scoped>
@@ -230,14 +462,27 @@ function clamp(value, min, max) {
     linear-gradient(180deg, #eef4f8 0%, #dbe6ef 100%);
 }
 
-.native-map__surface {
+.native-map__surface,
+.native-map__core,
+.native-map__preview {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.native-map__preview {
   overflow: hidden;
   background:
     radial-gradient(circle at top left, rgba(110, 186, 133, 0.18), transparent 22%),
     radial-gradient(circle at 84% 18%, rgba(66, 153, 225, 0.14), transparent 20%),
     linear-gradient(180deg, #eef3eb 0%, #dce6ef 100%);
+}
+
+.native-map__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .native-map__grid {
@@ -332,39 +577,6 @@ function clamp(value, min, max) {
   top: 48%;
 }
 
-.native-map__marker {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  display: grid;
-  justify-items: center;
-  gap: 8rpx;
-  z-index: 8;
-}
-
-.native-map__marker-dot {
-  width: 20rpx;
-  height: 20rpx;
-  border-radius: 999rpx;
-  border: 3rpx solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 12rpx 20rpx rgba(17, 39, 57, 0.12);
-}
-
-.native-map__marker-label {
-  max-width: 180rpx;
-  padding: 6rpx 12rpx;
-  border-radius: 999rpx;
-  background: rgba(20, 44, 65, 0.78);
-  color: #f8fbff;
-  font-size: 20rpx;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.native-map__marker.active .native-map__marker-dot {
-  transform: scale(1.2);
-}
-
 .native-map__head {
   position: absolute;
   left: 24rpx;
@@ -398,7 +610,7 @@ function clamp(value, min, max) {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10rpx;
-  max-width: 320rpx;
+  max-width: 360rpx;
 }
 
 .native-map__layer-pill {
@@ -407,6 +619,61 @@ function clamp(value, min, max) {
   background: rgba(15, 31, 46, 0.68);
   color: #f7fbff;
   font-size: 20rpx;
+}
+
+.native-map__preview-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.native-map__marker {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: grid;
+  justify-items: center;
+  gap: 8rpx;
+  z-index: 8;
+}
+
+.native-map__marker-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 999rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12rpx 20rpx rgba(17, 39, 57, 0.12);
+}
+
+.native-map__marker-label {
+  max-width: 180rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: rgba(20, 44, 65, 0.78);
+  color: #f8fbff;
+  font-size: 20rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.native-map__marker.active .native-map__marker-dot {
+  transform: scale(1.2);
+}
+
+.native-map__status {
+  position: absolute;
+  left: 24rpx;
+  bottom: 24rpx;
+  z-index: 9;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14rpx 26rpx rgba(17, 39, 57, 0.1);
+}
+
+.native-map__status-text {
+  color: #4d6275;
+  font-size: 22rpx;
 }
 
 .native-map__bottom-shade {

@@ -34,6 +34,7 @@ import { MAP_ADAPTER_TYPES } from '../adapters/map/types.js';
 const props = defineProps({
   src: { type: String, required: true },
   enabled: { type: Boolean, default: true },
+  initialView: { type: Object, default: null },
 });
 
 const emit = defineEmits(['ready', 'map-event', 'activate-request']);

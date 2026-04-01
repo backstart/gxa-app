@@ -37,6 +37,21 @@ export class NativeMapAdapter {
     if (Number.isFinite(Number(payload.zoom))) {
       this.state.zoom = Number(payload.zoom);
     }
+    if (Array.isArray(payload.layers)) {
+      this.state.layers = payload.layers.filter(Boolean);
+    }
+    if (payload.viewportInset && typeof payload.viewportInset === 'object') {
+      this.state.viewportInset = {
+        ...this.state.viewportInset,
+        ...payload.viewportInset,
+      };
+    }
+    if (payload.source) {
+      this.state.source = String(payload.source);
+    }
+    if (payload.mode) {
+      this.state.mode = String(payload.mode);
+    }
     this.state.ready = true;
     this.pushState();
     this.emit(MAP_EVENT_TYPES.READY, {

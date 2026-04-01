@@ -5,6 +5,7 @@
       :adapter-type="mapAdapterType"
       :enabled="mapEnabled"
       :src="mapSrc"
+      :initial-view="mapInitialView"
       @ready="handleMapControllerReady"
       @activate-request="handleMapActivate"
       @map-event="handleMapEvent"
@@ -99,6 +100,7 @@ const {
   mapAdapterType,
   mapEnabled,
   mapSrc,
+  mapInitialView,
   sheetState,
   handleSearch,
   handleActionSelect,

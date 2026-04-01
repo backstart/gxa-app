@@ -40,6 +40,7 @@ service 层：
 
 - `pages/index/intelligence/services/intelligence.js`
 - `pages/index/intelligence/services/mapEmbed.js`
+- `pages/index/intelligence/services/nativeMap.js`
 
 ## 页面层 / adapter 层 / service 层职责
 
@@ -97,9 +98,10 @@ service 层负责：
 `NativeMapAdapter`
 
 - 当前是 App 侧原生优先承载骨架
-- 不依赖 H5 `web-view`
-- 先用轻量预览渲染实现页面背景和 marker 联动
-- 目标是后续替换成真正的 `native-view / 原生地图 SDK`
+- 在 `APP-PLUS` 下优先使用 uni-app 原生 `map` 组件承载
+- 非 App 或原生能力不可用时回退到轻量预览渲染
+- 不依赖 H5 `web-view` 作为默认首页承载
+- 目标是后续继续替换成真正的 `native-view / 原生地图 SDK`
 
 `WebViewMapAdapter`
 
@@ -134,7 +136,9 @@ service 层负责：
 
 - 已完成最小可用骨架
 - 已落 `NativeMapContainer` 和 `NativeMapAdapter`
-- 当前仍不是正式原生地图 SDK，仅是可运行的原生优先承载预览层
+- `APP-PLUS` 下已优先切到 uni-app 原生 `map` 组件
+- 已接入 `/api/embed/config` 作为原生地图初始化配置来源
+- 当前仍不是正式地图 SDK 深度接入版，图层和 GeoJSON 能力还是最小可用
 
 阶段三：
 
@@ -145,8 +149,8 @@ service 层负责：
 ## 当前已知限制
 
 - 当前 `NativeMapAdapter` 还不是高德 / MapLibre 原生 SDK
-- 轻量预览层支持中心点、缩放、marker、图层 pills、视口 inset 和点击事件
-- 复杂矢量底图、真实 bbox 渲染、GeoJSON 渲染细节仍需下一阶段接入原生能力
+- 当前原生容器支持中心点、缩放、marker、地图点击、区域变化、视口 inset 和基础 polygon
+- 复杂矢量底图、真实 bbox 渲染、GeoJSON 全量渲染细节仍需下一阶段接入原生能力
 
 ## 后续剩余工作
 

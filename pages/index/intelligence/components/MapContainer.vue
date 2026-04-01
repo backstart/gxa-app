@@ -4,6 +4,7 @@
       v-if="resolvedAdapterType === MAP_ADAPTER_TYPES.NATIVE"
       :enabled="enabled"
       :src="src"
+      :initial-view="initialView"
       @ready="emit('ready', $event)"
       @map-event="emit('map-event', $event)"
       @activate-request="emit('activate-request')"
@@ -12,6 +13,7 @@
       v-else
       :enabled="enabled"
       :src="src"
+      :initial-view="initialView"
       @ready="emit('ready', $event)"
       @map-event="emit('map-event', $event)"
       @activate-request="emit('activate-request')"
@@ -29,6 +31,7 @@ const props = defineProps({
   src: { type: String, required: true },
   enabled: { type: Boolean, default: true },
   adapterType: { type: String, default: MAP_ADAPTER_TYPES.NATIVE },
+  initialView: { type: Object, default: null },
 });
 
 const emit = defineEmits(['ready', 'map-event', 'activate-request']);
