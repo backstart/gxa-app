@@ -115,6 +115,12 @@ uni.setStorageSync('intelligence_map_force_kernel', '1');
 
 因此当前产品策略是：`APP-PLUS` 默认使用嵌入轻量模式，不影响其他 Web 项目继续正常使用地图内核。
 
+当前首页处理方式：
+
+1. `APP-PLUS` 下情报页背景直接加载 `/embed/map?...&lite=1`
+2. 该页面显示轻量地图预览背景，不启动 `MapLibre/WebGL`
+3. `kernel=1` 只用于地图实验页，不作为首页默认链路
+
 ## 本地运行
 
 ### gxa-app

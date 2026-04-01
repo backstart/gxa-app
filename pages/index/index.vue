@@ -11,17 +11,7 @@
     />
     <!-- #endif -->
     <!-- #ifdef APP-PLUS -->
-    <view class="map-layer app-safe-map-shell">
-      <view class="app-safe-map-shell__glow app-safe-map-shell__glow--one"></view>
-      <view class="app-safe-map-shell__glow app-safe-map-shell__glow--two"></view>
-      <view class="app-safe-map-shell__card">
-        <text class="app-safe-map-shell__title">情报地图暂以安全模式运行</text>
-        <text class="app-safe-map-shell__desc">当前调试基座中，情报页首屏直接挂载地图 web-view 会触发原生崩溃。页面已回退为稳定底图壳，底部情报面板和业务切换可继续使用。</text>
-        <view class="app-safe-map-shell__button" @tap="openMapLab">
-          <text class="app-safe-map-shell__button-text">打开地图实验页</text>
-        </view>
-      </view>
-    </view>
+    <web-view class="map-layer" :src="resolveAppPlusMapSrc(mapSrc)" />
     <!-- #endif -->
 
     <view class="top-overlay" :style="{ paddingTop: `${safeTop + 8}px` }">
@@ -130,6 +120,30 @@ function openMapLab() {
     url: '/pages/map/lab',
   });
 }
+
+function resolveAppPlusMapSrc(source) {
+  if (!source) {
+    return '';
+  }
+
+  const marker = 'embeddedUrl=';
+  const markerIndex = source.indexOf(marker);
+  if (markerIndex === -1) {
+    return source;
+  }
+
+  const valueStart = markerIndex + marker.length;
+  const nextAmpersand = source.indexOf('&', valueStart);
+  const rawValue = nextAmpersand === -1
+    ? source.slice(valueStart)
+    : source.slice(valueStart, nextAmpersand);
+
+  try {
+    return decodeURIComponent(rawValue) || source;
+  } catch (error) {
+    return source;
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -143,82 +157,6 @@ function openMapLab() {
 .map-layer {
   position: absolute;
   inset: 0;
-}
-
-.app-safe-map-shell {
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(42, 132, 255, 0.24), transparent 24%),
-    radial-gradient(circle at 86% 18%, rgba(0, 194, 168, 0.18), transparent 22%),
-    linear-gradient(180deg, #e8f0f6 0%, #dbe5ef 100%);
-}
-
-.app-safe-map-shell__glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(18rpx);
-  opacity: 0.7;
-}
-
-.app-safe-map-shell__glow--one {
-  top: 12%;
-  left: -8%;
-  width: 280rpx;
-  height: 280rpx;
-  background: rgba(47, 128, 237, 0.26);
-}
-
-.app-safe-map-shell__glow--two {
-  right: -10%;
-  top: 28%;
-  width: 360rpx;
-  height: 360rpx;
-  background: rgba(12, 186, 154, 0.16);
-}
-
-.app-safe-map-shell__card {
-  position: absolute;
-  left: 24rpx;
-  right: 24rpx;
-  top: 180rpx;
-  padding: 28rpx 30rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 20rpx 44rpx rgba(17, 39, 57, 0.1);
-}
-
-.app-safe-map-shell__title {
-  display: block;
-  color: #203243;
-  font-size: 32rpx;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.app-safe-map-shell__desc {
-  display: block;
-  margin-top: 12rpx;
-  color: #5f7386;
-  font-size: 24rpx;
-  line-height: 1.7;
-}
-
-.app-safe-map-shell__button {
-  margin-top: 20rpx;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 76rpx;
-  padding: 0 28rpx;
-  border-radius: 999rpx;
-  background: #1f7cff;
-  box-shadow: 0 16rpx 28rpx rgba(31, 124, 255, 0.24);
-}
-
-.app-safe-map-shell__button-text {
-  color: #f7fbff;
-  font-size: 26rpx;
-  font-weight: 700;
 }
 
 .top-overlay {
