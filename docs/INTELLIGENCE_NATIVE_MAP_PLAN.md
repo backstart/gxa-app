@@ -142,6 +142,8 @@ service 层负责：
 - 已接入 `/api/embed/config` 作为原生地图初始化配置来源
 - 已接入 `/api/embed/geojson/{type}` 作为当前分类区域绘制来源
 - 已接入 `/api/embed/object/{type}/{id}` 作为选中卡片的对象几何详情来源
+- 当前手机端默认已调整为“底层预览 + /api/embed/bbox 点类名称”模式
+- 预览地图支持单指拖动和双指缩放，视野变化后会重新拉取平台点类数据
 - 当前仍不是正式地图 SDK 深度接入版，图层和 GeoJSON 能力还是最小可用
 
 阶段三：

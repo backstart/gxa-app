@@ -3,6 +3,7 @@ import {
   buildMockGeoJSONForDomain,
   buildMockGeoJSONForItem,
   getMapGeoTypeByDomain,
+  getMapMarkersFromItems,
 } from './intelligence.js';
 
 const MAP_SERVICE_BASE_KEY = 'intelligence_map_service_base_url';
@@ -164,6 +165,49 @@ export async function getNativeMapObjectGeometry(options = {}) {
   };
 }
 
+export async function getNativeMapViewportPoints(options = {}) {
+  const center = normalizeCenter(options.center);
+  const zoom = Number(options.zoom || DEFAULT_NATIVE_MAP_BOOTSTRAP.zoom) || DEFAULT_NATIVE_MAP_BOOTSTRAP.zoom;
+  const layers = Array.isArray(options.layers) && options.layers.length
+    ? options.layers.slice()
+    : DEFAULT_NATIVE_MAP_BOOTSTRAP.layers.slice();
+  const bbox = buildBboxByView(center, zoom);
+  const fallback = getMapMarkersFromItems(options.items || []);
+
+  const result = await requestMapService({
+    path: '/api/embed/bbox',
+    query: {
+      minLng: bbox[0],
+      minLat: bbox[1],
+      maxLng: bbox[2],
+      maxLat: bbox[3],
+      zoom: Math.round(zoom),
+      layers: layers.join(','),
+      limit: options.limit || 60,
+    },
+    fallback: () => ({ items: [] }),
+  });
+
+  const list = Array.isArray(result?.items) ? result.items : [];
+  const points = list
+    .map((item, index) => {
+      const lng = Number(item?.pointLongitude ?? item?.longitude);
+      const lat = Number(item?.pointLatitude ?? item?.latitude);
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+      return {
+        id: String(item.id || item.sourceFeatureId || item.sourceId || `viewport-${index + 1}`),
+        lng,
+        lat,
+        label: item.displayName || item.name || item.originalName || '',
+        color: resolveViewportColor(item.featureType || item.entityType || ''),
+        objectType: item.entityType || item.featureType || '',
+      };
+    })
+    .filter(Boolean);
+
+  return points.length ? points : fallback;
+}
+
 function toFeatureCollection(geometry, item) {
   if (geometry?.type === 'FeatureCollection') {
     return geometry;
@@ -201,4 +245,26 @@ function normalizeFeatureCollection(value, fallback) {
     type: 'FeatureCollection',
     features: [],
   };
+}
+
+function buildBboxByView(center, zoom) {
+  const lng = Number(center[0] || DEFAULT_NATIVE_MAP_BOOTSTRAP.center[0]);
+  const lat = Number(center[1] || DEFAULT_NATIVE_MAP_BOOTSTRAP.center[1]);
+  const zoomBase = Math.max(Number(zoom || DEFAULT_NATIVE_MAP_BOOTSTRAP.zoom), 6);
+  const lngSpan = 0.22 / (zoomBase / 10);
+  const latSpan = lngSpan * 0.72;
+  return [
+    Number((lng - lngSpan).toFixed(6)),
+    Number((lat - latSpan).toFixed(6)),
+    Number((lng + lngSpan).toFixed(6)),
+    Number((lat + latSpan).toFixed(6)),
+  ];
+}
+
+function resolveViewportColor(type) {
+  const key = String(type || '').toLowerCase();
+  if (key.includes('shop')) return '#f4a524';
+  if (key.includes('place')) return '#1f7cff';
+  if (key.includes('poi')) return '#28a060';
+  return '#1f7cff';
 }

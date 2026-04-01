@@ -13,7 +13,7 @@ export const INTELLIGENCE_ACTIONS = [
     icon: '警',
     iconBg: 'linear-gradient(135deg, #ffe4de, #ffd2cb)',
     searchPlaceholder: '搜索警情标题、地址、当事人',
-    mapLayers: ['areas'],
+    mapLayers: ['shops', 'pois'],
   },
   {
     key: 'places',
@@ -21,7 +21,7 @@ export const INTELLIGENCE_ACTIONS = [
     icon: '场',
     iconBg: 'linear-gradient(135deg, #e5f1ff, #d6e8ff)',
     searchPlaceholder: '搜索重点场所、地址、责任民警',
-    mapLayers: ['places'],
+    mapLayers: ['places', 'shops'],
   },
   {
     key: 'people',
@@ -29,7 +29,7 @@ export const INTELLIGENCE_ACTIONS = [
     icon: '人',
     iconBg: 'linear-gradient(135deg, #e7f7f0, #d8f2e4)',
     searchPlaceholder: '搜索重点人员、住址、责任民警',
-    mapLayers: ['pois'],
+    mapLayers: ['pois', 'places'],
   },
   {
     key: 'handling',
@@ -37,7 +37,7 @@ export const INTELLIGENCE_ACTIONS = [
     icon: '勤',
     iconBg: 'linear-gradient(135deg, #fff0d8, #ffe4b3)',
     searchPlaceholder: '搜索处警中警情、执行民警、位置',
-    mapLayers: ['shops', 'areas'],
+    mapLayers: ['shops', 'pois'],
   },
   {
     key: 'patrol',
@@ -45,16 +45,16 @@ export const INTELLIGENCE_ACTIONS = [
     icon: '巡',
     iconBg: 'linear-gradient(135deg, #efe9ff, #e0d6ff)',
     searchPlaceholder: '搜索巡防点、巡区、任务',
-    mapLayers: ['boundaries'],
+    mapLayers: ['places', 'shops'],
   },
 ];
 
 const DOMAIN_GEO_TYPES = {
-  alerts: 'areas',
+  alerts: 'shops',
   places: 'places',
   people: 'pois',
   handling: 'shops',
-  patrol: 'boundaries',
+  patrol: 'places',
 };
 
 function hashSeed(text) {
@@ -277,6 +277,30 @@ export function getMapMarkersFromItems(items = []) {
       label: item.title,
       color: item.riskLevel === '高' ? '#de5a39' : item.riskLevel === '低' ? '#28a060' : '#1f7cff',
     }));
+}
+
+export function mergeMapMarkers(...groups) {
+  const markerMap = new Map();
+  groups
+    .flat()
+    .filter(Boolean)
+    .forEach((item, index) => {
+      const lng = Number(item.lng);
+      const lat = Number(item.lat);
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+      const id = String(item.id || `merged-${index + 1}`);
+      if (!markerMap.has(id)) {
+        markerMap.set(id, {
+          id,
+          lng,
+          lat,
+          label: item.label || '',
+          color: item.color || '#1f7cff',
+          objectType: item.objectType || '',
+        });
+      }
+    });
+  return Array.from(markerMap.values());
 }
 
 export function getMapGeoTypeByDomain(domain = 'alerts') {

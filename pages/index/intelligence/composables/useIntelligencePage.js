@@ -6,6 +6,7 @@ import {
   getIntelligenceList,
   getIntelligenceSummary,
   getMapMarkersFromItems,
+  mergeMapMarkers,
 } from '../services/intelligence.js';
 import {
   buildWebViewMapSrc,
@@ -13,7 +14,10 @@ import {
   resolvePreferredMapAdapter,
   shouldAutoLoadMap,
 } from '../services/mapEmbed.js';
-import { getNativeMapBootstrapConfig } from '../services/nativeMap.js';
+import {
+  getNativeMapBootstrapConfig,
+  getNativeMapViewportPoints,
+} from '../services/nativeMap.js';
 
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
@@ -33,6 +37,8 @@ export function useIntelligencePage() {
   const mapInitialView = ref(null);
   const mapController = ref(null);
   const lastViewport = ref(null);
+  const viewportMarkers = ref([]);
+  let viewportTimer = null;
 
   const currentAction = computed(
     () => INTELLIGENCE_ACTIONS.find((item) => item.key === activeActionKey.value) || INTELLIGENCE_ACTIONS[0]
@@ -78,7 +84,12 @@ export function useIntelligencePage() {
 
   function syncMapMarkers(focusSelected = true) {
     if (!mapController.value) return;
-    const markers = getMapMarkersFromItems(items.value);
+    const selectedMarkers = getMapMarkersFromItems(
+      selectedItemId.value
+        ? items.value.filter((item) => item.id === selectedItemId.value)
+        : items.value.slice(0, 3)
+    );
+    const markers = mergeMapMarkers(viewportMarkers.value, selectedMarkers);
     mapController.value.clearMarkers();
     mapController.value.addMarkers(markers);
     syncMapLayers();
@@ -103,6 +114,11 @@ export function useIntelligencePage() {
       if (!list.find((item) => item.id === selectedItemId.value)) {
         selectedItemId.value = list[0]?.id || '';
       }
+      await loadViewportMarkers({
+        center: list[0]?.coordinate || mapInitialView.value?.center || DEFAULT_MAP_VIEW.center,
+        zoom: list[0]?.mapZoom || mapInitialView.value?.zoom || DEFAULT_MAP_VIEW.zoom,
+        layers: currentAction.value.mapLayers,
+      });
       syncMapMarkers(options.focusSelected !== false);
     } finally {
       loading.value = false;
@@ -118,6 +134,28 @@ export function useIntelligencePage() {
     mapInitialView.value = await getNativeMapBootstrapConfig({
       layers: currentAction.value.mapLayers,
     });
+  }
+
+  async function loadViewportMarkers(options = {}) {
+    const center = options.center || mapInitialView.value?.center || items.value[0]?.coordinate || DEFAULT_MAP_VIEW.center;
+    const zoom = options.zoom || mapInitialView.value?.zoom || items.value[0]?.mapZoom || DEFAULT_MAP_VIEW.zoom;
+    const layers = options.layers || currentAction.value.mapLayers;
+    viewportMarkers.value = await getNativeMapViewportPoints({
+      center,
+      zoom,
+      layers,
+      items: items.value,
+    });
+    syncMapMarkers(false);
+  }
+
+  function scheduleViewportReload(payload = {}) {
+    if (viewportTimer) {
+      clearTimeout(viewportTimer);
+    }
+    viewportTimer = setTimeout(() => {
+      loadViewportMarkers(payload);
+    }, 180);
   }
 
   function handleSearch() {
@@ -147,6 +185,11 @@ export function useIntelligencePage() {
       id: item.id,
       coordinate: item.coordinate,
       mapZoom: item.mapZoom || 15,
+    });
+    scheduleViewportReload({
+      center: item.coordinate,
+      zoom: item.mapZoom || 15,
+      layers: currentAction.value.mapLayers,
     });
   }
 
@@ -189,6 +232,11 @@ export function useIntelligencePage() {
     }
     if (event.type === 'moveEnd' || event.type === 'zoomEnd') {
       lastViewport.value = event.payload || null;
+      scheduleViewportReload({
+        center: event.payload?.center,
+        zoom: event.payload?.zoom,
+        layers: event.payload?.layers || currentAction.value.mapLayers,
+      });
     }
   }
 

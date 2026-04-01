@@ -1,6 +1,13 @@
 <template>
   <view class="native-map">
-    <view v-if="enabled" class="native-map__surface">
+    <view
+      v-if="enabled"
+      class="native-map__surface"
+      @touchstart="handlePreviewTouchStart"
+      @touchmove.stop.prevent="handlePreviewTouchMove"
+      @touchend="handlePreviewTouchEnd"
+      @touchcancel="handlePreviewTouchEnd"
+    >
       <!-- #ifdef APP-PLUS -->
       <map
         v-if="useSystemMap"
@@ -96,6 +103,13 @@ const emit = defineEmits(['ready', 'map-event', 'activate-request']);
 
 const instance = getCurrentInstance();
 const mapContext = ref(null);
+const gestureState = reactive({
+  mode: '',
+  startCenter: [113.4445, 22.4915],
+  startZoom: 13,
+  startTouch: null,
+  startDistance: 0,
+});
 const renderState = reactive({
   ready: false,
   center: [113.4445, 22.4915],
@@ -351,6 +365,76 @@ function handlePreviewMarkerTap(marker) {
   adapter.notifyMarkerClick(marker);
 }
 
+function handlePreviewTouchStart(event) {
+  if (useSystemMap.value) return;
+  const touches = normalizeTouches(event);
+  if (!touches.length) return;
+
+  gestureState.startCenter = renderState.center.slice();
+  gestureState.startZoom = renderState.zoom;
+
+  if (touches.length >= 2) {
+    gestureState.mode = 'pinch';
+    gestureState.startDistance = getTouchDistance(touches[0], touches[1]);
+    return;
+  }
+
+  gestureState.mode = 'pan';
+  gestureState.startTouch = touches[0];
+}
+
+function handlePreviewTouchMove(event) {
+  if (useSystemMap.value) return;
+  const touches = normalizeTouches(event);
+  if (!touches.length) return;
+
+  if (touches.length >= 2) {
+    if (gestureState.mode !== 'pinch') {
+      gestureState.mode = 'pinch';
+      gestureState.startDistance = getTouchDistance(touches[0], touches[1]);
+      gestureState.startZoom = renderState.zoom;
+      return;
+    }
+
+    const distance = getTouchDistance(touches[0], touches[1]);
+    if (!gestureState.startDistance) return;
+    const scale = distance / gestureState.startDistance;
+    const nextZoom = clampZoom(gestureState.startZoom + Math.log(scale) / Math.log(2));
+    renderState.zoom = Number(nextZoom.toFixed(1));
+    return;
+  }
+
+  if (gestureState.mode !== 'pan' || !gestureState.startTouch) {
+    gestureState.mode = 'pan';
+    gestureState.startTouch = touches[0];
+    gestureState.startCenter = renderState.center.slice();
+    return;
+  }
+
+  const currentTouch = touches[0];
+  const deltaX = currentTouch.clientX - gestureState.startTouch.clientX;
+  const deltaY = currentTouch.clientY - gestureState.startTouch.clientY;
+  const lngPerPixel = 0.00018 / Math.max(renderState.zoom / 12, 0.7);
+  const latPerPixel = lngPerPixel * 0.72;
+  renderState.center = [
+    Number((gestureState.startCenter[0] - deltaX * lngPerPixel).toFixed(6)),
+    Number((gestureState.startCenter[1] + deltaY * latPerPixel).toFixed(6)),
+  ];
+}
+
+function handlePreviewTouchEnd() {
+  if (useSystemMap.value) return;
+  if (!gestureState.mode) return;
+  adapter.flyTo({
+    center: renderState.center.slice(),
+    zoom: renderState.zoom,
+    duration: 0,
+  });
+  gestureState.mode = '';
+  gestureState.startTouch = null;
+  gestureState.startDistance = 0;
+}
+
 function handleRegionChange(event) {
   const stage = event?.type || event?.detail?.type;
   if (stage && stage !== 'end') return;
@@ -417,6 +501,16 @@ function clamp(value, min, max) {
 function shouldEnableSystemMap() {
   const explicit = uni.getStorageSync('intelligence_map_enable_system_map');
   return explicit === true || explicit === '1' || explicit === 1;
+}
+
+function normalizeTouches(event) {
+  return Array.isArray(event?.touches) ? event.touches : [];
+}
+
+function getTouchDistance(a, b) {
+  const dx = Number(a?.clientX || 0) - Number(b?.clientX || 0);
+  const dy = Number(a?.clientY || 0) - Number(b?.clientY || 0);
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 function resolveSceneKey(layers = []) {
