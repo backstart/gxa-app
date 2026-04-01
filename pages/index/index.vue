@@ -32,6 +32,11 @@
         <text class="status-text">{{ currentAction.label }} · {{ summary.total }} 条</text>
       </view>
     </view>
+    <!-- #ifdef APP-PLUS -->
+    <view class="map-lab-entry" :style="{ top: `${safeTop + 84}px` }" @tap="openMapLab">
+      <text class="map-lab-entry__text">地图实验页</text>
+    </view>
+    <!-- #endif -->
 
     <BottomSheet
       :model-value="sheetState"
@@ -228,6 +233,26 @@ function openMapLab() {
   padding-left: 24rpx;
   padding-right: 24rpx;
   pointer-events: none;
+}
+
+.map-lab-entry {
+  position: absolute;
+  right: 24rpx;
+  z-index: 24;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16rpx 32rpx rgba(17, 39, 57, 0.14);
+}
+
+.map-lab-entry__text {
+  color: #1f3346;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .title-pill,
