@@ -175,12 +175,18 @@ const appPlusMapController = {
 
 onMounted(() => {
   // #ifdef APP-PLUS
-  appPlusMapContext = uni.createWebViewContext(APP_PLUS_MAP_WEBVIEW_ID);
+  appPlusMapContext = resolveAppPlusMapContext();
   appPlusMapReady = false;
   appPlusPendingMessages = [];
   showAppPlusMapFallback.value = false;
-  startAppPlusReadyTimer();
-  handleMapControllerReady(appPlusMapController);
+  appPlusFallbackText.value = '请稍后重试，底部情报面板仍可继续使用。';
+  if (appPlusMapContext) {
+    startAppPlusReadyTimer();
+    handleMapControllerReady(appPlusMapController);
+  } else {
+    showAppPlusMapFallback.value = true;
+    appPlusFallbackText.value = '当前调试基座不支持地图桥接控制，页面已降级为仅加载地图背景。';
+  }
   // #endif
 });
 
@@ -312,6 +318,18 @@ function resolveAppPlusMapSrc(source) {
     return source;
   } catch (error) {
     return source;
+  }
+}
+
+function resolveAppPlusMapContext() {
+  if (!uni || typeof uni.createWebViewContext !== 'function') {
+    return null;
+  }
+
+  try {
+    return uni.createWebViewContext(APP_PLUS_MAP_WEBVIEW_ID);
+  } catch (error) {
+    return null;
   }
 }
 </script>
