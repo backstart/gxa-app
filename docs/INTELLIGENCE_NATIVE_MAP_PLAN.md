@@ -119,6 +119,15 @@ service 层负责：
 - 当前调试基座未打入 `maps` 模块时，`NativeMapContainer` 默认走稳定预览层
 - 仅在显式设置 `intelligence_map_enable_system_map=1` 且使用带 `maps` 模块的运行基座时，才启用原生 `map` 组件
 
+当前要特别注意：
+
+- 现在手机端看到的“背景底图”不是 `fuyaomap` 的真实瓦片或矢量底图
+- 它是 `NativeMapContainer.vue` 里本地生成的预览背景
+- 目前真正来自地图服务平台的是点类数据：
+  - `/api/embed/config`
+  - `/api/embed/bbox`
+- 也就是说，当前“建筑、店铺、点类名称”可以来自平台，但“底图纹理本身”还不是平台地图资源
+
 默认适配器切换规则：
 
 1. 若显式设置 `intelligence_map_force_native=1`，强制原生

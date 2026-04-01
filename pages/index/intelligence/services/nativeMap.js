@@ -52,7 +52,7 @@ async function requestMapService({ path, query, fallback }) {
       },
     });
 
-    const [error, result] = response;
+    const { error, result } = normalizeUniRequestResponse(response);
     if (error) throw error;
     const statusCode = Number(result?.statusCode || 0);
     if (statusCode < 200 || statusCode >= 300) {
@@ -60,7 +60,7 @@ async function requestMapService({ path, query, fallback }) {
     }
     return result?.data?.data ?? result?.data;
   } catch (error) {
-    console.warn('[native-map] bootstrap fallback', error);
+    console.warn('[native-map] request fallback', error);
     return typeof fallback === 'function' ? fallback(error) : fallback;
   }
 }
@@ -267,4 +267,18 @@ function resolveViewportColor(type) {
   if (key.includes('place')) return '#1f7cff';
   if (key.includes('poi')) return '#28a060';
   return '#1f7cff';
+}
+
+function normalizeUniRequestResponse(response) {
+  if (Array.isArray(response)) {
+    return {
+      error: response[0],
+      result: response[1],
+    };
+  }
+
+  return {
+    error: null,
+    result: response,
+  };
 }

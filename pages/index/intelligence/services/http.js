@@ -45,7 +45,7 @@ export async function requestWithFallback({
       },
     });
 
-    const [error, result] = response;
+    const { error, result } = normalizeUniRequestResponse(response);
     if (error) throw error;
     const statusCode = Number(result?.statusCode || 0);
     if (statusCode < 200 || statusCode >= 300) {
@@ -56,4 +56,18 @@ export async function requestWithFallback({
     console.warn('[intelligence/http] fallback to mock', error);
     return typeof fallback === 'function' ? fallback(error) : fallback;
   }
+}
+
+function normalizeUniRequestResponse(response) {
+  if (Array.isArray(response)) {
+    return {
+      error: response[0],
+      result: response[1],
+    };
+  }
+
+  return {
+    error: null,
+    result: response,
+  };
 }
