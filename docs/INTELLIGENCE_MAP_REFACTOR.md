@@ -115,15 +115,19 @@
 
 真实地图接入方式：
 
-1. 设置本地存储 `map_embed_origin`
-2. `mapEmbed.js` 会拼出：
-   - `${map_embed_origin}/map-resources/embedded.html?...`
+1. `mapEmbed.js` 默认指向：
+   - 页面地址 `http://159.75.54.99:8002/map`
+   - 嵌入地址 `http://159.75.54.99:8002/map-resources/embedded.html`
+2. 如需覆盖，可写入本地存储：
+   - `intelligence_map_page_url`
+   - `intelligence_map_embed_url`
 3. bridge 页内部使用 iframe 转发宿主命令并回传标准事件
 
-未设置 `map_embed_origin` 时：
+调试回退方式：
 
-- bridge 页进入 mock 模式
-- 仍可验证三态面板、卡片联动、marker 联动和事件回传
+- 默认不再显示本地 mock 地图
+- 仅在设置 `intelligence_map_debug_fallback=1` 时进入 mock 模式
+- 仅在设置 `intelligence_map_debug_hud=1` 时显示桥接调试 HUD
 
 ## 6. 页面状态流转
 
@@ -159,10 +163,13 @@
 
 ### 可选配置
 
-如果要接入真实 Fuyao embed 页，需要先在运行环境里设置：
+如果要接入真实接口或覆盖默认地图地址，可在运行环境里设置：
 
 - `gxa_api_base_url`
-- `map_embed_origin`
+- `intelligence_map_page_url`
+- `intelligence_map_embed_url`
+- `intelligence_map_debug_fallback`
+- `intelligence_map_debug_hud`
 
 可以通过 `uni.setStorageSync` 在调试时写入。
 
@@ -170,14 +177,17 @@
 
 ```js
 uni.setStorageSync('gxa_api_base_url', 'http://你的-gxa-api-host');
-uni.setStorageSync('map_embed_origin', 'http://你的-fuyaomapweb-host');
+uni.setStorageSync('intelligence_map_page_url', 'http://你的-fuyaomapweb-host/map');
+uni.setStorageSync('intelligence_map_embed_url', 'http://你的-fuyaomapweb-host/map-resources/embedded.html');
+uni.setStorageSync('intelligence_map_debug_fallback', '1');
+uni.setStorageSync('intelligence_map_debug_hud', '1');
 ```
 
 ### 验证项
 
 1. 地图是否正常显示
-   - 未配置 `map_embed_origin` 时，应显示本地 mock 地图
-   - 已配置时，应加载 Fuyao embedded map
+   - 默认应直接加载真实地图嵌入页
+   - 打开 `intelligence_map_debug_fallback=1` 后，才应显示本地 mock 地图
 
 2. 底部面板是否可切换三态
    - 点击拖拽条可在折叠、半屏、全屏间切换

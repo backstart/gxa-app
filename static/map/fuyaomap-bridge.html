@@ -33,7 +33,8 @@
     }
 
     #embedded-frame,
-    #mock-stage {
+    #mock-stage,
+    #empty-stage {
       position: absolute;
       inset: 0;
       width: 100%;
@@ -41,7 +42,8 @@
       border: 0;
     }
 
-    #mock-stage {
+    #mock-stage,
+    #empty-stage {
       background:
         linear-gradient(rgba(255, 255, 255, 0.32) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.32) 1px, transparent 1px),
@@ -49,7 +51,8 @@
       background-size: 80px 80px, 80px 80px, 100% 100%;
     }
 
-    #mock-stage::after {
+    #mock-stage::after,
+    #empty-stage::after {
       content: "";
       position: absolute;
       left: 0;
@@ -135,21 +138,42 @@
       font-variant-numeric: tabular-nums;
       color: #193247;
     }
+
+    .empty-state {
+      position: absolute;
+      inset: auto 18px 28px 18px;
+      z-index: 3;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 30px rgba(20, 44, 65, 0.12);
+      color: #27455e;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
   <iframe id="embedded-frame" hidden></iframe>
-  <div id="mock-stage">
+  <div id="mock-stage" hidden>
     <div class="marker-layer" id="marker-layer"></div>
   </div>
+  <div id="empty-stage" hidden>
+    <div class="empty-state">地图资源未配置。开启调试回退后才会使用本地 mock 地图。</div>
+  </div>
 
-  <section class="hud">
+  <section class="hud hidden" id="debug-hud">
     <div class="badge-row">
       <strong>GXA Map Bridge</strong>
-      <span class="badge" id="mode-badge">MOCK</span>
-      <span class="badge" id="status-badge">READY</span>
+      <span class="badge" id="mode-badge">EMBEDDED</span>
+      <span class="badge" id="status-badge">INIT</span>
     </div>
-    <p class="hint" id="hint-text">当前为本地 mock 地图。配置 `map_embed_origin` 后会转发到 Fuyao embed 页。</p>
+    <p class="hint" id="hint-text">桥接页已切到真实地图资源，仅在调试模式下显示本面板。</p>
     <p class="hint coords" id="coords-text">--</p>
   </section>
 
@@ -158,7 +182,10 @@
       var BRIDGE_SOURCE = 'gxa-map-bridge';
       var params = new URLSearchParams(window.location.search);
       var embeddedUrl = params.get('embeddedUrl') || '';
-      var mode = embeddedUrl ? 'embedded' : 'mock';
+      var pageUrl = params.get('pageUrl') || '';
+      var debugFallback = params.get('debugFallback') === '1';
+      var showHud = params.get('showHud') === '1';
+      var mode = embeddedUrl ? 'embedded' : (debugFallback ? 'mock' : 'empty');
       var state = {
         center: parseLngLat(params.get('center')) || [113.4445, 22.4915],
         zoom: toNumber(params.get('zoom')) || 12,
@@ -173,16 +200,23 @@
 
       var frame = document.getElementById('embedded-frame');
       var mockStage = document.getElementById('mock-stage');
+      var emptyStage = document.getElementById('empty-stage');
       var markerLayer = document.getElementById('marker-layer');
+      var debugHud = document.getElementById('debug-hud');
       var modeBadge = document.getElementById('mode-badge');
       var statusBadge = document.getElementById('status-badge');
       var hintText = document.getElementById('hint-text');
       var coordsText = document.getElementById('coords-text');
 
       modeBadge.textContent = mode.toUpperCase();
+      if (showHud) {
+        debugHud.classList.remove('hidden');
+      }
       hintText.textContent = mode === 'embedded'
-        ? '已接入 Fuyao embedded map，当前桥接页负责转发命令和标准化事件。'
-        : '当前为本地 mock 地图。配置 `map_embed_origin` 后会转发到 Fuyao embed 页。';
+        ? '已接入真实地图嵌入页，桥接页负责转发命令和标准化事件。'
+        : mode === 'mock'
+          ? '当前为调试回退 mock 地图，仅在 debugFallback=1 时启用。'
+          : '未配置地图嵌入资源。建议配置 embeddedUrl，或在调试时显式开启 mock 回退。';
 
       function toNumber(value) {
         var parsed = Number(value);
@@ -404,10 +438,15 @@
 
       if (mode === 'embedded') {
         mockStage.hidden = true;
+        emptyStage.hidden = true;
         frame.hidden = false;
         frame.src = embeddedUrl;
         setBottomInset(0);
-      } else {
+        updateStatus('LOADING');
+      } else if (mode === 'mock') {
+        frame.hidden = true;
+        emptyStage.hidden = true;
+        mockStage.hidden = false;
         mockStage.addEventListener('click', function (event) {
           var rect = mockStage.getBoundingClientRect();
           var percentX = (event.clientX - rect.left) / rect.width;
@@ -424,6 +463,18 @@
         syncMockState();
         postToHost('ready', {
           mode: 'mock',
+          center: state.center,
+          zoom: state.zoom,
+          layers: state.layers
+        });
+      } else {
+        frame.hidden = true;
+        mockStage.hidden = true;
+        emptyStage.hidden = false;
+        updateStatus('EMPTY');
+        postToHost('ready', {
+          mode: 'empty',
+          pageUrl: pageUrl,
           center: state.center,
           zoom: state.zoom,
           layers: state.layers
