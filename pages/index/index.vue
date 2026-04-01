@@ -17,6 +17,9 @@
       <view class="app-safe-map-shell__card">
         <text class="app-safe-map-shell__title">情报地图暂以安全模式运行</text>
         <text class="app-safe-map-shell__desc">当前调试基座中，情报页首屏直接挂载地图 web-view 会触发原生崩溃。页面已回退为稳定底图壳，底部情报面板和业务切换可继续使用。</text>
+        <view class="app-safe-map-shell__button" @tap="openMapLab">
+          <text class="app-safe-map-shell__button-text">打开地图实验页</text>
+        </view>
       </view>
     </view>
     <!-- #endif -->
@@ -116,6 +119,12 @@ const {
   handleMapEvent,
   handleSheetStateChange,
 } = useIntelligencePage();
+
+function openMapLab() {
+  uni.navigateTo({
+    url: '/pages/map/lab',
+  });
+}
 </script>
 
 <style lang="scss" scoped>
@@ -187,6 +196,24 @@ const {
   color: #5f7386;
   font-size: 24rpx;
   line-height: 1.7;
+}
+
+.app-safe-map-shell__button {
+  margin-top: 20rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 76rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: #1f7cff;
+  box-shadow: 0 16rpx 28rpx rgba(31, 124, 255, 0.24);
+}
+
+.app-safe-map-shell__button-text {
+  color: #f7fbff;
+  font-size: 26rpx;
+  font-weight: 700;
 }
 
 .top-overlay {

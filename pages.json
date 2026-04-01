@@ -79,6 +79,7 @@
     {"path":"pages/meeting/create","style":{"navigationStyle":"custom","navigationBarTitleText":""}},
     {"path":"pages/meeting/detail","style":{"navigationStyle":"custom","navigationBarTitleText":""}},
     {"path":"pages/meeting/selectUsers","style":{"navigationStyle":"custom","navigationBarTitleText":""}},
+    {"path":"pages/map/lab","style":{"navigationBarTitleText":"地图实验页","navigationStyle":"custom","app-plus":{"titleNView":false,"bounce":"none"}}},
     {"path":"pages/duty/index","style":{"navigationBarTitleText":"值班","navigationStyle":"custom"}},
     {"path":"pages/duty/memo","style":{"navigationBarTitleText":"备忘录","navigationStyle":"custom"}},
     {"path":"pages/duty/swap","style":{"navigationBarTitleText":"换班","navigationStyle":"custom"}},
