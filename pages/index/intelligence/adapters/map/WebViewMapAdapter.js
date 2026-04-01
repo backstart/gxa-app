@@ -8,7 +8,9 @@ export class WebViewMapAdapter {
   constructor(options = {}) {
     this.host = null;
     this.source = '';
+    this.isReady = false;
     this.lastZoom = null;
+    this.pendingCommands = [];
     this.onEvent = typeof options.onEvent === 'function' ? options.onEvent : null;
   }
 
@@ -18,6 +20,9 @@ export class WebViewMapAdapter {
 
   setSource(source) {
     this.source = source || '';
+    this.isReady = false;
+    this.lastZoom = null;
+    this.pendingCommands = [];
   }
 
   init() {}
@@ -80,13 +85,22 @@ export class WebViewMapAdapter {
 
   destroy() {
     this.host = null;
+    this.isReady = false;
+    this.pendingCommands = [];
   }
 
   dispatch(type, payload) {
-    if (!this.host || typeof this.host.evalJS !== 'function') {
+    const message = { type, payload: payload || {} };
+
+    if (!this.isReady) {
+      this.enqueue(message);
       return false;
     }
-    const message = { type, payload: payload || {} };
+
+    if (!this.host || typeof this.host.evalJS !== 'function') {
+      this.enqueue(message);
+      return false;
+    }
     const script = `(function(){var message=${escapeScriptValue(message)};try{if(window.GxaMapBridge&&typeof window.GxaMapBridge.receiveMessage==='function'){window.GxaMapBridge.receiveMessage(message);return;}}catch(error){}try{window.dispatchEvent(new CustomEvent('gxa-map-bridge-command',{detail:message}));}catch(error){}try{window.postMessage(message,'*');}catch(error){}})();`;
     return this.host.evalJS(script);
   }
@@ -97,6 +111,10 @@ export class WebViewMapAdapter {
       const message = raw?.data ?? raw;
       const normalized = this.normalizeMessage(message);
       if (!normalized || !this.onEvent) return;
+      if (normalized.type === MAP_EVENT_TYPES.READY) {
+        this.isReady = true;
+        this.flushPendingCommands();
+      }
       this.onEvent(normalized);
     });
   }
@@ -134,5 +152,24 @@ export class WebViewMapAdapter {
       return { type: MAP_EVENT_TYPES.MOVE_END, payload, raw: message };
     }
     return null;
+  }
+
+  enqueue(message) {
+    this.pendingCommands.push(message);
+    if (this.pendingCommands.length > 40) {
+      this.pendingCommands = this.pendingCommands.slice(-40);
+    }
+  }
+
+  flushPendingCommands() {
+    if (!this.isReady || !this.host || typeof this.host.evalJS !== 'function') {
+      return;
+    }
+
+    const commands = this.pendingCommands.slice();
+    this.pendingCommands = [];
+    commands.forEach((command) => {
+      this.dispatch(command.type, command.payload);
+    });
   }
 }

@@ -139,8 +139,6 @@ export function useIntelligencePage() {
 
   function handleMapControllerReady(controller) {
     mapController.value = controller;
-    syncMapLayers();
-    syncMapMarkers(false);
   }
 
   function handleMapEvent(event) {
