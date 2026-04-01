@@ -1,6 +1,6 @@
 {
   "pages": [
-    {"path":"pages/index/index","style":{"navigationBarTitleText":"","navigationStyle":"custom"}},
+    {"path":"pages/index/index","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"titleNView":false,"bounce":"none"}}},
     {"path":"pages/user/user","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"bounce":"none"}}},
     {"path":"pages/car/list","style":{"navigationBarTitleText":"警车列表","navigationStyle":"custom"}},
     {"path":"pages/car/detail","style":{"navigationBarTitleText":"警车详情","navigationStyle":"custom"}},

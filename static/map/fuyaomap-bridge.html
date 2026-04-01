@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GXA Intelligence Map Bridge</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #dce5ee;
+      color: #193247;
+      --bottom-inset: 0px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(84, 145, 255, 0.18), transparent 32%),
+        linear-gradient(180deg, #eef4f8 0%, #dbe6ef 100%);
+    }
+
+    body {
+      position: relative;
+    }
+
+    #embedded-frame,
+    #mock-stage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    #mock-stage {
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.32) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.32) 1px, transparent 1px),
+        linear-gradient(180deg, #eef4f8 0%, #dbe6ef 100%);
+      background-size: 80px 80px, 80px 80px, 100% 100%;
+    }
+
+    #mock-stage::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: max(var(--bottom-inset), 0px);
+      background: linear-gradient(180deg, rgba(219, 230, 239, 0), rgba(219, 230, 239, 0.96));
+      pointer-events: none;
+    }
+
+    .marker-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .marker {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .marker-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.92);
+      box-shadow: 0 8px 18px rgba(16, 38, 56, 0.2);
+    }
+
+    .marker-label {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(20, 44, 65, 0.74);
+      color: #f7fbff;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .hud {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: min(320px, calc(100vw - 28px));
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 30px rgba(20, 44, 65, 0.14);
+    }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #133452;
+      color: #f7fbff;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+
+    .hint {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #54687c;
+    }
+
+    .coords {
+      font-variant-numeric: tabular-nums;
+      color: #193247;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="embedded-frame" hidden></iframe>
+  <div id="mock-stage">
+    <div class="marker-layer" id="marker-layer"></div>
+  </div>
+
+  <section class="hud">
+    <div class="badge-row">
+      <strong>GXA Map Bridge</strong>
+      <span class="badge" id="mode-badge">MOCK</span>
+      <span class="badge" id="status-badge">READY</span>
+    </div>
+    <p class="hint" id="hint-text">当前为本地 mock 地图。配置 `map_embed_origin` 后会转发到 Fuyao embed 页。</p>
+    <p class="hint coords" id="coords-text">--</p>
+  </section>
+
+  <script>
+    (function () {
+      var BRIDGE_SOURCE = 'gxa-map-bridge';
+      var params = new URLSearchParams(window.location.search);
+      var embeddedUrl = params.get('embeddedUrl') || '';
+      var mode = embeddedUrl ? 'embedded' : 'mock';
+      var state = {
+        center: parseLngLat(params.get('center')) || [113.4445, 22.4915],
+        zoom: toNumber(params.get('zoom')) || 12,
+        layers: normalizeLayers(params.get('layers')),
+        markers: [],
+        bottomInset: 0,
+        selectedObject: null,
+        lastZoom: null,
+        embeddedReady: false,
+        pendingMessages: []
+      };
+
+      var frame = document.getElementById('embedded-frame');
+      var mockStage = document.getElementById('mock-stage');
+      var markerLayer = document.getElementById('marker-layer');
+      var modeBadge = document.getElementById('mode-badge');
+      var statusBadge = document.getElementById('status-badge');
+      var hintText = document.getElementById('hint-text');
+      var coordsText = document.getElementById('coords-text');
+
+      modeBadge.textContent = mode.toUpperCase();
+      hintText.textContent = mode === 'embedded'
+        ? '已接入 Fuyao embedded map，当前桥接页负责转发命令和标准化事件。'
+        : '当前为本地 mock 地图。配置 `map_embed_origin` 后会转发到 Fuyao embed 页。';
+
+      function toNumber(value) {
+        var parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function parseLngLat(raw) {
+        if (!raw || typeof raw !== 'string') return null;
+        var parts = raw.split(',');
+        if (parts.length < 2) return null;
+        var lng = toNumber(parts[0]);
+        var lat = toNumber(parts[1]);
+        if (lng === null || lat === null) return null;
+        return [lng, lat];
+      }
+
+      function normalizeLayers(raw) {
+        if (!raw) return [];
+        return String(raw)
+          .split(',')
+          .map(function (item) { return item.trim(); })
+          .filter(Boolean);
+      }
+
+      function postToHost(type, payload) {
+        var message = {
+          source: BRIDGE_SOURCE,
+          type: type,
+          payload: payload || {}
+        };
+
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(message, '*');
+        }
+        if (window.uni && typeof window.uni.postMessage === 'function') {
+          window.uni.postMessage({ data: message });
+        }
+      }
+
+      function updateStatus(text) {
+        statusBadge.textContent = text;
+      }
+
+      function updateCoords(payload) {
+        if (!payload) {
+          coordsText.textContent = '--';
+          return;
+        }
+        coordsText.textContent = 'center ' + state.center[0].toFixed(5) + ', ' + state.center[1].toFixed(5) + ' · zoom ' + state.zoom.toFixed(2);
+      }
+
+      function setBottomInset(value) {
+        state.bottomInset = Math.max(toNumber(value) || 0, 0);
+        document.documentElement.style.setProperty('--bottom-inset', state.bottomInset + 'px');
+      }
+
+      function renderMockMarkers() {
+        markerLayer.innerHTML = '';
+        state.markers.forEach(function (marker) {
+          var left = 50 + ((marker.lng - state.center[0]) / 0.08) * 50;
+          var top = 50 - ((marker.lat - state.center[1]) / 0.05) * 50;
+          var el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'marker';
+          el.style.left = Math.max(6, Math.min(94, left)) + '%';
+          el.style.top = Math.max(10, Math.min(92, top)) + '%';
+          el.innerHTML =
+            '<span class="marker-dot" style="background:' + (marker.color || '#1f7cff') + ';"></span>' +
+            '<span class="marker-label">' + (marker.label || marker.id || 'marker') + '</span>';
+          el.addEventListener('click', function (event) {
+            event.stopPropagation();
+            state.selectedObject = marker;
+            postToHost('markerClick', marker);
+          });
+          markerLayer.appendChild(el);
+        });
+      }
+
+      function syncMockState() {
+        renderMockMarkers();
+        updateCoords(state.center);
+        updateStatus('READY');
+      }
+
+      function handleEmbeddedMessage(message) {
+        if (!message || message.source !== 'fuyaomap-embedded') return;
+        if (message.type === 'map-ready') {
+          state.embeddedReady = true;
+          updateStatus('READY');
+          postToHost('ready', message.payload);
+          while (state.pendingMessages.length > 0) {
+            relayToEmbedded(state.pendingMessages.shift());
+          }
+          return;
+        }
+        if (message.type === 'map-click') {
+          postToHost('mapClick', message.payload);
+          return;
+        }
+        if (message.type === 'marker-click') {
+          postToHost('markerClick', message.payload);
+          return;
+        }
+        if (message.type === 'feature-located') {
+          postToHost('objectSelect', message.payload);
+          return;
+        }
+        if (message.type === 'layers-ready' || message.type === 'layers-changed') {
+          postToHost('layersChange', message.payload);
+          return;
+        }
+        if (message.type === 'viewport-change') {
+          postToHost('moveEnd', message.payload);
+          if (message.payload && Number.isFinite(Number(message.payload.zoom)) && Number(message.payload.zoom) !== state.lastZoom) {
+            state.lastZoom = Number(message.payload.zoom);
+            postToHost('zoomEnd', message.payload);
+          }
+        }
+      }
+
+      function relayToEmbedded(message) {
+        if (!frame.contentWindow) return;
+        if (!state.embeddedReady) {
+          state.pendingMessages.push(message);
+          return;
+        }
+        frame.contentWindow.postMessage(message, '*');
+      }
+
+      function applyHostMessage(message) {
+        if (!message || typeof message.type !== 'string') return;
+        if (mode === 'embedded') {
+          if (message.type === 'select-object') {
+            relayToEmbedded({
+              type: 'locate-feature',
+              payload: {
+                item: message.payload && message.payload.object ? message.payload.object : message.payload,
+                highlight: true
+              }
+            });
+            return;
+          }
+          if (message.type === 'set-viewport-inset') {
+            setBottomInset(message.payload && message.payload.inset ? message.payload.inset.bottom : 0);
+            return;
+          }
+          relayToEmbedded(message);
+          return;
+        }
+
+        if (message.type === 'set-center' && message.payload && message.payload.center) {
+          state.center = message.payload.center;
+        }
+        if (message.type === 'set-zoom' && message.payload) {
+          state.zoom = toNumber(message.payload.zoom) || state.zoom;
+          postToHost('zoomEnd', { zoom: state.zoom, center: state.center });
+        }
+        if (message.type === 'fly-to' && message.payload) {
+          state.center = message.payload.center || state.center;
+          state.zoom = toNumber(message.payload.zoom) || state.zoom;
+        }
+        if (message.type === 'set-marker' && message.payload) {
+          var markers = Array.isArray(message.payload.markers) ? message.payload.markers : [];
+          state.markers = markers.map(function (item, index) {
+            return {
+              id: item.id || 'marker-' + (index + 1),
+              lng: item.lng,
+              lat: item.lat,
+              label: item.label || '',
+              color: item.color || '#1f7cff'
+            };
+          });
+        }
+        if (message.type === 'clear-marker') {
+          state.markers = [];
+        }
+        if (message.type === 'set-layers' && message.payload) {
+          state.layers = Array.isArray(message.payload.layers) ? message.payload.layers.slice() : [];
+          postToHost('layersChange', { enabledLayers: state.layers });
+        }
+        if (message.type === 'select-object' && message.payload && message.payload.object) {
+          var object = message.payload.object;
+          state.selectedObject = object;
+          if (Array.isArray(object.coordinate)) {
+            state.center = object.coordinate.slice();
+          }
+          postToHost('objectSelect', object);
+        }
+        if (message.type === 'set-viewport-inset' && message.payload && message.payload.inset) {
+          setBottomInset(message.payload.inset.bottom);
+        }
+        syncMockState();
+        postToHost('moveEnd', { center: state.center, zoom: state.zoom });
+      }
+
+      function receiveHostMessage(raw) {
+        var message = raw && raw.data && !raw.type ? raw.data : raw;
+        if (typeof message === 'string') {
+          try {
+            message = JSON.parse(message);
+          } catch (error) {
+            return;
+          }
+        }
+        applyHostMessage(message);
+      }
+
+      window.__GXA_MAP_BRIDGE__ = {
+        receiveHostMessage: receiveHostMessage
+      };
+
+      document.addEventListener('message', function (event) {
+        receiveHostMessage(event);
+      });
+
+      window.addEventListener('message', function (event) {
+        handleEmbeddedMessage(event.data);
+      });
+
+      if (mode === 'embedded') {
+        mockStage.hidden = true;
+        frame.hidden = false;
+        frame.src = embeddedUrl;
+        setBottomInset(0);
+      } else {
+        mockStage.addEventListener('click', function (event) {
+          var rect = mockStage.getBoundingClientRect();
+          var percentX = (event.clientX - rect.left) / rect.width;
+          var percentY = (event.clientY - rect.top) / rect.height;
+          var lng = state.center[0] + (percentX - 0.5) * 0.08;
+          var lat = state.center[1] - (percentY - 0.5) * 0.05;
+          postToHost('mapClick', {
+            lng: Number(lng.toFixed(6)),
+            lat: Number(lat.toFixed(6)),
+            zoom: Number(state.zoom.toFixed(2))
+          });
+        });
+
+        syncMockState();
+        postToHost('ready', {
+          mode: 'mock',
+          center: state.center,
+          zoom: state.zoom,
+          layers: state.layers
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
