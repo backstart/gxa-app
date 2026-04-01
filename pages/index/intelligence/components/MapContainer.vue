@@ -6,6 +6,10 @@
       :src="src"
       @message="handleMessage"
     />
+    <view v-if="showFallback" class="map-fallback">
+      <text class="map-fallback__title">地图暂时不可用</text>
+      <text class="map-fallback__desc">{{ fallbackText }}</text>
+    </view>
   </view>
 </template>
 
@@ -22,9 +26,21 @@ const props = defineProps({
 const emit = defineEmits(['ready', 'map-event']);
 
 const webviewRef = ref(null);
+const showFallback = ref(false);
+const fallbackText = ref('请稍后重试，底部情报面板仍可继续使用。');
+let readyTimer = null;
 
 const adapter = createMapAdapter(props.adapterType, {
   onEvent(event) {
+    if (event?.type === 'ready') {
+      showFallback.value = false;
+      clearReadyTimer();
+    }
+    if (event?.type === 'error') {
+      showFallback.value = true;
+      fallbackText.value = '地图加载失败，请稍后重试。';
+      clearReadyTimer();
+    }
     emit('map-event', event);
   },
 });
@@ -76,6 +92,9 @@ watch(
   () => props.src,
   (nextSrc) => {
     adapter.setSource(nextSrc);
+    showFallback.value = false;
+    fallbackText.value = '请稍后重试，底部情报面板仍可继续使用。';
+    startReadyTimer();
   }
 );
 
@@ -91,12 +110,27 @@ onMounted(() => {
     },
   });
   adapter.setSource(props.src);
+  startReadyTimer();
   emit('ready', controller);
 });
 
 onUnmounted(() => {
+  clearReadyTimer();
   adapter.destroy();
 });
+
+function clearReadyTimer() {
+  if (!readyTimer) return;
+  clearTimeout(readyTimer);
+  readyTimer = null;
+}
+
+function startReadyTimer() {
+  clearReadyTimer();
+  readyTimer = setTimeout(() => {
+    showFallback.value = true;
+  }, 12000);
+}
 
 defineExpose(controller);
 </script>
@@ -106,5 +140,35 @@ defineExpose(controller);
 .map-webview {
   width: 100%;
   height: 100%;
+}
+
+.map-container {
+  position: relative;
+}
+
+.map-fallback {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 28rpx;
+  z-index: 5;
+  display: grid;
+  gap: 8rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18rpx 36rpx rgba(20, 44, 65, 0.12);
+}
+
+.map-fallback__title {
+  color: #1f3346;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.map-fallback__desc {
+  color: #667b8f;
+  font-size: 24rpx;
+  line-height: 1.5;
 }
 </style>

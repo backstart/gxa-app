@@ -19,7 +19,7 @@ export const DEFAULT_MAP_VIEW = {
 };
 
 export const DEFAULT_REAL_MAP_PAGE_URL = 'http://159.75.54.99:8002/map';
-export const DEFAULT_REAL_MAP_EMBED_URL = 'http://159.75.54.99:8002/map-resources/embedded.html';
+export const DEFAULT_REAL_MAP_EMBED_URL = 'http://159.75.54.99:8002/embed/map';
 
 const MAP_PAGE_URL_KEY = 'intelligence_map_page_url';
 const MAP_EMBED_URL_KEY = 'intelligence_map_embed_url';
@@ -55,10 +55,16 @@ export function buildMapBridgeSrc(options = {}) {
     mode: view.mode,
     center: formatCenter(view.center),
     zoom: view.zoom,
-    layers: Array.isArray(view.layers) ? view.layers.join(',') : '',
+    activeLayers: Array.isArray(view.layers) ? view.layers.join(',') : '',
     keyword: view.keyword || '',
-    autoSearch: view.keyword ? 'true' : '',
+    readonly: '1',
+    theme: view.theme || 'light',
+    debug: isDebugMapHudEnabled() ? '1' : '',
   })}`;
+
+  if (!isDebugMapFallbackEnabled()) {
+    return embeddedUrl;
+  }
 
   const bridgeQuery = buildQuery({
     embeddedUrl,

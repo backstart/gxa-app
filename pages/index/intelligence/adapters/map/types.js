@@ -11,8 +11,9 @@ export const MAP_EVENT_TYPES = {
   MOVE_END: 'moveEnd',
   ZOOM_END: 'zoomEnd',
   LAYERS_CHANGE: 'layersChange',
+  ERROR: 'error',
 };
 
-export const MAP_BRIDGE_SOURCE = 'gxa-map-bridge';
+export const MAP_BRIDGE_SOURCE = 'GxaMapBridge';
 
 export const MAP_ADAPTER_TODO = 'TODO: replace WebViewMapAdapter with NativeMapAdapter when native-view / 原生地图接入完成。';

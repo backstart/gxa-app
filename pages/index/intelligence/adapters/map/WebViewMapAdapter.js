@@ -23,15 +23,15 @@ export class WebViewMapAdapter {
   init() {}
 
   setCenter(center) {
-    this.dispatch('set-center', { center });
+    this.dispatch('setCenter', { center });
   }
 
   setZoom(zoom) {
-    this.dispatch('set-zoom', { zoom });
+    this.dispatch('setZoom', { zoom });
   }
 
   flyTo(payload) {
-    this.dispatch('fly-to', payload);
+    this.dispatch('flyTo', payload);
   }
 
   addMarker(marker) {
@@ -39,27 +39,43 @@ export class WebViewMapAdapter {
   }
 
   addMarkers(markers) {
-    this.dispatch('set-marker', { markers, flyTo: false });
+    this.dispatch('addMarkers', { markers });
   }
 
   clearMarkers() {
-    this.dispatch('clear-marker', {});
+    this.dispatch('clearMarkers', {});
   }
 
   setActiveLayers(layers) {
-    this.dispatch('set-layers', { layers });
+    this.dispatch('setActiveLayers', { layers });
   }
 
   drawGeoJSON(featureCollection) {
-    this.dispatch('draw-geojson', { featureCollection });
+    this.dispatch('drawGeoJSON', { geojson: featureCollection });
   }
 
   selectObject(object) {
-    this.dispatch('select-object', { object });
+    if (object?.mapObjectType && object?.mapObjectId) {
+      this.dispatch('selectObject', {
+        type: object.mapObjectType,
+        id: object.mapObjectId,
+        fitBounds: object.fitBounds,
+      });
+      return;
+    }
+
+    if (Array.isArray(object?.coordinate) && object.coordinate.length >= 2) {
+      this.dispatch('flyTo', {
+        center: object.coordinate,
+        zoom: object.mapZoom || 15,
+        duration: 600,
+        essential: true,
+      });
+    }
   }
 
   setViewportInset(inset) {
-    this.dispatch('set-viewport-inset', { inset });
+    this.dispatch('setViewportInset', { inset });
   }
 
   destroy() {
@@ -71,9 +87,7 @@ export class WebViewMapAdapter {
       return false;
     }
     const message = { type, payload: payload || {} };
-    const script = `window.__GXA_MAP_BRIDGE__ && window.__GXA_MAP_BRIDGE__.receiveHostMessage(${escapeScriptValue(
-      message
-    )});`;
+    const script = `(function(){var message=${escapeScriptValue(message)};try{if(window.GxaMapBridge&&typeof window.GxaMapBridge.receiveMessage==='function'){window.GxaMapBridge.receiveMessage(message);return;}}catch(error){}try{window.dispatchEvent(new CustomEvent('gxa-map-bridge-command',{detail:message}));}catch(error){}try{window.postMessage(message,'*');}catch(error){}})();`;
     return this.host.evalJS(script);
   }
 

@@ -27,7 +27,7 @@
 默认值：
 
 - 页面地址：`http://159.75.54.99:8002/map`
-- 嵌入地址：`http://159.75.54.99:8002/map-resources/embedded.html`
+- 嵌入地址：`http://159.75.54.99:8002/embed/map`
 
 可选本地覆盖键：
 
@@ -40,7 +40,7 @@
 
 ```js
 uni.setStorageSync('intelligence_map_page_url', 'http://159.75.54.99:8002/map');
-uni.setStorageSync('intelligence_map_embed_url', 'http://159.75.54.99:8002/map-resources/embedded.html');
+uni.setStorageSync('intelligence_map_embed_url', 'http://159.75.54.99:8002/embed/map');
 uni.setStorageSync('intelligence_map_debug_fallback', '1');
 uni.setStorageSync('intelligence_map_debug_hud', '1');
 ```
@@ -52,7 +52,7 @@ uni.setStorageSync('intelligence_map_debug_hud', '1');
 1. 情报页进入 `pages/index/index.vue`
 2. `MapContainer.vue` 承载 `web-view`
 3. `mapEmbed.js` 生成桥接页地址
-4. `static/map/fuyaomap-bridge.html` 默认加载真实嵌入页
+4. 默认直接加载真正嵌入路由 `/embed/map`
 5. 底部面板独立展示搜索框、快捷入口和情报卡片
 
 ### 调试回退路径
@@ -77,10 +77,11 @@ uni.setStorageSync('intelligence_map_debug_hud', '1');
 ### 验证项
 
 1. 地图默认显示真实地图，不应再看到 `GXA Map Bridge / MOCK / READY`
-2. 底部面板可在 `collapsed / half / full` 三态之间切换
-3. 点击“警情 / 场所 / 人员 / 处警 / 巡防”后，卡片列表切换
-4. 点击卡片后，页面不应因地图桥接未完全就绪而阻塞
-5. 打开 `intelligence_map_debug_fallback=1` 后，才出现本地 mock 地图
+2. 默认不应再看到 `Fuyao Embedded Map`、`VIEW / Failed`、`/map-resources/embedded.html`
+3. 底部面板可在 `collapsed / half / full` 三态之间切换
+4. 点击“警情 / 场所 / 人员 / 处警 / 巡防”后，卡片列表切换
+5. 点击卡片后，页面不应因地图桥接未完全就绪而阻塞
+6. 打开 `intelligence_map_debug_fallback=1` 后，才出现本地 mock 地图
 
 ## 后续建议
 

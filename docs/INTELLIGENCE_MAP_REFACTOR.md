@@ -117,7 +117,7 @@
 
 1. `mapEmbed.js` 默认指向：
    - 页面地址 `http://159.75.54.99:8002/map`
-   - 嵌入地址 `http://159.75.54.99:8002/map-resources/embedded.html`
+   - 嵌入地址 `http://159.75.54.99:8002/embed/map`
 2. 如需覆盖，可写入本地存储：
    - `intelligence_map_page_url`
    - `intelligence_map_embed_url`
@@ -178,7 +178,7 @@
 ```js
 uni.setStorageSync('gxa_api_base_url', 'http://你的-gxa-api-host');
 uni.setStorageSync('intelligence_map_page_url', 'http://你的-fuyaomapweb-host/map');
-uni.setStorageSync('intelligence_map_embed_url', 'http://你的-fuyaomapweb-host/map-resources/embedded.html');
+uni.setStorageSync('intelligence_map_embed_url', 'http://你的-fuyaomapweb-host/embed/map');
 uni.setStorageSync('intelligence_map_debug_fallback', '1');
 uni.setStorageSync('intelligence_map_debug_hud', '1');
 ```

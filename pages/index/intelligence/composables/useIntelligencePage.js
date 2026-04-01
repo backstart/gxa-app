@@ -60,12 +60,6 @@ export function useIntelligencePage() {
     if (!mapController.value) return;
     const selected = items.value.find((item) => item.id === selectedItemId.value) || items.value[0];
     if (!selected || !selected.coordinate) return;
-    mapController.value.selectObject({
-      id: selected.id,
-      type: selected.type,
-      title: selected.title,
-      coordinate: selected.coordinate,
-    });
     mapController.value.flyTo({
       center: selected.coordinate,
       zoom: selected.mapZoom || 14,
@@ -128,12 +122,6 @@ export function useIntelligencePage() {
   function handleCardSelect(item) {
     selectedItemId.value = item.id;
     if (!mapController.value || !item.coordinate) return;
-    mapController.value.selectObject({
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      coordinate: item.coordinate,
-    });
     mapController.value.flyTo({
       center: item.coordinate,
       zoom: item.mapZoom || 15,
