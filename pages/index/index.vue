@@ -11,15 +11,13 @@
     />
     <!-- #endif -->
     <!-- #ifdef APP-PLUS -->
-    <web-view
-      id="intelligenceMapWebview"
-      class="map-layer"
-      :src="appPlusMapSrc"
-      @message="handleAppPlusMapMessage"
-    />
-    <view v-if="showAppPlusMapFallback" class="app-safe-map-fallback">
-      <text class="app-safe-map-fallback__title">地图暂时不可用</text>
-      <text class="app-safe-map-fallback__desc">{{ appPlusFallbackText }}</text>
+    <view class="map-layer app-safe-map-shell">
+      <view class="app-safe-map-shell__glow app-safe-map-shell__glow--one"></view>
+      <view class="app-safe-map-shell__glow app-safe-map-shell__glow--two"></view>
+      <view class="app-safe-map-shell__card">
+        <text class="app-safe-map-shell__title">情报地图暂以安全模式运行</text>
+        <text class="app-safe-map-shell__desc">当前调试基座中，情报页首屏直接挂载地图 web-view 会触发原生崩溃。页面已回退为稳定底图壳，底部情报面板和业务切换可继续使用。</text>
+      </view>
     </view>
     <!-- #endif -->
 
@@ -84,11 +82,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
 // #ifndef APP-PLUS
 import MapContainer from './intelligence/components/MapContainer.vue';
 // #endif
-import { MAP_BRIDGE_SOURCE, MAP_EVENT_TYPES } from './intelligence/adapters/map/types.js';
 import BottomSheet from './intelligence/components/BottomSheet.vue';
 import SearchBar from './intelligence/components/SearchBar.vue';
 import QuickActions from './intelligence/components/QuickActions.vue';
@@ -120,218 +116,6 @@ const {
   handleMapEvent,
   handleSheetStateChange,
 } = useIntelligencePage();
-
-const APP_PLUS_MAP_WEBVIEW_ID = 'intelligenceMapWebview';
-const showAppPlusMapFallback = ref(false);
-const appPlusFallbackText = ref('请稍后重试，底部情报面板仍可继续使用。');
-const appPlusMapSrc = computed(() => resolveAppPlusMapSrc(mapSrc.value));
-
-let appPlusMapContext = null;
-let appPlusMapReady = false;
-let appPlusReadyTimer = null;
-let appPlusPendingMessages = [];
-
-const appPlusMapController = {
-  init() {},
-  setCenter(center) {
-    postAppPlusMapCommand('setCenter', { center });
-  },
-  setZoom(zoom) {
-    postAppPlusMapCommand('setZoom', { zoom });
-  },
-  flyTo(payload) {
-    postAppPlusMapCommand('flyTo', payload);
-  },
-  addMarker(marker) {
-    postAppPlusMapCommand('addMarkers', { markers: [marker] });
-  },
-  addMarkers(markers) {
-    postAppPlusMapCommand('addMarkers', { markers });
-  },
-  clearMarkers() {
-    postAppPlusMapCommand('clearMarkers', {});
-  },
-  setActiveLayers(layers) {
-    postAppPlusMapCommand('setActiveLayers', { layers });
-  },
-  drawGeoJSON(featureCollection) {
-    postAppPlusMapCommand('drawGeoJSON', { geojson: featureCollection });
-  },
-  selectObject(object) {
-    if (Array.isArray(object?.coordinate) && object.coordinate.length >= 2) {
-      postAppPlusMapCommand('flyTo', {
-        center: object.coordinate,
-        zoom: object.mapZoom || 15,
-        duration: 600,
-        essential: true,
-      });
-    }
-  },
-  setViewportInset(inset) {
-    postAppPlusMapCommand('setViewportInset', { inset });
-  },
-  destroy() {},
-};
-
-onMounted(() => {
-  // #ifdef APP-PLUS
-  appPlusMapContext = resolveAppPlusMapContext();
-  appPlusMapReady = false;
-  appPlusPendingMessages = [];
-  showAppPlusMapFallback.value = false;
-  appPlusFallbackText.value = '请稍后重试，底部情报面板仍可继续使用。';
-  if (appPlusMapContext) {
-    startAppPlusReadyTimer();
-    handleMapControllerReady(appPlusMapController);
-  } else {
-    showAppPlusMapFallback.value = true;
-    appPlusFallbackText.value = '当前调试基座不支持地图桥接控制，页面已降级为仅加载地图背景。';
-  }
-  // #endif
-});
-
-onUnmounted(() => {
-  clearAppPlusReadyTimer();
-});
-
-function startAppPlusReadyTimer() {
-  clearAppPlusReadyTimer();
-  appPlusReadyTimer = setTimeout(() => {
-    showAppPlusMapFallback.value = true;
-  }, 12000);
-}
-
-function clearAppPlusReadyTimer() {
-  if (!appPlusReadyTimer) return;
-  clearTimeout(appPlusReadyTimer);
-  appPlusReadyTimer = null;
-}
-
-function postAppPlusMapCommand(type, payload) {
-  const message = { type, payload: payload || {} };
-  if (!appPlusMapReady || !appPlusMapContext) {
-    appPlusPendingMessages.push(message);
-    if (appPlusPendingMessages.length > 40) {
-      appPlusPendingMessages = appPlusPendingMessages.slice(-40);
-    }
-    return;
-  }
-
-  appPlusMapContext.postMessage(message);
-}
-
-function flushAppPlusPendingMessages() {
-  if (!appPlusMapReady || !appPlusMapContext || !appPlusPendingMessages.length) {
-    return;
-  }
-
-  const messages = appPlusPendingMessages.slice();
-  appPlusPendingMessages = [];
-  messages.forEach((message) => {
-    appPlusMapContext.postMessage(message);
-  });
-}
-
-function handleAppPlusMapMessage(event) {
-  const list = Array.isArray(event?.detail?.data) ? event.detail.data : [event?.detail?.data];
-  list.forEach((raw) => {
-    const normalized = normalizeAppPlusMapMessage(raw?.data ?? raw);
-    if (!normalized) return;
-
-    if (normalized.type === MAP_EVENT_TYPES.READY) {
-      appPlusMapReady = true;
-      showAppPlusMapFallback.value = false;
-      clearAppPlusReadyTimer();
-      flushAppPlusPendingMessages();
-    }
-
-    if (normalized.type === MAP_EVENT_TYPES.ERROR) {
-      showAppPlusMapFallback.value = true;
-      appPlusFallbackText.value = '地图加载失败，请稍后重试。';
-      clearAppPlusReadyTimer();
-    }
-
-    handleMapEvent(normalized);
-  });
-}
-
-function normalizeAppPlusMapMessage(message) {
-  if (!message || typeof message !== 'object') {
-    return null;
-  }
-
-  if (message.source === MAP_BRIDGE_SOURCE || message.source === 'gxa-map-bridge') {
-    return {
-      type: message.type,
-      payload: message.payload || {},
-      raw: message,
-    };
-  }
-
-  if (message.source === 'fuyaomap-embedded') {
-    const rawType = String(message.type || '');
-    const payload = message.payload || {};
-
-    if (rawType === 'map-ready') return { type: MAP_EVENT_TYPES.READY, payload, raw: message };
-    if (rawType === 'map-click') return { type: MAP_EVENT_TYPES.MAP_CLICK, payload, raw: message };
-    if (rawType === 'marker-click') return { type: MAP_EVENT_TYPES.MARKER_CLICK, payload, raw: message };
-    if (rawType === 'feature-located') return { type: MAP_EVENT_TYPES.OBJECT_SELECT, payload, raw: message };
-    if (rawType === 'layers-ready' || rawType === 'layers-changed') {
-      return { type: MAP_EVENT_TYPES.LAYERS_CHANGE, payload, raw: message };
-    }
-    if (rawType === 'viewport-change') {
-      return { type: MAP_EVENT_TYPES.MOVE_END, payload, raw: message };
-    }
-  }
-
-  return null;
-}
-
-function resolveAppPlusMapSrc(source) {
-  if (!source) {
-    return '';
-  }
-
-  if (source.indexOf('/static/map/fuyaomap-bridge.html') === -1) {
-    return source;
-  }
-
-  try {
-    const queryIndex = source.indexOf('?');
-    if (queryIndex === -1) {
-      return source;
-    }
-
-    const query = source.slice(queryIndex + 1);
-    const segments = query.split('&');
-    for (let index = 0; index < segments.length; index += 1) {
-      const segment = segments[index];
-      if (!segment) continue;
-      const splitIndex = segment.indexOf('=');
-      const rawKey = splitIndex === -1 ? segment : segment.slice(0, splitIndex);
-      if (decodeURIComponent(rawKey) !== 'embeddedUrl') {
-        continue;
-      }
-      const rawValue = splitIndex === -1 ? '' : segment.slice(splitIndex + 1);
-      return decodeURIComponent(rawValue) || source;
-    }
-    return source;
-  } catch (error) {
-    return source;
-  }
-}
-
-function resolveAppPlusMapContext() {
-  if (!uni || typeof uni.createWebViewContext !== 'function') {
-    return null;
-  }
-
-  try {
-    return uni.createWebViewContext(APP_PLUS_MAP_WEBVIEW_ID);
-  } catch (error) {
-    return null;
-  }
-}
 </script>
 
 <style lang="scss" scoped>
@@ -347,19 +131,49 @@ function resolveAppPlusMapContext() {
   inset: 0;
 }
 
-.app-safe-map-fallback {
+.app-safe-map-shell {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(42, 132, 255, 0.24), transparent 24%),
+    radial-gradient(circle at 86% 18%, rgba(0, 194, 168, 0.18), transparent 22%),
+    linear-gradient(180deg, #e8f0f6 0%, #dbe5ef 100%);
+}
+
+.app-safe-map-shell__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(18rpx);
+  opacity: 0.7;
+}
+
+.app-safe-map-shell__glow--one {
+  top: 12%;
+  left: -8%;
+  width: 280rpx;
+  height: 280rpx;
+  background: rgba(47, 128, 237, 0.26);
+}
+
+.app-safe-map-shell__glow--two {
+  right: -10%;
+  top: 28%;
+  width: 360rpx;
+  height: 360rpx;
+  background: rgba(12, 186, 154, 0.16);
+}
+
+.app-safe-map-shell__card {
   position: absolute;
   left: 24rpx;
   right: 24rpx;
   top: 180rpx;
-  z-index: 6;
   padding: 28rpx 30rpx;
   border-radius: 28rpx;
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 20rpx 44rpx rgba(17, 39, 57, 0.1);
 }
 
-.app-safe-map-fallback__title {
+.app-safe-map-shell__title {
   display: block;
   color: #203243;
   font-size: 32rpx;
@@ -367,7 +181,7 @@ function resolveAppPlusMapContext() {
   line-height: 1.3;
 }
 
-.app-safe-map-fallback__desc {
+.app-safe-map-shell__desc {
   display: block;
   margin-top: 12rpx;
   color: #5f7386;
