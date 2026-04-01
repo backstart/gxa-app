@@ -26,6 +26,8 @@ const MAP_EMBED_URL_KEY = 'intelligence_map_embed_url';
 const MAP_DEBUG_FALLBACK_KEY = 'intelligence_map_debug_fallback';
 const MAP_DEBUG_HUD_KEY = 'intelligence_map_debug_hud';
 const MAP_AUTO_LOAD_KEY = 'intelligence_map_auto_load';
+const MAP_FORCE_KERNEL_KEY = 'intelligence_map_force_kernel';
+const MAP_FORCE_LITE_KEY = 'intelligence_map_force_lite';
 
 export function getConfiguredMapPageUrl() {
   return uni.getStorageSync(MAP_PAGE_URL_KEY) || DEFAULT_REAL_MAP_PAGE_URL;
@@ -59,6 +61,26 @@ export function shouldAutoLoadMap() {
   return platform !== 'app-plus';
 }
 
+function isAppPlusPlatform() {
+  const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
+  const platform = String(systemInfo.uniPlatform || systemInfo.platform || '').toLowerCase();
+  return platform === 'app-plus';
+}
+
+export function shouldUseLiteEmbedMode() {
+  const forceKernel = uni.getStorageSync(MAP_FORCE_KERNEL_KEY);
+  if (forceKernel === true || forceKernel === '1' || forceKernel === 1) {
+    return false;
+  }
+
+  const forceLite = uni.getStorageSync(MAP_FORCE_LITE_KEY);
+  if (forceLite === true || forceLite === '1' || forceLite === 1) {
+    return true;
+  }
+
+  return isAppPlusPlatform();
+}
+
 export function buildMapBridgeSrc(options = {}) {
   const view = {
     ...DEFAULT_MAP_VIEW,
@@ -75,6 +97,8 @@ export function buildMapBridgeSrc(options = {}) {
     readonly: '1',
     theme: view.theme || 'light',
     debug: isDebugMapHudEnabled() ? '1' : '',
+    lite: shouldUseLiteEmbedMode() ? '1' : '',
+    kernel: shouldUseLiteEmbedMode() ? '' : '1',
   })}`;
 
   const bridgeQuery = buildQuery({

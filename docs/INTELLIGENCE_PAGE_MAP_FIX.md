@@ -14,6 +14,12 @@ http://159.75.54.99:8002/map-resources/embedded.html
 http://159.75.54.99:8002/embed/map
 ```
 
+在 `APP-PLUS` 宿主下，默认会追加轻量模式参数：
+
+```text
+http://159.75.54.99:8002/embed/map?...&lite=1
+```
+
 对应配置文件：
 
 - `pages/index/intelligence/services/mapEmbed.js`
@@ -61,6 +67,8 @@ http://159.75.54.99:8002/embed/map
 
 地图层默认直接接入真正嵌入路由 `/embed/map`，不再默认经过旧 static embedded.html。
 
+但在 `APP-PLUS` 下，不再默认直接启动远程地图内核，而是优先进入嵌入轻量模式，避免当前 Android WebView 中 `MapLibre/WebGL` 初始化触发原生崩溃。
+
 ## fallback 与 debug
 
 本地桥接页仍保留，但只作为调试 fallback。
@@ -69,12 +77,21 @@ http://159.75.54.99:8002/embed/map
 
 - `intelligence_map_debug_fallback`
 - `intelligence_map_debug_hud`
+- `intelligence_map_force_lite`
+- `intelligence_map_force_kernel`
 
 示例：
 
 ```js
 uni.setStorageSync('intelligence_map_debug_fallback', '1');
 uni.setStorageSync('intelligence_map_debug_hud', '1');
+uni.setStorageSync('intelligence_map_force_lite', '1');
+```
+
+如需强制测试远程地图内核：
+
+```js
+uni.setStorageSync('intelligence_map_force_kernel', '1');
 ```
 
 ## Android WebView 兼容性
@@ -89,6 +106,14 @@ uni.setStorageSync('intelligence_map_debug_hud', '1');
 - `chrome61`
 
 这样地图代码会进入正常构建产物，而不是直接执行旧 vendor 文件。
+
+目前进一步验证结果是：
+
+1. 本地 `web-view` 承载稳定
+2. 远程轻量嵌入页稳定
+3. 仅远程地图内核初始化会触发 App 原生崩溃
+
+因此当前产品策略是：`APP-PLUS` 默认使用嵌入轻量模式，不影响其他 Web 项目继续正常使用地图内核。
 
 ## 本地运行
 

@@ -91,7 +91,7 @@ import { onLoad, onUnload } from '@dcloudio/uni-app';
 import { getStatusBarHeight } from '@/utils/system.js';
 
 const REMOTE_EMBED_LITE_URL = 'http://159.75.54.99:8002/embed/map?readonly=1&debug=1&lite=1';
-const REMOTE_EMBED_URL = 'http://159.75.54.99:8002/embed/map?readonly=1&debug=1';
+const REMOTE_EMBED_URL = 'http://159.75.54.99:8002/embed/map?readonly=1&debug=1&kernel=1';
 const LOCAL_BLANK_URL = '/static/map/lab-blank.html';
 const LOCAL_BRIDGE_URL = '/static/map/fuyaomap-bridge.html?debugFallback=1&showHud=1';
 
