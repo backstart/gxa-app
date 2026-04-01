@@ -7,7 +7,12 @@ import {
   getIntelligenceSummary,
   getMapMarkersFromItems,
 } from '../services/intelligence.js';
-import { buildMapBridgeSrc, DEFAULT_MAP_VIEW, shouldAutoLoadMap } from '../services/mapEmbed.js';
+import {
+  buildWebViewMapSrc,
+  DEFAULT_MAP_VIEW,
+  resolvePreferredMapAdapter,
+  shouldAutoLoadMap,
+} from '../services/mapEmbed.js';
 
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
@@ -21,8 +26,9 @@ export function useIntelligencePage() {
   const loading = ref(false);
   const summary = ref({ total: 0, highRisk: 0, mapped: 0, domainCounts: {} });
   const selectedItemId = ref('');
+  const mapAdapterType = ref(resolvePreferredMapAdapter());
   const mapEnabled = ref(shouldAutoLoadMap());
-  const mapSrc = ref(buildMapBridgeSrc(DEFAULT_MAP_VIEW));
+  const mapSrc = ref(buildWebViewMapSrc(DEFAULT_MAP_VIEW));
   const mapController = ref(null);
   const lastViewport = ref(null);
 
@@ -30,7 +36,7 @@ export function useIntelligencePage() {
     () => INTELLIGENCE_ACTIONS.find((item) => item.key === activeActionKey.value) || INTELLIGENCE_ACTIONS[0]
   );
 
-  const searchPlaceholder = computed(() => currentAction.value.searchPlaceholder);
+  const searchPlaceholder = computed(() => '搜索警情、人员、场所');
   const summaryText = computed(() => {
     if (!items.value.length) return '等待加载情报数据';
     const selected = items.value.find((item) => item.id === selectedItemId.value);
@@ -140,6 +146,8 @@ export function useIntelligencePage() {
 
   function handleMapControllerReady(controller) {
     mapController.value = controller;
+    syncMapLayers();
+    syncMapMarkers(false);
   }
 
   function handleMapActivate() {
@@ -177,8 +185,9 @@ export function useIntelligencePage() {
   onShow(() => {
     const sys = uni.getSystemInfoSync();
     safeBottom.value = sys.safeAreaInsets?.bottom || 0;
+    mapAdapterType.value = resolvePreferredMapAdapter();
     mapEnabled.value = shouldAutoLoadMap();
-    mapSrc.value = buildMapBridgeSrc({
+    mapSrc.value = buildWebViewMapSrc({
       ...DEFAULT_MAP_VIEW,
       layers: currentAction.value.mapLayers,
       keyword: committedKeyword.value,
@@ -201,6 +210,7 @@ export function useIntelligencePage() {
     items,
     loading,
     selectedItemId,
+    mapAdapterType,
     mapEnabled,
     mapSrc,
     sheetState,

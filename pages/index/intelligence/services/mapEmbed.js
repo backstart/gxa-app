@@ -1,3 +1,5 @@
+import { MAP_ADAPTER_TYPES } from '../adapters/map/types.js';
+
 function formatCenter(center) {
   if (!Array.isArray(center) || center.length < 2) return '';
   return `${center[0]},${center[1]}`;
@@ -28,6 +30,9 @@ const MAP_DEBUG_HUD_KEY = 'intelligence_map_debug_hud';
 const MAP_AUTO_LOAD_KEY = 'intelligence_map_auto_load';
 const MAP_FORCE_KERNEL_KEY = 'intelligence_map_force_kernel';
 const MAP_FORCE_LITE_KEY = 'intelligence_map_force_lite';
+const MAP_ADAPTER_KEY = 'intelligence_map_adapter';
+const MAP_FORCE_WEBVIEW_KEY = 'intelligence_map_force_webview';
+const MAP_FORCE_NATIVE_KEY = 'intelligence_map_force_native';
 
 export function getConfiguredMapPageUrl() {
   return uni.getStorageSync(MAP_PAGE_URL_KEY) || DEFAULT_REAL_MAP_PAGE_URL;
@@ -47,6 +52,25 @@ export function isDebugMapHudEnabled() {
   return value === true || value === '1' || value === 1;
 }
 
+export function resolvePreferredMapAdapter() {
+  const forceNative = uni.getStorageSync(MAP_FORCE_NATIVE_KEY);
+  if (forceNative === true || forceNative === '1' || forceNative === 1) {
+    return MAP_ADAPTER_TYPES.NATIVE;
+  }
+
+  const forceWebview = uni.getStorageSync(MAP_FORCE_WEBVIEW_KEY);
+  if (forceWebview === true || forceWebview === '1' || forceWebview === 1) {
+    return MAP_ADAPTER_TYPES.WEBVIEW;
+  }
+
+  const stored = String(uni.getStorageSync(MAP_ADAPTER_KEY) || '').toLowerCase();
+  if (stored === MAP_ADAPTER_TYPES.WEBVIEW) {
+    return MAP_ADAPTER_TYPES.WEBVIEW;
+  }
+
+  return MAP_ADAPTER_TYPES.NATIVE;
+}
+
 export function shouldAutoLoadMap() {
   const override = uni.getStorageSync(MAP_AUTO_LOAD_KEY);
   if (override === true || override === '1' || override === 1) {
@@ -54,6 +78,10 @@ export function shouldAutoLoadMap() {
   }
   if (override === false || override === '0' || override === 0) {
     return false;
+  }
+
+  if (resolvePreferredMapAdapter() === MAP_ADAPTER_TYPES.NATIVE) {
+    return true;
   }
 
   const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
@@ -81,7 +109,7 @@ export function shouldUseLiteEmbedMode() {
   return isAppPlusPlatform();
 }
 
-export function buildMapBridgeSrc(options = {}) {
+export function buildWebViewMapSrc(options = {}) {
   const view = {
     ...DEFAULT_MAP_VIEW,
     ...options,
@@ -113,4 +141,8 @@ export function buildMapBridgeSrc(options = {}) {
   });
 
   return `/static/map/fuyaomap-bridge.html${bridgeQuery ? `?${bridgeQuery}` : ''}`;
+}
+
+export function buildMapBridgeSrc(options = {}) {
+  return buildWebViewMapSrc(options);
 }
