@@ -111,8 +111,10 @@ const renderState = reactive({
 });
 
 const useSystemMap = ref(false);
+// 只有在明确打开开关并使用带 maps 模块的运行基座时，才启用原生 map 组件。
+// 默认关闭，避免当前调试基座弹出缺少 maps 模块和 SDK 版本不匹配提示。
 // #ifdef APP-PLUS
-useSystemMap.value = true;
+useSystemMap.value = shouldEnableSystemMap();
 // #endif
 
 const visibleLayerPills = computed(() => {
@@ -417,6 +419,11 @@ function projectMarker(marker, index, center, zoom) {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function shouldEnableSystemMap() {
+  const explicit = uni.getStorageSync('intelligence_map_enable_system_map');
+  return explicit === true || explicit === '1' || explicit === 1;
 }
 
 function resolveSceneKey(layers = []) {

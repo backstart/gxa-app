@@ -116,6 +116,8 @@ service 层负责：
 - `gxa-app` 情报页优先走 `NativeMapAdapter`
 - `WebViewMapAdapter` 仅作为 fallback
 - `mapEmbed.js` 中仍保留 H5 embed 地址拼装能力，供兼容和实验页使用
+- 当前调试基座未打入 `maps` 模块时，`NativeMapContainer` 默认走稳定预览层
+- 仅在显式设置 `intelligence_map_enable_system_map=1` 且使用带 `maps` 模块的运行基座时，才启用原生 `map` 组件
 
 默认适配器切换规则：
 
