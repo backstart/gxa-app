@@ -13,11 +13,7 @@ import {
   resolvePreferredMapAdapter,
   shouldAutoLoadMap,
 } from '../services/mapEmbed.js';
-import {
-  getNativeMapBootstrapConfig,
-  getNativeMapGeoJSON,
-  getNativeMapObjectGeometry,
-} from '../services/nativeMap.js';
+import { getNativeMapBootstrapConfig } from '../services/nativeMap.js';
 
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
@@ -35,7 +31,6 @@ export function useIntelligencePage() {
   const mapEnabled = ref(shouldAutoLoadMap());
   const mapSrc = ref(buildWebViewMapSrc(DEFAULT_MAP_VIEW));
   const mapInitialView = ref(null);
-  const mapGeoJSON = ref({ type: 'FeatureCollection', features: [] });
   const mapController = ref(null);
   const lastViewport = ref(null);
 
@@ -70,11 +65,6 @@ export function useIntelligencePage() {
     mapController.value.setViewportInset(resolveViewportInset(sheetState.value));
   }
 
-  function syncMapGeometry() {
-    if (!mapController.value) return;
-    mapController.value.drawGeoJSON(mapGeoJSON.value);
-  }
-
   function focusSelection() {
     if (!mapController.value) return;
     const selected = items.value.find((item) => item.id === selectedItemId.value) || items.value[0];
@@ -92,7 +82,6 @@ export function useIntelligencePage() {
     mapController.value.clearMarkers();
     mapController.value.addMarkers(markers);
     syncMapLayers();
-    syncMapGeometry();
     if (focusSelected) {
       focusSelection();
     }
@@ -114,7 +103,6 @@ export function useIntelligencePage() {
       if (!list.find((item) => item.id === selectedItemId.value)) {
         selectedItemId.value = list[0]?.id || '';
       }
-      await loadMapGeometry(list);
       syncMapMarkers(options.focusSelected !== false);
     } finally {
       loading.value = false;
@@ -132,15 +120,6 @@ export function useIntelligencePage() {
     });
   }
 
-  async function loadMapGeometry(nextItems = items.value) {
-    mapGeoJSON.value = await getNativeMapGeoJSON({
-      domain: activeActionKey.value,
-      items: nextItems,
-      keyword: committedKeyword.value,
-    });
-    syncMapGeometry();
-  }
-
   function handleSearch() {
     committedKeyword.value = keyword.value.trim();
     refreshPage();
@@ -156,28 +135,18 @@ export function useIntelligencePage() {
     refreshPage({ focusSelected: false });
   }
 
-  async function handleCardSelect(item) {
+  function handleCardSelect(item) {
     selectedItemId.value = item.id;
-    const detail = await getNativeMapObjectGeometry({
-      domain: activeActionKey.value,
-      item,
+    if (!mapController.value || !item.coordinate) return;
+    mapController.value.flyTo({
+      center: item.coordinate,
+      zoom: item.mapZoom || 15,
+      duration: 900,
     });
-    mapGeoJSON.value = detail.featureCollection || mapGeoJSON.value;
-    syncMapGeometry();
-    if (!mapController.value) return;
-
-    if (detail.center) {
-      mapController.value.flyTo({
-        center: detail.center,
-        zoom: detail.zoom || item.mapZoom || 15,
-        duration: 900,
-      });
-    }
-
     mapController.value.selectObject({
       id: item.id,
-      coordinate: detail.center || item.coordinate,
-      mapZoom: detail.zoom || item.mapZoom || 15,
+      coordinate: item.coordinate,
+      mapZoom: item.mapZoom || 15,
     });
   }
 
@@ -195,7 +164,6 @@ export function useIntelligencePage() {
       mapController.value.init(mapInitialView.value);
     }
     syncMapLayers();
-    syncMapGeometry();
     syncMapMarkers(false);
   }
 

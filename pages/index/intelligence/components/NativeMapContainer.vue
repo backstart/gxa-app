@@ -10,7 +10,6 @@
         :latitude="mapLatitude"
         :scale="mapScale"
         :markers="nativeMarkers"
-        :polygons="nativePolygons"
         :enable-scroll="true"
         :enable-zoom="true"
         :show-location="false"
@@ -107,7 +106,6 @@ const renderState = reactive({
   viewportInset: { bottom: 0 },
   mode: 'native-preview',
   source: 'local-default',
-  geojson: null,
 });
 
 const useSystemMap = ref(false);
@@ -133,50 +131,48 @@ const previewScene = computed(() => {
   const sceneMap = {
     alerts: {
       className: 'native-map__preview--alerts',
-      labels: [
-        { id: 'road-1', text: '桂南路', className: 'native-map__label--one' },
-        { id: 'road-2', text: '纠纷高发区', className: 'native-map__label--two' },
-        { id: 'road-3', text: '布控网格', className: 'native-map__label--three' },
-      ],
+      labels: ['桂南路口', '福耀警务室', '龙井坊KTV'],
     },
     places: {
       className: 'native-map__preview--places',
-      labels: [
-        { id: 'road-1', text: '龙井坊KTV', className: 'native-map__label--one' },
-        { id: 'road-2', text: '重点场所', className: 'native-map__label--two' },
-        { id: 'road-3', text: '巡查路线', className: 'native-map__label--three' },
-      ],
+      labels: ['龙井坊KTV', '桂南便利店', '悦来网吧'],
     },
     people: {
       className: 'native-map__preview--people',
-      labels: [
-        { id: 'road-1', text: '居住片区', className: 'native-map__label--one' },
-        { id: 'road-2', text: '重点人员', className: 'native-map__label--two' },
-        { id: 'road-3', text: '走访路线', className: 'native-map__label--three' },
-      ],
+      labels: ['桂南路口', '警务站', '龙井坊KTV'],
     },
     handling: {
       className: 'native-map__preview--handling',
-      labels: [
-        { id: 'road-1', text: '出警路线', className: 'native-map__label--one' },
-        { id: 'road-2', text: '警力调度', className: 'native-map__label--two' },
-        { id: 'road-3', text: '警情联动', className: 'native-map__label--three' },
-      ],
+      labels: ['出警点A', '桂南路口', '联动警务站'],
     },
     patrol: {
       className: 'native-map__preview--patrol',
-      labels: [
-        { id: 'road-1', text: '巡防路线', className: 'native-map__label--one' },
-        { id: 'road-2', text: '卡点布控', className: 'native-map__label--two' },
-        { id: 'road-3', text: '片区边界', className: 'native-map__label--three' },
-      ],
+      labels: ['巡防卡点', '桂南警务站', '龙井坊KTV'],
     },
   };
 
   return sceneMap[activeSceneKey.value] || sceneMap.alerts;
 });
 
-const mapLabels = computed(() => previewScene.value.labels);
+const mapLabels = computed(() => {
+  const source = renderState.markers
+    .slice(0, 3)
+    .map((marker, index) => ({
+      id: `marker-label-${marker.id || index + 1}`,
+      text: marker.label || previewScene.value.labels[index] || `点位${index + 1}`,
+      className: [`native-map__label--one`, `native-map__label--two`, `native-map__label--three`][index] || 'native-map__label--one',
+    }));
+
+  if (source.length) {
+    return source;
+  }
+
+  return previewScene.value.labels.map((text, index) => ({
+    id: `scene-label-${index + 1}`,
+    text,
+    className: [`native-map__label--one`, `native-map__label--two`, `native-map__label--three`][index] || 'native-map__label--one',
+  }));
+});
 
 const nativeMarkerPayload = computed(() => {
   const lookup = {};
@@ -213,8 +209,6 @@ const nativeMarkerPayload = computed(() => {
 });
 
 const nativeMarkers = computed(() => nativeMarkerPayload.value.list);
-
-const nativePolygons = computed(() => toNativePolygons(renderState.geojson));
 
 const renderMarkers = computed(() =>
   renderState.markers.map((marker, index) => {
@@ -303,7 +297,6 @@ onMounted(async () => {
       if (typeof nextState.ready === 'boolean') renderState.ready = nextState.ready;
       if (nextState.mode) renderState.mode = nextState.mode;
       if (nextState.source) renderState.source = nextState.source;
-      if (nextState.geojson !== undefined) renderState.geojson = nextState.geojson;
     },
   });
 
@@ -434,51 +427,6 @@ function resolveSceneKey(layers = []) {
   return 'alerts';
 }
 
-function toNativePolygons(featureCollection) {
-  const features = Array.isArray(featureCollection?.features) ? featureCollection.features : [];
-  return features
-    .map((feature, index) => {
-      const geometry = feature?.geometry;
-      if (!geometry || !Array.isArray(geometry.coordinates)) return null;
-
-      if (geometry.type === 'Polygon') {
-        const points = toPolygonPoints(geometry.coordinates[0]);
-        if (!points.length) return null;
-        return {
-          points,
-          strokeWidth: 2,
-          strokeColor: '#1f7cff',
-          fillColor: 'rgba(31,124,255,0.16)',
-          zIndex: 1 + index,
-        };
-      }
-
-      if (geometry.type === 'MultiPolygon') {
-        const firstPolygon = geometry.coordinates[0];
-        const points = toPolygonPoints(firstPolygon && firstPolygon[0]);
-        if (!points.length) return null;
-        return {
-          points,
-          strokeWidth: 2,
-          strokeColor: '#1f7cff',
-          fillColor: 'rgba(31,124,255,0.16)',
-          zIndex: 1 + index,
-        };
-      }
-
-      return null;
-    })
-    .filter(Boolean);
-}
-
-function toPolygonPoints(points = []) {
-  return points
-    .map((point) => ({
-      longitude: Number(point?.[0]),
-      latitude: Number(point?.[1]),
-    }))
-    .filter((point) => Number.isFinite(point.longitude) && Number.isFinite(point.latitude));
-}
 </script>
 
 <style lang="scss" scoped>
