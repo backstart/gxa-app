@@ -16,13 +16,18 @@
       />
       <!-- #endif -->
 
-      <view v-if="!usePlatformNativePlugin" :class="['native-map__preview', previewScene.className]">
+      <view v-if="showPreviewFallback" :class="['native-map__preview', previewScene.className]">
         <view class="native-map__grid"></view>
         <view class="native-map__water native-map__water--one"></view>
         <view class="native-map__water native-map__water--two"></view>
         <view class="native-map__road native-map__road--one"></view>
         <view class="native-map__road native-map__road--two"></view>
         <view class="native-map__road native-map__road--three"></view>
+      </view>
+
+      <view v-if="showLoadingMask" class="native-map__loading">
+        <view class="native-map__loading-dot"></view>
+        <text class="native-map__loading-text">地图加载中</text>
       </view>
 
       <view class="native-map__overlay">
@@ -48,7 +53,7 @@
           </text>
         </view>
 
-        <view v-if="!usePlatformNativePlugin" class="native-map__preview-markers">
+        <view v-if="showPreviewFallback" class="native-map__preview-markers">
           <view
             v-for="marker in renderMarkers"
             :key="marker.id"
@@ -131,6 +136,7 @@ const renderState = reactive({
 });
 
 const usePlatformNativePlugin = ref(false);
+const capabilityResolved = ref(false);
 let removeNativeMapListener = null;
 const runtimeCapability = reactive({
   checked: false,
@@ -143,8 +149,12 @@ const visibleLayerPills = computed(() => {
   return renderState.layers.slice(0, 4);
 });
 
-const mapModePill = computed(() => (usePlatformNativePlugin.value ? '自建底图插件' : '预览回退'));
-const showOverlayMeta = computed(() => !usePlatformNativePlugin.value);
+const showPreviewFallback = computed(() => capabilityResolved.value && !usePlatformNativePlugin.value);
+const showLoadingMask = computed(() =>
+  props.enabled && (!capabilityResolved.value || (usePlatformNativePlugin.value && !renderState.ready))
+);
+const mapModePill = computed(() => (showPreviewFallback.value ? '原生失败回退' : '地图加载中'));
+const showOverlayMeta = computed(() => showPreviewFallback.value);
 
 const viewportBottomPx = computed(() => Math.max(Number(renderState.viewportInset?.bottom || 0), 0));
 
@@ -324,6 +334,7 @@ onMounted(async () => {
 
   adapter.setSource(props.src);
   adapter.init(props.initialView || {});
+  renderState.ready = false;
 
   await resolvePlatformNativeMode();
   removeNativeMapListener = addPlatformNativeMapListener(handlePlatformNativeEvent);
@@ -356,8 +367,10 @@ async function resolvePlatformNativeMode() {
   runtimeCapability.checked = true;
   runtimeCapability.enabled = capability.enabled;
   runtimeCapability.reason = capability.reason;
+  capabilityResolved.value = true;
   usePlatformNativePlugin.value = capability.enabled;
   renderState.mode = capability.enabled ? 'native-platform-plugin' : 'native-preview';
+  renderState.ready = !capability.enabled;
   if (!capability.enabled) {
     emit('map-event', {
       type: 'error',
@@ -373,8 +386,10 @@ async function resolvePlatformNativeMode() {
   runtimeCapability.checked = true;
   runtimeCapability.enabled = false;
   runtimeCapability.reason = 'not-app-plus';
+  capabilityResolved.value = true;
   usePlatformNativePlugin.value = false;
   renderState.mode = 'native-preview';
+  renderState.ready = true;
   emit('map-event', {
     type: 'error',
     payload: {
@@ -395,6 +410,7 @@ function handlePlatformNativeEvent(event) {
   const payload = event.payload && typeof event.payload === 'object' ? event.payload : {};
 
   if (type === 'ready') {
+    renderState.ready = true;
     emit('map-event', {
       type: 'ready',
       payload,
@@ -460,7 +476,7 @@ function handlePlatformNativeEvent(event) {
 }
 
 function handlePreviewTouchStart(event) {
-  if (usePlatformNativePlugin.value) return;
+  if (usePlatformNativePlugin.value || !capabilityResolved.value) return;
   const touches = normalizeTouches(event);
   if (!touches.length) return;
 
@@ -478,7 +494,7 @@ function handlePreviewTouchStart(event) {
 }
 
 function handlePreviewTouchMove(event) {
-  if (usePlatformNativePlugin.value) return;
+  if (usePlatformNativePlugin.value || !capabilityResolved.value) return;
   const touches = normalizeTouches(event);
   if (!touches.length) return;
 
@@ -517,7 +533,7 @@ function handlePreviewTouchMove(event) {
 }
 
 function handlePreviewTouchEnd() {
-  if (usePlatformNativePlugin.value) return;
+  if (usePlatformNativePlugin.value || !capabilityResolved.value) return;
   if (!gestureState.mode) return;
   adapter.flyTo({
     center: renderState.center.slice(),
@@ -644,6 +660,34 @@ function resolveSceneKey(layers = []) {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.native-map__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  background: linear-gradient(180deg, rgba(219, 229, 239, 0.6), rgba(219, 229, 239, 0.78));
+  pointer-events: none;
+}
+
+.native-map__loading-dot {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 999rpx;
+  background: #2e7df6;
+  box-shadow:
+    0 0 0 10rpx rgba(46, 125, 246, 0.12),
+    0 0 0 22rpx rgba(46, 125, 246, 0.08);
+}
+
+.native-map__loading-text {
+  color: #51667a;
+  font-size: 24rpx;
 }
 
 .native-map__mode-badge {

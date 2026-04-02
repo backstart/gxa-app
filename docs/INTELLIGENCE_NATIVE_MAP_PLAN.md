@@ -2,12 +2,13 @@
 
 ## 分阶段落地状态
 
-当前已进入“阶段二实装版”：
+当前处于“阶段二稳定化”迭代：
 
 - 页面层 / adapter 层 / service 层结构保持不变
 - 默认承载继续是 `NativeMapAdapter`
-- 插件内核已从 HTML 运行页升级为 Android 原生 MapView 渲染
-- `WebViewMapAdapter` 仅作为 native 失败兜底
+- 插件内核为 Android 原生 MapView 渲染
+- `WebViewMapAdapter` 仅作为 native 明确失败时兜底
+- 已去掉首屏默认 preview 假地图闪现，改为轻量 loading
 
 ## 当前默认链路
 
@@ -15,7 +16,7 @@
 2. `useIntelligencePage.js` 初始化地图配置、列表与面板
 3. `nativeMap.js` 拉取：
    - `GET /api/embed/config`
-   - `GET /api/embed/layers`
+   - `GET /api/embed/layers`（非首屏阻塞）
    - `GET /api/embed/bbox`
    - `GET /api/embed/geojson/{type}`
    - `GET /api/embed/object/{type}/{id}`
@@ -28,7 +29,7 @@
 - 原生底图：`styleUrl + tilesUrl`
 - marker：`setMarkers`
 - 相机：`updateCamera/flyTo`
-- 面板避让：`setViewportInset`
+- 面板避让：`setViewportInset`（在 map 未 ready 前也会先作用于原生容器边距）
 - 图层切换：`setActiveLayers`（基于 `/api/embed/layers` 的 key/entityType 映射）
 - GeoJSON：`drawGeoJSON`
 - 对象选中：`selectObject`
@@ -38,6 +39,13 @@
 - Native 是正式路径
 - WebView 是 fallback/debug 路径
 - `nativeplugins/GXA-MapNative/android/assets/gxa-map-native/index.html` 仅保留 legacy/debug，不再是主路径
+
+## 首屏与容错策略
+
+- 首屏关键请求只有 `/api/embed/config`，`/api/embed/layers` 改为预热请求，不阻塞首屏出图
+- `/api/embed/*` 请求超时统一为 `10000ms`
+- 请求失败日志包含：`path`、`url`、`elapsed`、`detail`，便于定位具体超时接口
+- 仅当 native 地图链路明确失败时，才触发 WebView fallback
 
 ## 当前限制
 

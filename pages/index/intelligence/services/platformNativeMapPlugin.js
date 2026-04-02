@@ -6,6 +6,12 @@ let eventBridgeBound = false;
 const listeners = new Set();
 
 function isAppPlusRuntime() {
+  if (typeof uni !== 'undefined' && typeof uni.requireNativePlugin === 'function') {
+    return true;
+  }
+  if (typeof globalThis !== 'undefined' && !!globalThis.plus) {
+    return true;
+  }
   let systemInfo = {};
   try {
     systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
@@ -107,11 +113,10 @@ function ensureEventBridge(plugin) {
 
 export function getPlatformNativeMapPlugin() {
   if (cachedState === 'ready') return cachedPlugin;
-  if (cachedState === 'missing') return null;
 
   try {
-    if (!isAppPlusRuntime() || typeof uni.requireNativePlugin !== 'function') {
-      cachedState = 'missing';
+    if (!isAppPlusRuntime() || typeof uni === 'undefined' || typeof uni.requireNativePlugin !== 'function') {
+      cachedState = 'unknown';
       cachedPlugin = null;
       return null;
     }
@@ -128,7 +133,7 @@ export function getPlatformNativeMapPlugin() {
     ensureEventBridge(cachedPlugin);
     return cachedPlugin;
   } catch (error) {
-    cachedState = 'missing';
+    cachedState = 'unknown';
     cachedPlugin = null;
     return null;
   }

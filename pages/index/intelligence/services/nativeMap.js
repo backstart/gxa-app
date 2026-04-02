@@ -7,6 +7,10 @@ import {
 } from './intelligence.js';
 
 const MAP_SERVICE_BASE_KEY = 'intelligence_map_service_base_url';
+const MAP_REQUEST_TIMEOUT = 10000;
+const LAYER_CONFIG_BOOTSTRAP_WAIT_MS = 280;
+let cachedLayerConfig = [];
+let layerConfigRequestTask = null;
 
 export const DEFAULT_NATIVE_MAP_BOOTSTRAP = {
   center: [113.4445, 22.4915],
@@ -47,15 +51,24 @@ function appendQuery(url, query) {
 
 async function requestMapService({ path, query, fallback }) {
   const baseUrl = getMapServiceBaseUrl();
+  const normalizedPath = normalizeRequestPath(path);
   if (!baseUrl) {
+    console.warn('[native-map] request skip: missing base url', {
+      path: normalizedPath,
+    });
     return typeof fallback === 'function' ? fallback(null) : fallback;
   }
+  const url = appendQuery(
+    `${String(baseUrl).replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`,
+    query
+  );
+  const startedAt = Date.now();
 
   try {
     const response = await uni.request({
-      url: appendQuery(`${String(baseUrl).replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`, query),
+      url,
       method: 'GET',
-      timeout: 5000,
+      timeout: MAP_REQUEST_TIMEOUT,
       header: {
         'Content-Type': 'application/json',
       },
@@ -67,9 +80,23 @@ async function requestMapService({ path, query, fallback }) {
     if (statusCode < 200 || statusCode >= 300) {
       throw new Error(`HTTP ${statusCode}`);
     }
+    const elapsed = Date.now() - startedAt;
+    if (elapsed > 1500) {
+      console.info('[native-map] request slow', {
+        path: normalizedPath,
+        url,
+        elapsed,
+      });
+    }
     return result?.data?.data ?? result?.data;
   } catch (error) {
-    console.warn('[native-map] request fallback', error);
+    const elapsed = Date.now() - startedAt;
+    console.warn('[native-map] request failed', {
+      path: normalizedPath,
+      url,
+      elapsed,
+      detail: normalizeRequestError(error),
+    });
     return typeof fallback === 'function' ? fallback(error) : fallback;
   }
 }
@@ -141,6 +168,47 @@ function normalizeLayerConfig(value) {
     .filter(Boolean);
 }
 
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function loadLayerConfig() {
+  if (layerConfigRequestTask) return layerConfigRequestTask;
+  layerConfigRequestTask = requestMapService({
+    path: '/api/embed/layers',
+    fallback: () => ({ layers: [] }),
+  })
+    .then((result) => {
+      const next = normalizeLayerConfig(result?.layers);
+      cachedLayerConfig = next.slice();
+      return cachedLayerConfig.slice();
+    })
+    .catch(() => cachedLayerConfig.slice())
+    .finally(() => {
+      layerConfigRequestTask = null;
+    });
+  return layerConfigRequestTask;
+}
+
+async function getLayerConfigForBootstrap() {
+  if (cachedLayerConfig.length) {
+    void loadLayerConfig();
+    return cachedLayerConfig.slice();
+  }
+
+  const pending = loadLayerConfig();
+  const result = await Promise.race([
+    pending,
+    wait(LAYER_CONFIG_BOOTSTRAP_WAIT_MS).then(() => null),
+  ]);
+  if (Array.isArray(result) && result.length) {
+    return result.slice();
+  }
+  return cachedLayerConfig.slice();
+}
+
 export async function getNativeMapBootstrapConfig(options = {}) {
   const baseUrl = getMapServiceBaseUrl();
   const fallback = {
@@ -158,11 +226,7 @@ export async function getNativeMapBootstrapConfig(options = {}) {
     path: '/api/embed/config',
     fallback: () => fallback,
   });
-
-  const layerResult = await requestMapService({
-    path: '/api/embed/layers',
-    fallback: () => ({ layers: [] }),
-  });
+  const layerConfig = await getLayerConfigForBootstrap();
 
   return {
     center: normalizeCenter(result?.defaultCenter || result?.center),
@@ -173,7 +237,7 @@ export async function getNativeMapBootstrapConfig(options = {}) {
     theme: result?.defaultTheme || fallback.theme,
     source: result?.generatedAtUtc ? 'embed-config' : fallback.source,
     featureToggles: result?.featureToggles || fallback.featureToggles,
-    layerConfig: normalizeLayerConfig(layerResult?.layers),
+    layerConfig: layerConfig.length ? layerConfig : fallback.layerConfig.slice(),
     basemap: normalizeBasemap(result, baseUrl, fallback.basemap),
   };
 }
@@ -342,5 +406,22 @@ function normalizeUniRequestResponse(response) {
   return {
     error: null,
     result: response,
+  };
+}
+
+function normalizeRequestPath(path) {
+  const text = String(path || '').trim();
+  if (!text) return '/';
+  return text.startsWith('/') ? text : `/${text}`;
+}
+
+function normalizeRequestError(error) {
+  if (!error) return { message: 'unknown' };
+  if (typeof error === 'string') return { message: error };
+  const message = String(error.errMsg || error.message || 'request error');
+  const statusCode = Number(error.statusCode || error.code || 0);
+  return {
+    message,
+    statusCode: Number.isFinite(statusCode) ? statusCode : 0,
   };
 }

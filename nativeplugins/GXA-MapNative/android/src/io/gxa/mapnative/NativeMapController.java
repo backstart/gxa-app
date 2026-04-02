@@ -54,6 +54,7 @@ final class NativeMapController {
     private final Map<Long, String> markerIdByInternalId = new HashMap<>();
     private final List<String> activeLayers = new ArrayList<>();
     private final Map<String, List<String>> layerTokensByKey = new HashMap<>();
+    private JSONObject latestViewportInset = new JSONObject();
 
     @Nullable
     private FrameLayout host;
@@ -120,14 +121,17 @@ final class NativeMapController {
     }
 
     void setViewportInset(@Nullable JSONObject inset) {
-        if (map == null || inset == null) {
+        if (inset == null) {
             return;
         }
+        latestViewportInset = inset;
         int top = Math.max(0, inset.optInt("top", 56));
         int right = Math.max(0, inset.optInt("right", 0));
         int bottom = Math.max(0, inset.optInt("bottom", 0));
         int left = Math.max(0, inset.optInt("left", 0));
-        map.setPadding(left, top, right, bottom);
+        if (map != null) {
+            map.setPadding(left, top, right, bottom);
+        }
 
         if (host != null) {
             ViewGroup.LayoutParams layoutParams = host.getLayoutParams();
@@ -216,6 +220,7 @@ final class NativeMapController {
         activity = null;
         activeLayers.clear();
         layerTokensByKey.clear();
+        latestViewportInset = new JSONObject();
     }
 
     private void ensureHost(@NonNull Activity activity) {
@@ -262,6 +267,7 @@ final class NativeMapController {
         mapView.getMapAsync(mapLibreMap -> {
             map = mapLibreMap;
             bindMapEvents();
+            setViewportInset(latestViewportInset);
             loadStyle(mountOptions);
         });
     }
