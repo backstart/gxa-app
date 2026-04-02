@@ -19,7 +19,8 @@
         /* 模块配置 */
         "modules" : {
             /* 声明本地原生插件，确保自定义运行基座会打入该插件 */
-            "GXA-NfcHce" : {}
+            "GXA-NfcHce" : {},
+            "GXA-MapNative" : {}
         },
         /* 应用发布信息 */
         "distribute" : {
@@ -58,6 +59,20 @@
                 "__plugin_info__" : {
                     "name" : "GXA-NfcHce",
                     "description" : "Android HCE 卡模拟插件，用于钥匙盒读取手机授权数据",
+                    "platforms" : "Android",
+                    "url" : "",
+                    "android_package_name" : "",
+                    "ios_bundle_id" : "",
+                    "isCloud" : false,
+                    "bought" : -1,
+                    "pid" : "",
+                    "parameters" : {}
+                }
+            },
+            "GXA-MapNative" : {
+                "__plugin_info__" : {
+                    "name" : "GXA-MapNative",
+                    "description" : "情报页原生地图底图插件，消费地图平台 styleUrl/tilesUrl",
                     "platforms" : "Android",
                     "url" : "",
                     "android_package_name" : "",

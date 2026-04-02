@@ -18,6 +18,13 @@ export class NativeMapAdapter {
       viewportInset: { bottom: 0 },
       source: '',
       mode: 'native-preview',
+      basemap: {
+        provider: 'platform-config',
+        source: 'local-default',
+        tilesUrl: '',
+        styleUrl: '',
+        kind: 'config-only',
+      },
     };
   }
 
@@ -51,6 +58,12 @@ export class NativeMapAdapter {
     }
     if (payload.mode) {
       this.state.mode = String(payload.mode);
+    }
+    if (payload.basemap && typeof payload.basemap === 'object') {
+      this.state.basemap = {
+        ...this.state.basemap,
+        ...payload.basemap,
+      };
     }
     this.state.ready = true;
     this.pushState();
@@ -215,6 +228,7 @@ export class NativeMapAdapter {
       viewportInset: { ...this.state.viewportInset },
       source: this.state.source,
       mode: this.state.mode,
+      basemap: { ...this.state.basemap },
     });
   }
 

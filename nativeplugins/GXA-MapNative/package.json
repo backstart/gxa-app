@@ -1,0 +1,18 @@
+{
+  "name": "GXA-MapNative",
+  "id": "GXA-MapNative",
+  "version": "0.1.0",
+  "description": "GXA 自建底图原生插件骨架，用于承载内网地图资源",
+  "_dp_type": "nativeplugin",
+  "_dp_nativeplugin": {
+    "android": {
+      "plugins": [
+        {
+          "type": "module",
+          "name": "GXA-MapNative",
+          "class": "io.gxa.mapnative.GxaMapNativeModule"
+        }
+      ]
+    }
+  }
+}

@@ -15,6 +15,13 @@ export const DEFAULT_NATIVE_MAP_BOOTSTRAP = {
   theme: 'light',
   source: 'local-default',
   featureToggles: {},
+  basemap: {
+    provider: 'platform-config',
+    source: 'local-default',
+    tilesUrl: '',
+    styleUrl: '',
+    kind: 'config-only',
+  },
 };
 
 function resolveOrigin(url) {
@@ -90,13 +97,38 @@ function normalizeCenter(center) {
   return [lng, lat];
 }
 
+function resolveAbsoluteUrl(url, baseUrl) {
+  const text = String(url || '').trim();
+  if (!text) return '';
+  if (/^https?:\/\//i.test(text)) return text;
+  const base = String(baseUrl || '').trim().replace(/\/+$/, '');
+  if (!base) return text;
+  return `${base}/${text.replace(/^\/+/, '')}`;
+}
+
+function normalizeBasemap(result, baseUrl, fallback) {
+  const tilesUrl = resolveAbsoluteUrl(result?.tilesUrl || result?.TilesUrl, baseUrl);
+  const styleUrl = resolveAbsoluteUrl(result?.styleUrl || result?.StyleUrl, baseUrl);
+  return {
+    provider: result?.provider || result?.mapProvider || fallback.provider,
+    source: tilesUrl || styleUrl ? 'embed-config' : fallback.source,
+    tilesUrl,
+    styleUrl,
+    kind: tilesUrl || styleUrl ? 'platform-config' : fallback.kind,
+  };
+}
+
 export async function getNativeMapBootstrapConfig(options = {}) {
+  const baseUrl = getMapServiceBaseUrl();
   const fallback = {
     ...DEFAULT_NATIVE_MAP_BOOTSTRAP,
     center: DEFAULT_NATIVE_MAP_BOOTSTRAP.center.slice(),
     layers: Array.isArray(options.layers) && options.layers.length
       ? options.layers.slice()
       : DEFAULT_NATIVE_MAP_BOOTSTRAP.layers.slice(),
+    basemap: {
+      ...DEFAULT_NATIVE_MAP_BOOTSTRAP.basemap,
+    },
   };
 
   const result = await requestMapService({
@@ -113,6 +145,7 @@ export async function getNativeMapBootstrapConfig(options = {}) {
     theme: result?.defaultTheme || fallback.theme,
     source: result?.generatedAtUtc ? 'embed-config' : fallback.source,
     featureToggles: result?.featureToggles || fallback.featureToggles,
+    basemap: normalizeBasemap(result, baseUrl, fallback.basemap),
   };
 }
 

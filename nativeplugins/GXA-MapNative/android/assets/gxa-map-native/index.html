@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="./vendor/maplibre-gl.css" />
+  <style>
+    html, body, #map {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #eef4f8;
+    }
+    .maplibregl-ctrl-bottom-right,
+    .maplibregl-ctrl-bottom-left,
+    .maplibregl-ctrl-top-right,
+    .maplibregl-ctrl-top-left {
+      display: none !important;
+    }
+  </style>
+  <script>
+    if (typeof globalThis === 'undefined') {
+      Object.defineProperty(Object.prototype, '__global_this__', {
+        get: function () {
+          return this;
+        },
+        configurable: true
+      });
+      __global_this__.globalThis = __global_this__;
+      delete Object.prototype.__global_this__;
+    }
+  </script>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="./vendor/maplibre-gl.js"></script>
+  <script src="./vendor/pmtiles.js"></script>
+  <script>
+    (function () {
+      var map = null;
+      var markerMap = {};
+      var protocolRegistered = false;
+      var pendingMarkers = [];
+      var activeLayers = [];
+      var pendingInset = { top: 0, right: 0, bottom: 0, left: 0 };
+
+      function emit(type, payload, message) {
+        try {
+          if (window.GxaNativeBridge && typeof window.GxaNativeBridge.postEvent === 'function') {
+            window.GxaNativeBridge.postEvent(JSON.stringify({
+              type: type || 'unknown',
+              payload: payload || {},
+              message: message || ''
+            }));
+          }
+        } catch (error) {
+          // ignore
+        }
+      }
+
+      function decodeBase64Json(base64Text, fallbackValue) {
+        if (!base64Text) return fallbackValue;
+        try {
+          var text = atob(base64Text);
+          return JSON.parse(text);
+        } catch (error) {
+          return fallbackValue;
+        }
+      }
+
+      function parseUrl(url) {
+        var anchor = document.createElement('a');
+        anchor.href = url;
+        return {
+          href: anchor.href || '',
+          origin: anchor.protocol + '//' + anchor.host,
+          pathname: anchor.pathname || '/'
+        };
+      }
+
+      function toAbsUrl(url, baseHref) {
+        if (!url) return '';
+        if (/^https?:\/\//i.test(url)) return url;
+        var base = String(baseHref || '').trim();
+        if (!base) return url;
+        var info = parseUrl(base);
+        if (/^\//.test(url)) {
+          return info.origin.replace(/\/+$/, '') + '/' + String(url).replace(/^\/+/, '');
+        }
+        var path = info.pathname || '/';
+        var dir = path.substring(0, path.lastIndexOf('/') + 1);
+        return info.origin.replace(/\/+$/, '') + dir + String(url).replace(/^\/+/, '');
+      }
+
+      function normalizeCenter(input) {
+        if (Array.isArray(input) && input.length >= 2) {
+          var lng = Number(input[0]);
+          var lat = Number(input[1]);
+          if (Number.isFinite(lng) && Number.isFinite(lat)) return [lng, lat];
+        }
+        return [113.4445, 22.4915];
+      }
+
+      function normalizeInset(input) {
+        var source = input && typeof input === 'object' ? input : {};
+        return {
+          top: Math.max(0, Number(source.top || 0)),
+          right: Math.max(0, Number(source.right || 0)),
+          bottom: Math.max(0, Number(source.bottom || 0)),
+          left: Math.max(0, Number(source.left || 0))
+        };
+      }
+
+      function applyInsetToMap(inset) {
+        pendingInset = normalizeInset(inset);
+        if (!map) return;
+        try {
+          map.easeTo({ padding: pendingInset, duration: 0 });
+        } catch (error) {
+          // ignore
+        }
+      }
+
+      function clearMarkers() {
+        Object.keys(markerMap).forEach(function (key) {
+          try {
+            markerMap[key].remove();
+          } catch (error) {
+            // ignore
+          }
+        });
+        markerMap = {};
+      }
+
+      function setMarkers(list) {
+        pendingMarkers = Array.isArray(list) ? list : [];
+        if (!map) return;
+        clearMarkers();
+        var markers = pendingMarkers;
+        markers.forEach(function (item) {
+          var lng = Number(item && item.lng);
+          var lat = Number(item && item.lat);
+          if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
+          var color = (item && item.color) || '#1f7cff';
+          var marker = new maplibregl.Marker({ color: color })
+            .setLngLat([lng, lat])
+            .addTo(map);
+          var markerId = String((item && item.id) || '');
+          markerMap[markerId] = marker;
+
+          var element = marker.getElement();
+          if (element) {
+            element.addEventListener('click', function () {
+              emit('markerClick', {
+                id: markerId,
+                lng: lng,
+                lat: lat,
+                label: (item && item.label) || ''
+              });
+            });
+            if (item && item.label) {
+              element.title = item.label;
+            }
+          }
+        });
+      }
+
+      function applyActiveLayers() {
+        if (!map || !map.getStyle || !map.getStyle()) return;
+        var style = map.getStyle();
+        var layers = style && Array.isArray(style.layers) ? style.layers : [];
+        if (!layers.length) return;
+        var businessTokens = ['alerts', 'places', 'shops', 'pois', 'people', 'handling', 'patrol', 'boundaries', 'cases'];
+
+        if (!activeLayers.length) {
+          for (var i = 0; i < layers.length; i += 1) {
+            try {
+              map.setLayoutProperty(layers[i].id, 'visibility', 'visible');
+            } catch (error) {
+              // ignore
+            }
+          }
+          return;
+        }
+
+        var layerTokens = activeLayers.map(function (item) {
+          return String(item || '').toLowerCase();
+        });
+
+        for (var j = 0; j < layers.length; j += 1) {
+          var layer = layers[j];
+          var id = String(layer.id || '').toLowerCase();
+          var source = String(layer.source || '').toLowerCase();
+          var visible = true;
+          var layerDomain = '';
+
+          for (var t = 0; t < businessTokens.length; t += 1) {
+            var domainToken = businessTokens[t];
+            if (id.indexOf(domainToken) >= 0 || source.indexOf(domainToken) >= 0) {
+              layerDomain = domainToken;
+              break;
+            }
+          }
+
+          if (layerDomain) {
+            visible = false;
+          }
+
+          for (var k = 0; k < layerTokens.length; k += 1) {
+            var token = layerTokens[k];
+            if (!token) continue;
+            if (id.indexOf(token) >= 0 || source.indexOf(token) >= 0 || (layerDomain && token.indexOf(layerDomain) >= 0)) {
+              visible = true;
+              break;
+            }
+          }
+
+          try {
+            map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
+          } catch (error2) {
+            // ignore
+          }
+        }
+      }
+
+      function setActiveLayers(list) {
+        activeLayers = Array.isArray(list) ? list.slice() : [];
+        applyActiveLayers();
+      }
+
+      function updateCamera(payload) {
+        if (!map) return;
+        var center = normalizeCenter(payload && payload.center);
+        var zoom = Number(payload && payload.zoom);
+        if (!Number.isFinite(zoom)) zoom = map.getZoom();
+        map.easeTo({
+          center: center,
+          zoom: zoom,
+          duration: 0,
+          padding: pendingInset
+        });
+      }
+
+      function fetchJson(url, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState !== 4) return;
+          if (xhr.status < 200 || xhr.status >= 300) {
+            callback(new Error('HTTP ' + xhr.status));
+            return;
+          }
+          try {
+            var parsed = JSON.parse(xhr.responseText || '{}');
+            callback(null, parsed);
+          } catch (error) {
+            callback(error);
+          }
+        };
+        xhr.onerror = function () {
+          callback(new Error('network error'));
+        };
+        xhr.send();
+      }
+
+      function normalizeStyle(styleJson, styleUrl, tilesUrl) {
+        var styleAbs = toAbsUrl(styleUrl, styleUrl);
+        var tilesAbs = toAbsUrl(tilesUrl, styleAbs);
+        var output = styleJson && typeof styleJson === 'object' ? styleJson : {};
+        var sources = output.sources && typeof output.sources === 'object' ? output.sources : {};
+        var styleBase = parseUrl(styleAbs);
+        var styleBaseUrl = styleBase.origin + styleBase.pathname;
+
+        if (typeof output.glyphs === 'string') {
+          output.glyphs = toAbsUrl(output.glyphs, styleBaseUrl);
+        }
+        if (typeof output.sprite === 'string') {
+          output.sprite = toAbsUrl(output.sprite, styleBaseUrl);
+        }
+
+        var sourceKeys = Object.keys(sources);
+        for (var i = 0; i < sourceKeys.length; i += 1) {
+          var key = sourceKeys[i];
+          var src = sources[key];
+          if (!src || typeof src !== 'object') continue;
+          if (typeof src.url === 'string' && src.url.indexOf('pmtiles://') === 0) {
+            src.url = 'pmtiles://' + tilesAbs;
+          } else if (typeof src.url === 'string') {
+            src.url = toAbsUrl(src.url, styleBaseUrl);
+          }
+          if (Array.isArray(src.tiles)) {
+            src.tiles = src.tiles.map(function (tileUrl) {
+              if (typeof tileUrl !== 'string') return tileUrl;
+              if (tileUrl.indexOf('pmtiles://') === 0) return 'pmtiles://' + tilesAbs;
+              return toAbsUrl(tileUrl, styleBaseUrl);
+            });
+          }
+        }
+
+        return output;
+      }
+
+      function mount(payload) {
+        var source = payload && typeof payload === 'object' ? payload : {};
+        var center = normalizeCenter(source.center);
+        var zoom = Number(source.zoom);
+        if (!Number.isFinite(zoom)) zoom = 12;
+        var basemap = source.basemap && typeof source.basemap === 'object' ? source.basemap : {};
+
+        var styleUrl = String((basemap.styleUrl || '').trim());
+        var tilesUrl = String((basemap.tilesUrl || '').trim());
+        if (!styleUrl || !tilesUrl) {
+          emit('error', {}, 'styleUrl or tilesUrl missing');
+          return;
+        }
+
+        var styleAbs = toAbsUrl(styleUrl, styleUrl);
+
+        fetchJson(styleAbs, function (error, styleJson) {
+          if (error) {
+            emit('error', {}, 'load style failed: ' + String(error && error.message ? error.message : error));
+            return;
+          }
+          var normalizedStyle = normalizeStyle(styleJson, styleUrl, tilesUrl);
+
+          if (map) {
+            clearMarkers();
+            map.remove();
+            map = null;
+          }
+
+          try {
+            if (!protocolRegistered) {
+              var protocol = new pmtiles.Protocol({ metadata: true });
+              maplibregl.addProtocol('pmtiles', protocol.tile);
+              protocolRegistered = true;
+            }
+            map = new maplibregl.Map({
+              container: 'map',
+              style: normalizedStyle,
+              center: center,
+              zoom: zoom,
+              attributionControl: false
+            });
+          } catch (initError) {
+            emit('error', {}, String(initError && initError.message ? initError.message : initError));
+            return;
+          }
+
+          map.on('load', function () {
+            applyInsetToMap(pendingInset);
+            applyActiveLayers();
+            setMarkers(pendingMarkers);
+            emit('ready', {
+              center: map.getCenter().toArray(),
+              zoom: map.getZoom()
+            });
+          });
+          map.on('click', function (event) {
+            emit('mapClick', {
+              lng: event.lngLat.lng,
+              lat: event.lngLat.lat
+            });
+          });
+          map.on('moveend', function () {
+            emit('moveEnd', {
+              center: map.getCenter().toArray(),
+              zoom: map.getZoom()
+            });
+          });
+          map.on('zoomend', function () {
+            emit('zoomEnd', {
+              center: map.getCenter().toArray(),
+              zoom: map.getZoom()
+            });
+          });
+        });
+      }
+
+      window.__GXA_NATIVE_MAP__ = {
+        mount: function (payloadBase64) {
+          mount(decodeBase64Json(payloadBase64, {}));
+        },
+        updateCamera: function (payloadBase64) {
+          updateCamera(decodeBase64Json(payloadBase64, {}));
+        },
+        setMarkers: function (payloadBase64) {
+          setMarkers(decodeBase64Json(payloadBase64, []));
+        },
+        setActiveLayers: function (payloadBase64) {
+          setActiveLayers(decodeBase64Json(payloadBase64, []));
+        },
+        setViewportInset: function (payloadBase64) {
+          applyInsetToMap(decodeBase64Json(payloadBase64, {}));
+        }
+      };
+
+      emit('bridgeReady', {}, 'web runtime ready');
+    })();
+  </script>
+</body>
+</html>

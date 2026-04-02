@@ -16,9 +16,6 @@
         </view>
       </view>
     </view>
-    <view class="map-badge">
-      <text class="map-badge__text">WebView Fallback</text>
-    </view>
     <view v-if="showFallback" class="map-fallback">
       <text class="map-fallback__title">地图暂时不可用</text>
       <text class="map-fallback__desc">{{ fallbackText }}</text>
@@ -203,21 +200,6 @@ function scheduleWebviewMount(nextSrc) {
   background:
     radial-gradient(circle at top left, rgba(84, 145, 255, 0.22), transparent 28%),
     linear-gradient(180deg, #eef4f8 0%, #dbe6ef 100%);
-}
-
-.map-badge {
-  position: absolute;
-  right: 24rpx;
-  top: 24rpx;
-  z-index: 6;
-  padding: 8rpx 16rpx;
-  border-radius: 999rpx;
-  background: rgba(15, 31, 46, 0.72);
-}
-
-.map-badge__text {
-  color: #f7fbff;
-  font-size: 20rpx;
 }
 
 .map-placeholder {

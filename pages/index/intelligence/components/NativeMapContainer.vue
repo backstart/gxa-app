@@ -9,25 +9,14 @@
       @touchcancel="handlePreviewTouchEnd"
     >
       <!-- #ifdef APP-PLUS -->
-      <map
-        v-if="useSystemMap"
+      <view
+        v-if="usePlatformNativePlugin"
         :id="mapId"
         class="native-map__core"
-        :longitude="mapLongitude"
-        :latitude="mapLatitude"
-        :scale="mapScale"
-        :markers="nativeMarkers"
-        :enable-scroll="true"
-        :enable-zoom="true"
-        :show-location="false"
-        :enable-poi="true"
-        @tap="handleMapTap"
-        @markertap="handleMarkerTap"
-        @regionchange="handleRegionChange"
       />
       <!-- #endif -->
 
-      <view v-if="!useSystemMap" :class="['native-map__preview', previewScene.className]">
+      <view v-if="!usePlatformNativePlugin" :class="['native-map__preview', previewScene.className]">
         <view class="native-map__grid"></view>
         <view class="native-map__water native-map__water--one"></view>
         <view class="native-map__water native-map__water--two"></view>
@@ -37,15 +26,19 @@
       </view>
 
       <view class="native-map__overlay">
+        <view v-if="showOverlayMeta" class="native-map__mode-badge">
+          <text class="native-map__mode-badge-text">{{ mapModePill }}</text>
+        </view>
+
         <view
-          v-for="label in mapLabels"
+          v-for="label in showOverlayMeta ? mapLabels : []"
           :key="label.id"
           :class="['native-map__label', label.className]"
         >
           {{ label.text }}
         </view>
 
-        <view class="native-map__layers">
+        <view v-if="showOverlayMeta" class="native-map__layers">
           <text
             v-for="layer in visibleLayerPills"
             :key="layer"
@@ -55,7 +48,7 @@
           </text>
         </view>
 
-        <view v-if="!useSystemMap" class="native-map__preview-markers">
+        <view v-if="!usePlatformNativePlugin" class="native-map__preview-markers">
           <view
             v-for="marker in renderMarkers"
             :key="marker.id"
@@ -86,11 +79,17 @@
 </template>
 
 <script setup>
-import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { createMapAdapter } from '../adapters/map/createMapAdapter.js';
 import { MAP_ADAPTER_TYPES } from '../adapters/map/types.js';
+import {
+  detectPlatformNativeMapCapability,
+  mountPlatformNativeMap,
+  syncPlatformNativeMap,
+  destroyPlatformNativeMap,
+  addPlatformNativeMapListener,
+} from '../services/platformNativeMapPlugin.js';
 
-const MARKER_ICON_PATH = '/static/tabBar/index-h.png';
 const mapId = 'intelligenceNativeMap';
 
 const props = defineProps({
@@ -101,8 +100,6 @@ const props = defineProps({
 
 const emit = defineEmits(['ready', 'map-event', 'activate-request']);
 
-const instance = getCurrentInstance();
-const mapContext = ref(null);
 const gestureState = reactive({
   mode: '',
   startCenter: [113.4445, 22.4915],
@@ -120,24 +117,32 @@ const renderState = reactive({
   viewportInset: { bottom: 0 },
   mode: 'native-preview',
   source: 'local-default',
+  basemap: {
+    provider: 'platform-config',
+    source: 'local-default',
+    tilesUrl: '',
+    styleUrl: '',
+    kind: 'config-only',
+  },
 });
 
-const useSystemMap = ref(false);
-// 只有在明确打开开关并使用带 maps 模块的运行基座时，才启用原生 map 组件。
-// 默认关闭，避免当前调试基座弹出缺少 maps 模块和 SDK 版本不匹配提示。
-// #ifdef APP-PLUS
-useSystemMap.value = shouldEnableSystemMap();
-// #endif
+const usePlatformNativePlugin = ref(false);
+let removeNativeMapListener = null;
+const runtimeCapability = reactive({
+  checked: false,
+  enabled: false,
+  reason: 'pending',
+});
 
 const visibleLayerPills = computed(() => {
   if (!renderState.layers.length) return ['警情', '场所', '人员'];
   return renderState.layers.slice(0, 4);
 });
 
+const mapModePill = computed(() => (usePlatformNativePlugin.value ? '自建底图插件' : '预览回退'));
+const showOverlayMeta = computed(() => !usePlatformNativePlugin.value);
+
 const viewportBottomPx = computed(() => Math.max(Number(renderState.viewportInset?.bottom || 0), 0));
-const mapLongitude = computed(() => Number(renderState.center[0] || 113.4445));
-const mapLatitude = computed(() => Number(renderState.center[1] || 22.4915));
-const mapScale = computed(() => clampZoom(renderState.zoom));
 
 const activeSceneKey = computed(() => resolveSceneKey(renderState.layers));
 
@@ -187,42 +192,6 @@ const mapLabels = computed(() => {
     className: [`native-map__label--one`, `native-map__label--two`, `native-map__label--three`][index] || 'native-map__label--one',
   }));
 });
-
-const nativeMarkerPayload = computed(() => {
-  const lookup = {};
-  const list = renderState.markers.map((marker, index) => {
-    const nativeId = index + 1;
-    lookup[nativeId] = marker;
-    return {
-      id: nativeId,
-      longitude: Number(marker.lng),
-      latitude: Number(marker.lat),
-      iconPath: MARKER_ICON_PATH,
-      width: 26,
-      height: 26,
-      alpha: marker.id === renderState.selectedId ? 1 : 0.9,
-      anchor: {
-        x: 0.5,
-        y: 1,
-      },
-      callout: {
-        content: marker.label || '点位',
-        display: 'ALWAYS',
-        padding: 6,
-        borderRadius: 18,
-        fontSize: 12,
-        color: '#ffffff',
-        bgColor: marker.color || '#1f7cff',
-      },
-    };
-  });
-  return {
-    list,
-    lookup,
-  };
-});
-
-const nativeMarkers = computed(() => nativeMarkerPayload.value.list);
 
 const renderMarkers = computed(() =>
   renderState.markers.map((marker, index) => {
@@ -298,6 +267,27 @@ watch(
   }
 );
 
+watch(
+  () => ({
+    center: renderState.center,
+    zoom: renderState.zoom,
+    markers: renderState.markers,
+    layers: renderState.layers,
+    viewportInset: renderState.viewportInset,
+  }),
+  () => {
+    if (!usePlatformNativePlugin.value) return;
+    syncPlatformNativeMap({
+      center: renderState.center.slice(),
+      zoom: renderState.zoom,
+      markers: renderState.markers.slice(),
+      layers: renderState.layers.slice(),
+      viewportInset: { ...renderState.viewportInset },
+    });
+  },
+  { deep: true }
+);
+
 onMounted(async () => {
   adapter.setHost({
     syncState(nextState) {
@@ -311,62 +301,139 @@ onMounted(async () => {
       if (typeof nextState.ready === 'boolean') renderState.ready = nextState.ready;
       if (nextState.mode) renderState.mode = nextState.mode;
       if (nextState.source) renderState.source = nextState.source;
+      if (nextState.basemap) renderState.basemap = { ...renderState.basemap, ...nextState.basemap };
     },
   });
 
   adapter.setSource(props.src);
   adapter.init(props.initialView || {});
 
-  if (useSystemMap.value) {
+  await resolvePlatformNativeMode();
+  removeNativeMapListener = addPlatformNativeMapListener(handlePlatformNativeEvent);
+  if (usePlatformNativePlugin.value) {
     await nextTick();
-    tryCreateMapContext();
+    mountPlatformNativeMap({
+      containerId: mapId,
+      center: renderState.center.slice(),
+      zoom: renderState.zoom,
+      basemap: { ...renderState.basemap },
+      layers: renderState.layers.slice(),
+    });
   }
 
   emit('ready', controller);
 });
 
 onUnmounted(() => {
+  if (typeof removeNativeMapListener === 'function') {
+    removeNativeMapListener();
+  }
+  destroyPlatformNativeMap(mapId);
   adapter.destroy();
 });
 
-function tryCreateMapContext() {
-  if (typeof uni.createMapContext !== 'function') return;
-  try {
-    mapContext.value = uni.createMapContext(mapId, instance?.proxy);
-  } catch (error) {
-    console.warn('[NativeMapContainer] createMapContext failed', error);
-    mapContext.value = null;
-  }
-}
-
-function handleMapTap(event) {
-  const detail = event?.detail || {};
-  if (Number.isFinite(Number(detail.longitude)) && Number.isFinite(Number(detail.latitude))) {
-    adapter.notifyMapClick({
-      lng: Number(detail.longitude),
-      lat: Number(detail.latitude),
+async function resolvePlatformNativeMode() {
+  // #ifdef APP-PLUS
+  const capability = await detectPlatformNativeMapCapability();
+  runtimeCapability.checked = true;
+  runtimeCapability.enabled = capability.enabled;
+  runtimeCapability.reason = capability.reason;
+  usePlatformNativePlugin.value = capability.enabled;
+  renderState.mode = capability.enabled ? 'native-platform-plugin' : 'native-preview';
+  if (!capability.enabled) {
+    emit('map-event', {
+      type: 'error',
+      payload: {
+        message: capability.reason || 'native plugin unavailable',
+      },
+      raw: capability,
     });
-    return;
   }
-  adapter.notifyMapClick({
-    lng: renderState.center[0],
-    lat: renderState.center[1],
-  });
-}
+  // #endif
 
-function handleMarkerTap(event) {
-  const nativeId = Number(event?.detail?.markerId);
-  const marker = nativeMarkerPayload.value.lookup[nativeId];
-  if (!marker) return;
-  adapter.notifyMarkerClick(marker);
+  // #ifndef APP-PLUS
+  runtimeCapability.checked = true;
+  runtimeCapability.enabled = false;
+  runtimeCapability.reason = 'not-app-plus';
+  usePlatformNativePlugin.value = false;
+  renderState.mode = 'native-preview';
+  emit('map-event', {
+    type: 'error',
+    payload: {
+      message: 'not-app-plus',
+    },
+    raw: {},
+  });
+  // #endif
 }
 
 function handlePreviewMarkerTap(marker) {
   adapter.notifyMarkerClick(marker);
 }
 
+function handlePlatformNativeEvent(event) {
+  if (!event || typeof event !== 'object') return;
+  const type = String(event.type || '');
+  const payload = event.payload && typeof event.payload === 'object' ? event.payload : {};
+
+  if (type === 'ready') {
+    emit('map-event', {
+      type: 'ready',
+      payload,
+      raw: event,
+    });
+    return;
+  }
+
+  if (type === 'mapClick') {
+    adapter.notifyMapClick({
+      lng: Number(payload.lng),
+      lat: Number(payload.lat),
+    });
+    return;
+  }
+
+  if (type === 'markerClick') {
+    const hit = renderState.markers.find((item) => String(item.id) === String(payload.id));
+    if (hit) {
+      adapter.notifyMarkerClick(hit);
+    } else {
+      emit('map-event', {
+        type: 'markerClick',
+        payload,
+        raw: event,
+      });
+    }
+    return;
+  }
+
+  if (type === 'moveEnd') {
+    if (Array.isArray(payload.center) && payload.center.length >= 2) {
+      adapter.setCenter(payload.center);
+    }
+    return;
+  }
+
+  if (type === 'zoomEnd') {
+    if (Number.isFinite(Number(payload.zoom))) {
+      adapter.setZoom(Number(payload.zoom));
+    }
+    return;
+  }
+
+  if (type === 'error') {
+    emit('map-event', {
+      type: 'error',
+      payload: {
+        message: event.message || payload.message || 'native plugin render failed',
+      },
+      raw: event,
+    });
+  }
+}
+
 function handlePreviewTouchStart(event) {
-  if (useSystemMap.value) return;
+  if (usePlatformNativePlugin.value) return;
   const touches = normalizeTouches(event);
   if (!touches.length) return;
 
@@ -384,7 +451,7 @@ function handlePreviewTouchStart(event) {
 }
 
 function handlePreviewTouchMove(event) {
-  if (useSystemMap.value) return;
+  if (usePlatformNativePlugin.value) return;
   const touches = normalizeTouches(event);
   if (!touches.length) return;
 
@@ -423,7 +490,7 @@ function handlePreviewTouchMove(event) {
 }
 
 function handlePreviewTouchEnd() {
-  if (useSystemMap.value) return;
+  if (usePlatformNativePlugin.value) return;
   if (!gestureState.mode) return;
   adapter.flyTo({
     center: renderState.center.slice(),
@@ -433,41 +500,6 @@ function handlePreviewTouchEnd() {
   gestureState.mode = '';
   gestureState.startTouch = null;
   gestureState.startDistance = 0;
-}
-
-function handleRegionChange(event) {
-  const stage = event?.type || event?.detail?.type;
-  if (stage && stage !== 'end') return;
-  syncViewportState();
-}
-
-function syncViewportState() {
-  if (!mapContext.value) return;
-
-  try {
-    if (typeof mapContext.value.getCenterLocation === 'function') {
-      mapContext.value.getCenterLocation({
-        success(res) {
-          if (Number.isFinite(Number(res?.longitude)) && Number.isFinite(Number(res?.latitude))) {
-            adapter.setCenter([Number(res.longitude), Number(res.latitude)]);
-          }
-        },
-      });
-    }
-
-    if (typeof mapContext.value.getScale === 'function') {
-      mapContext.value.getScale({
-        success(res) {
-          const scale = Number(res?.scale);
-          if (Number.isFinite(scale)) {
-            adapter.setZoom(scale);
-          }
-        },
-      });
-    }
-  } catch (error) {
-    console.warn('[NativeMapContainer] syncViewportState failed', error);
-  }
 }
 
 function clampZoom(value) {
@@ -496,11 +528,6 @@ function projectMarker(marker, index, center, zoom) {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
-}
-
-function shouldEnableSystemMap() {
-  const explicit = uni.getStorageSync('intelligence_map_enable_system_map');
-  return explicit === true || explicit === '1' || explicit === 1;
 }
 
 function normalizeTouches(event) {
@@ -590,6 +617,23 @@ function resolveSceneKey(layers = []) {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.native-map__mode-badge {
+  position: absolute;
+  left: 24rpx;
+  bottom: 164rpx;
+  z-index: 10;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(15, 31, 46, 0.72);
+  box-shadow: 0 12rpx 24rpx rgba(17, 39, 57, 0.12);
+}
+
+.native-map__mode-badge-text {
+  color: #f7fbff;
+  font-size: 20rpx;
+  font-weight: 700;
 }
 
 .native-map__grid {

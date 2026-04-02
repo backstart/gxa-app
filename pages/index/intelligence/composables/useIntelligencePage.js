@@ -19,6 +19,9 @@ import {
   getNativeMapViewportPoints,
 } from '../services/nativeMap.js';
 
+const ADAPTER_NATIVE = 'native';
+const ADAPTER_WEBVIEW = 'webview';
+
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
   const safeBottom = ref(0);
@@ -38,6 +41,7 @@ export function useIntelligencePage() {
   const mapController = ref(null);
   const lastViewport = ref(null);
   const viewportMarkers = ref([]);
+  const nativeFailureFallbackApplied = ref(false);
   let viewportTimer = null;
 
   const currentAction = computed(
@@ -60,9 +64,10 @@ export function useIntelligencePage() {
   }
 
   function resolveViewportInset(state) {
-    if (state === 'collapsed') return { bottom: 220 };
-    if (state === 'full') return { bottom: 620 };
-    return { bottom: 420 };
+    const top = Math.max(Number(safeTop.value || 0) + 56, 56);
+    if (state === 'collapsed') return { top, right: 0, bottom: 220, left: 0 };
+    if (state === 'full') return { top, right: 0, bottom: 620, left: 0 };
+    return { top, right: 0, bottom: 420, left: 0 };
   }
 
   function syncMapLayers() {
@@ -214,6 +219,26 @@ export function useIntelligencePage() {
     mapEnabled.value = true;
   }
 
+  function fallbackToWebViewByNativeFailure(message = '') {
+    if (nativeFailureFallbackApplied.value) return;
+    if (mapAdapterType.value !== ADAPTER_NATIVE) return;
+
+    nativeFailureFallbackApplied.value = true;
+    mapAdapterType.value = ADAPTER_WEBVIEW;
+    mapEnabled.value = true;
+    mapSrc.value = buildWebViewMapSrc({
+      ...DEFAULT_MAP_VIEW,
+      center: mapInitialView.value?.center || DEFAULT_MAP_VIEW.center,
+      zoom: mapInitialView.value?.zoom || DEFAULT_MAP_VIEW.zoom,
+      layers: currentAction.value.mapLayers,
+      keyword: committedKeyword.value,
+    });
+
+    if (message) {
+      console.warn('[intelligence] native map failed, fallback to webview:', message);
+    }
+  }
+
   function handleMapEvent(event) {
     if (!event) return;
     if (event.type === 'ready') {
@@ -237,6 +262,10 @@ export function useIntelligencePage() {
         zoom: event.payload?.zoom,
         layers: event.payload?.layers || currentAction.value.mapLayers,
       });
+      return;
+    }
+    if (event.type === 'error') {
+      fallbackToWebViewByNativeFailure(event.payload?.message || '');
     }
   }
 
@@ -252,6 +281,7 @@ export function useIntelligencePage() {
     safeBottom.value = sys.safeAreaInsets?.bottom || 0;
     mapAdapterType.value = resolvePreferredMapAdapter();
     mapEnabled.value = shouldAutoLoadMap();
+    nativeFailureFallbackApplied.value = false;
     mapSrc.value = buildWebViewMapSrc({
       ...DEFAULT_MAP_VIEW,
       layers: currentAction.value.mapLayers,

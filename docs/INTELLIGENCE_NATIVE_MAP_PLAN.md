@@ -1,18 +1,15 @@
-# 情报页原生地图承载分阶段方案
+# 情报页原生地图承载说明
 
-## 当前分阶段策略
+## 当前默认承载路径
 
-本轮改造按三步推进：
+情报页默认走 `NativeMapAdapter`，并优先探测 `GXA-MapNative` 插件：
 
-1. 阶段一：先把情报页的地图承载层抽象出来，页面层不再直接依赖 H5 `web-view`
-2. 阶段二：在 `gxa-app` 内落一个最小可运行的 `NativeMapAdapter + NativeMapContainer`
-3. 阶段三：把旧 H5 embed 页降级为兼容 / debug 路线，不再作为 App 默认正式承载方案
+1. `pages/index/intelligence/services/mapEmbed.js` 默认适配器是 `native`
+2. `platformNativeMapPlugin.js` 调用 `GXA-MapNative.getCapabilities()`
+3. 当 `rendersBasemap=true` 时直接走原生插件渲染底图
+4. 仅当插件缺失或明确报错时，才回退 `WebViewMapAdapter`
 
-## 当前结构
-
-情报页入口：
-
-- `pages/index/index.vue`
+## 分层结构
 
 页面层：
 
@@ -31,146 +28,71 @@
 
 adapter 层：
 
-- `pages/index/intelligence/adapters/map/types.js`
-- `pages/index/intelligence/adapters/map/createMapAdapter.js`
 - `pages/index/intelligence/adapters/map/NativeMapAdapter.js`
 - `pages/index/intelligence/adapters/map/WebViewMapAdapter.js`
 
 service 层：
 
-- `pages/index/intelligence/services/intelligence.js`
-- `pages/index/intelligence/services/mapEmbed.js`
 - `pages/index/intelligence/services/nativeMap.js`
+- `pages/index/intelligence/services/intelligence.js`
+- `pages/index/intelligence/services/platformNativeMapPlugin.js`
 
-## 页面层 / adapter 层 / service 层职责
+## GXA-MapNative 当前能力
 
-页面层负责：
+插件入口：
 
-- 搜索框
-- 快捷入口
-- 底部三态面板
-- 情报卡片列表
-- 页面状态联动
+- `nativeplugins/GXA-MapNative/android/src/io/gxa/mapnative/GxaMapNativeModule.java`
 
-adapter 层负责：
+状态缓存：
 
-- 抽象统一地图接口
-- 屏蔽原生承载与 WebView 承载差异
-- 统一地图事件和地图控制命令
+- `nativeplugins/GXA-MapNative/android/src/io/gxa/mapnative/GxaMapNativeStore.java`
 
-service 层负责：
+内置地图运行页：
 
-- 情报 mock / 数据获取
-- marker 数据转换
-- 地图地址、fallback 条件与调试开关
+- `nativeplugins/GXA-MapNative/android/assets/gxa-map-native/index.html`
 
-## 统一地图接口
+当前已支持：
 
-当前约定的方法：
+- 底图渲染（消费 `styleUrl + tilesUrl`）
+- `center/zoom` 相机更新
+- marker 同步与点击事件
+- 视口 inset 同步（底部面板避让）
+- 地图事件回传：`ready/mapClick/markerClick/moveEnd/zoomEnd/error`
 
-- `init`
-- `destroy`
-- `setCenter`
-- `setZoom`
-- `flyTo`
-- `addMarker`
-- `addMarkers`
-- `clearMarkers`
-- `setActiveLayers`
-- `drawGeoJSON`
-- `selectObject`
-- `setViewportInset`
+## 数据来源
 
-当前约定的事件：
+原生地图初始化配置由 `nativeMap.js` 拉取：
 
-- `ready`
-- `mapClick`
-- `markerClick`
-- `objectSelect`
-- `moveEnd`
-- `zoomEnd`
-- `layersChange`
-- `markersChange`
-- `error`
+- `GET /api/embed/config`
 
-## NativeMapAdapter 与 WebViewMapAdapter 的定位
+关键字段：
 
-`NativeMapAdapter`
+- `defaultCenter`
+- `defaultZoom`
+- `styleUrl`
+- `tilesUrl`
+- `defaultLayers`
 
-- 当前是 App 侧原生优先承载骨架
-- 在 `APP-PLUS` 下优先使用 uni-app 原生 `map` 组件承载
-- 非 App 或原生能力不可用时回退到轻量预览渲染
-- 不依赖 H5 `web-view` 作为默认首页承载
-- 目标是后续继续替换成真正的 `native-view / 原生地图 SDK`
+点位联动由 `nativeMap.js` 拉取：
 
-`WebViewMapAdapter`
+- `GET /api/embed/bbox`
 
-- 保留为 fallback / debug / compatibility
-- 不再作为默认正式承载方案
-- 只在显式切到 `webview` 时启用
+## Native 与 WebView 职责
 
-## 当前默认承载方式
+`NativeMapAdapter`：
 
-当前默认策略：
+- 正式默认路径
+- 负责地图承载、事件回传、面板联动
 
-- `gxa-app` 情报页优先走 `NativeMapAdapter`
-- `WebViewMapAdapter` 仅作为 fallback
-- `mapEmbed.js` 中仍保留 H5 embed 地址拼装能力，供兼容和实验页使用
-- 当前调试基座未打入 `maps` 模块时，`NativeMapContainer` 默认走稳定预览层
-- 仅在显式设置 `intelligence_map_enable_system_map=1` 且使用带 `maps` 模块的运行基座时，才启用原生 `map` 组件
+`WebViewMapAdapter`：
 
-当前要特别注意：
+- 仅失败兜底与调试路径
+- 默认不启用
 
-- 现在手机端看到的“背景底图”不是 `fuyaomap` 的真实瓦片或矢量底图
-- 它是 `NativeMapContainer.vue` 里本地生成的预览背景
-- 目前真正来自地图服务平台的是点类数据：
-  - `/api/embed/config`
-  - `/api/embed/bbox`
-- 也就是说，当前“建筑、店铺、点类名称”可以来自平台，但“底图纹理本身”还不是平台地图资源
+## 当前限制与下一步
 
-默认适配器切换规则：
+当前 `GXA-MapNative` 仍是“插件 + 内置地图内核”方案，不是纯 Android 地图库直连渲染。下一步建议：
 
-1. 若显式设置 `intelligence_map_force_native=1`，强制原生
-2. 若显式设置 `intelligence_map_force_webview=1`，强制 WebView
-3. 若设置 `intelligence_map_adapter=webview`，走 WebView
-4. 其他情况默认 `native`
-
-## 当前阶段完成情况
-
-阶段一：
-
-- 已完成
-- 情报页已改成页面层 + adapter/service 层结构
-- 页面不再把 H5 embed 协议写死在页面逻辑里
-
-阶段二：
-
-- 已完成最小可用骨架
-- 已落 `NativeMapContainer` 和 `NativeMapAdapter`
-- `APP-PLUS` 下已优先切到 uni-app 原生 `map` 组件
-- 已接入 `/api/embed/config` 作为原生地图初始化配置来源
-- 已接入 `/api/embed/geojson/{type}` 作为当前分类区域绘制来源
-- 已接入 `/api/embed/object/{type}/{id}` 作为选中卡片的对象几何详情来源
-- 当前手机端默认已调整为“底层预览 + /api/embed/bbox 点类名称”模式
-- 预览地图支持单指拖动和双指缩放，视野变化后会重新拉取平台点类数据
-- 当前仍不是正式地图 SDK 深度接入版，图层和 GeoJSON 能力还是最小可用
-
-阶段三：
-
-- 进行中
-- H5 embed 页已经降级为兼容 / debug 路线
-- 还需要在后续把真实原生地图能力补齐
-
-## 当前已知限制
-
-- 当前 `NativeMapAdapter` 还不是高德 / MapLibre 原生 SDK
-- 当前原生容器支持中心点、缩放、marker、地图点击、区域变化、视口 inset 和基础 polygon
-- 复杂矢量底图、真实 bbox 渲染、GeoJSON 全量渲染细节仍需下一阶段接入原生能力
-
-## 后续剩余工作
-
-1. 引入真正的原生地图运行时或插件
-2. 用原生 SDK 替换 `NativeMapContainer` 的预览渲染实现
-3. 增加真实视野查询、bbox 拉取和附近查询
-4. 把对象详情联动从 mock fallback 收敛到真实业务对象 id
-5. 把 WebView 路线进一步收口到实验页和兼容场景
+1. 补齐 `drawGeoJSON/selectObject` 的插件侧实现
+2. 把 `setActiveLayers` 从关键字匹配升级为配置映射
+3. 评估替换为纯原生地图引擎（保留现有 adapter/service 层不变）
