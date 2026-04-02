@@ -11,6 +11,7 @@ import {
 import {
   buildWebViewMapSrc,
   DEFAULT_MAP_VIEW,
+  isDebugMapFallbackEnabled,
   resolvePreferredMapAdapter,
   shouldAutoLoadMap,
 } from '../services/mapEmbed.js';
@@ -44,6 +45,7 @@ export function useIntelligencePage() {
   const mapController = ref(null);
   const mapReady = ref(false);
   const nativeStartupState = ref('idle');
+  const allowWebViewFallback = ref(false);
   const windowHeight = ref(780);
   const lastViewport = ref(null);
   const viewportMarkers = ref([]);
@@ -293,6 +295,14 @@ export function useIntelligencePage() {
       return;
     }
 
+    if (!allowWebViewFallback.value) {
+      nativeFailureFallbackApplied.value = true;
+      nativeStartupState.value = 'failed';
+      stopNativeStartupTimer();
+      console.warn('[intelligence] native map failed, keep native path without webview fallback:', message || 'unknown');
+      return;
+    }
+
     nativeFailureFallbackApplied.value = true;
     stopNativeStartupTimer();
     mapAdapterType.value = ADAPTER_WEBVIEW;
@@ -436,6 +446,7 @@ export function useIntelligencePage() {
     safeBottom.value = sys.safeAreaInsets?.bottom || 0;
     windowHeight.value = sys.windowHeight || 780;
     mapAdapterType.value = resolvePreferredMapAdapter();
+    allowWebViewFallback.value = isDebugMapFallbackEnabled() || mapAdapterType.value === ADAPTER_WEBVIEW;
     mapEnabled.value = shouldAutoLoadMap();
     nativeFailureFallbackApplied.value = false;
     mapReady.value = false;

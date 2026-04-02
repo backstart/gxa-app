@@ -52,5 +52,6 @@
 - 插件接入方式：`integrateType = source`（`nativeplugins/GXA-MapNative/package.json`）
 - Android 依赖声明：`nativeplugins/GXA-MapNative/android/build.gradle`
   - `api 'org.maplibre.gl:android-sdk:11.13.5'`
+- 不再使用仓库内预编译 `GXA-MapNative-release.aar` 作为主集成方式，避免运行时依赖缺失
 - 修改插件依赖后，必须重新制作并安装自定义调试基座，避免运行时出现：
   - `Failed resolution of: Lorg/maplibre/android/MapLibre;`

@@ -51,6 +51,7 @@
 - `plugin-not-render-ready` 归类为 `mounting` 阶段等待状态，不再直接 fallback
 - 仅当插件缺失、运行时依赖缺失、mount 失败、原生渲染明确报错、或 ready 超时（15s）时才触发 WebView fallback
 - 进入 WebView fallback 后，不再请求 native 扩展接口（`/api/embed/geojson/*`、`/api/embed/bbox`）
+- 默认关闭自动 WebView fallback，只有显式开启调试降级开关时才切 WebView
 
 ## 当前限制
 

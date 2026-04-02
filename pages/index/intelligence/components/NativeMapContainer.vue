@@ -323,7 +323,7 @@ watch(
 );
 
 onMounted(async () => {
-  allowPreviewFallback.value = String(uni.getStorageSync('intelligence_native_preview_debug') || '') === '1';
+  allowPreviewFallback.value = false;
   adapter.setHost({
     syncState(nextState) {
       if (!nextState || typeof nextState !== 'object') return;
