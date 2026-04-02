@@ -23,6 +23,7 @@ import {
 
 const ADAPTER_NATIVE = 'native';
 const ADAPTER_WEBVIEW = 'webview';
+const NATIVE_READY_TIMEOUT_MS = 10000;
 
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
@@ -41,10 +42,16 @@ export function useIntelligencePage() {
   const mapSrc = ref(buildWebViewMapSrc(DEFAULT_MAP_VIEW));
   const mapInitialView = ref(null);
   const mapController = ref(null);
+  const mapReady = ref(false);
+  const nativeStartupState = ref('idle');
+  const windowHeight = ref(780);
   const lastViewport = ref(null);
   const viewportMarkers = ref([]);
   const nativeFailureFallbackApplied = ref(false);
+  const pendingViewportPayload = ref(null);
+  const pendingMapDataSync = ref(false);
   let viewportTimer = null;
+  let nativeStartupTimer = null;
 
   const currentAction = computed(
     () => INTELLIGENCE_ACTIONS.find((item) => item.key === activeActionKey.value) || INTELLIGENCE_ACTIONS[0]
@@ -66,10 +73,15 @@ export function useIntelligencePage() {
   }
 
   function resolveViewportInset(state) {
+    const h = Number(windowHeight.value || 780);
+    const collapsed = Math.round(h * 0.28);
+    const half = Math.round(h * 0.56);
+    const full = Math.round(h * 0.88);
     const top = Math.max(Number(safeTop.value || 0) + 56, 56);
-    if (state === 'collapsed') return { top, right: 0, bottom: 220, left: 0 };
-    if (state === 'full') return { top, right: 0, bottom: 620, left: 0 };
-    return { top, right: 0, bottom: 420, left: 0 };
+    const bottom = state === 'collapsed'
+      ? collapsed
+      : (state === 'full' ? full : half);
+    return { top, right: 0, bottom, left: 0 };
   }
 
   function syncMapLayers() {
@@ -106,7 +118,7 @@ export function useIntelligencePage() {
   }
 
   async function syncDomainGeoJson() {
-    if (!mapController.value) return;
+    if (!mapController.value || !mapReady.value) return;
     const featureCollection = await getNativeMapGeoJSON({
       domain: activeActionKey.value,
       items: items.value,
@@ -132,13 +144,11 @@ export function useIntelligencePage() {
       if (!list.find((item) => item.id === selectedItemId.value)) {
         selectedItemId.value = list[0]?.id || '';
       }
-      await loadViewportMarkers({
-        center: list[0]?.coordinate || mapInitialView.value?.center || DEFAULT_MAP_VIEW.center,
-        zoom: list[0]?.mapZoom || mapInitialView.value?.zoom || DEFAULT_MAP_VIEW.zoom,
-        layers: currentAction.value.mapLayers,
-      });
-      await syncDomainGeoJson();
       syncMapMarkers(options.focusSelected !== false);
+      pendingMapDataSync.value = true;
+      if (mapReady.value) {
+        await refreshMapDataForCurrentDomain({ focusSelected: options.focusSelected !== false });
+      }
     } finally {
       loading.value = false;
     }
@@ -156,6 +166,7 @@ export function useIntelligencePage() {
   }
 
   async function loadViewportMarkers(options = {}) {
+    if (!mapReady.value) return;
     const center = options.center || mapInitialView.value?.center || items.value[0]?.coordinate || DEFAULT_MAP_VIEW.center;
     const zoom = options.zoom || mapInitialView.value?.zoom || items.value[0]?.mapZoom || DEFAULT_MAP_VIEW.zoom;
     const layers = options.layers || currentAction.value.mapLayers;
@@ -169,12 +180,28 @@ export function useIntelligencePage() {
   }
 
   function scheduleViewportReload(payload = {}) {
+    pendingViewportPayload.value = payload;
+    if (!mapReady.value) return;
     if (viewportTimer) {
       clearTimeout(viewportTimer);
     }
     viewportTimer = setTimeout(() => {
       loadViewportMarkers(payload);
     }, 180);
+  }
+
+  async function refreshMapDataForCurrentDomain(options = {}) {
+    if (!mapController.value || !mapReady.value) return;
+    const center = items.value[0]?.coordinate || mapInitialView.value?.center || DEFAULT_MAP_VIEW.center;
+    const zoom = items.value[0]?.mapZoom || mapInitialView.value?.zoom || DEFAULT_MAP_VIEW.zoom;
+    const layers = currentAction.value.mapLayers;
+
+    await Promise.allSettled([
+      loadViewportMarkers({ center, zoom, layers }),
+      syncDomainGeoJson(),
+    ]);
+    syncMapMarkers(options.focusSelected !== false);
+    pendingMapDataSync.value = false;
   }
 
   function handleSearch() {
@@ -234,6 +261,7 @@ export function useIntelligencePage() {
 
   function handleMapControllerReady(controller) {
     mapController.value = controller;
+    nativeStartupState.value = mapAdapterType.value === ADAPTER_NATIVE ? 'mounting' : 'ready';
     if (mapInitialView.value) {
       mapController.value.init(mapInitialView.value);
     }
@@ -248,8 +276,13 @@ export function useIntelligencePage() {
   function fallbackToWebViewByNativeFailure(message = '') {
     if (nativeFailureFallbackApplied.value) return;
     if (mapAdapterType.value !== ADAPTER_NATIVE) return;
+    if (isWaitingNativeMessage(message)) {
+      nativeStartupState.value = 'mounting';
+      return;
+    }
 
     nativeFailureFallbackApplied.value = true;
+    stopNativeStartupTimer();
     mapAdapterType.value = ADAPTER_WEBVIEW;
     mapEnabled.value = true;
     mapSrc.value = buildWebViewMapSrc({
@@ -267,10 +300,32 @@ export function useIntelligencePage() {
 
   function handleMapEvent(event) {
     if (!event) return;
+    if (event.type === 'native-status') {
+      const phase = String(event.payload?.phase || '').trim();
+      const reason = String(event.payload?.reason || '').trim();
+      if (phase) {
+        nativeStartupState.value = phase;
+      }
+      if (phase === 'failed' && shouldFallbackOnNativeReason(reason)) {
+        fallbackToWebViewByNativeFailure(reason);
+      }
+      return;
+    }
     if (event.type === 'ready') {
+      mapReady.value = true;
+      nativeStartupState.value = 'ready';
+      stopNativeStartupTimer();
       syncMapLayers();
       syncMapMarkers(false);
-      syncDomainGeoJson();
+      if (pendingMapDataSync.value) {
+        refreshMapDataForCurrentDomain({ focusSelected: false });
+      } else {
+        syncDomainGeoJson();
+      }
+      if (pendingViewportPayload.value) {
+        scheduleViewportReload(pendingViewportPayload.value);
+        pendingViewportPayload.value = null;
+      }
       return;
     }
     if (event.type === 'markerClick' || event.type === 'objectSelect') {
@@ -292,7 +347,12 @@ export function useIntelligencePage() {
       return;
     }
     if (event.type === 'error') {
-      fallbackToWebViewByNativeFailure(event.payload?.message || '');
+      const message = event.payload?.message || '';
+      if (isWaitingNativeMessage(message)) {
+        nativeStartupState.value = 'mounting';
+        return;
+      }
+      fallbackToWebViewByNativeFailure(message);
     }
   }
 
@@ -303,17 +363,60 @@ export function useIntelligencePage() {
     }
   }
 
+  function startNativeStartupTimer() {
+    stopNativeStartupTimer();
+    if (mapAdapterType.value !== ADAPTER_NATIVE) return;
+    nativeStartupState.value = 'checking';
+    nativeStartupTimer = setTimeout(() => {
+      if (mapAdapterType.value !== ADAPTER_NATIVE) return;
+      if (mapReady.value) return;
+      fallbackToWebViewByNativeFailure('native-ready-timeout');
+    }, NATIVE_READY_TIMEOUT_MS);
+  }
+
+  function stopNativeStartupTimer() {
+    if (!nativeStartupTimer) return;
+    clearTimeout(nativeStartupTimer);
+    nativeStartupTimer = null;
+  }
+
+  function isWaitingNativeMessage(message) {
+    const text = String(message || '').toLowerCase();
+    return text.includes('plugin-not-render-ready')
+      || text.includes('waiting-ready')
+      || text.includes('mounting')
+      || text.includes('bridge')
+      || text.includes('initializing');
+  }
+
+  function shouldFallbackOnNativeReason(reason) {
+    const text = String(reason || '').toLowerCase();
+    if (!text) return false;
+    if (isWaitingNativeMessage(text)) return false;
+    return text.includes('plugin-missing')
+      || text.includes('mount-failed')
+      || text.includes('native-mount-failed')
+      || text.includes('not-app-plus')
+      || text.includes('load style failed');
+  }
+
   onShow(() => {
     const sys = uni.getSystemInfoSync();
     safeBottom.value = sys.safeAreaInsets?.bottom || 0;
+    windowHeight.value = sys.windowHeight || 780;
     mapAdapterType.value = resolvePreferredMapAdapter();
     mapEnabled.value = shouldAutoLoadMap();
     nativeFailureFallbackApplied.value = false;
+    mapReady.value = false;
+    nativeStartupState.value = 'idle';
+    pendingMapDataSync.value = false;
+    pendingViewportPayload.value = null;
     mapSrc.value = buildWebViewMapSrc({
       ...DEFAULT_MAP_VIEW,
       layers: currentAction.value.mapLayers,
       keyword: committedKeyword.value,
     });
+    startNativeStartupTimer();
     loadMapBootstrap();
     refreshPage({ focusSelected: false });
   });

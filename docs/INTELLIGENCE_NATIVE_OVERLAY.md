@@ -20,6 +20,7 @@
 1. `NativeMapController.setViewportInset()` 不再要求 map 必须 ready。
 2. 在 map 初始化完成后，会再次应用最近一次 inset，避免启动时序导致的遮挡。
 3. `NativeMapContainer` 首屏不再默认显示 preview 假地图，只显示 loading；native 失败才进入 preview/fallback。
+4. 底部 inset 不再写死常量，改为按面板三态基于窗口高度动态计算，避免原生地图覆盖 BottomSheet。
 
 ## 后续增强原则
 

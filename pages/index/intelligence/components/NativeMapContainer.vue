@@ -137,6 +137,7 @@ const renderState = reactive({
 
 const usePlatformNativePlugin = ref(false);
 const capabilityResolved = ref(false);
+const nativeStartupPhase = ref('idle');
 let removeNativeMapListener = null;
 const runtimeCapability = reactive({
   checked: false,
@@ -149,11 +150,18 @@ const visibleLayerPills = computed(() => {
   return renderState.layers.slice(0, 4);
 });
 
-const showPreviewFallback = computed(() => capabilityResolved.value && !usePlatformNativePlugin.value);
-const showLoadingMask = computed(() =>
-  props.enabled && (!capabilityResolved.value || (usePlatformNativePlugin.value && !renderState.ready))
+const showPreviewFallback = computed(() =>
+  capabilityResolved.value && nativeStartupPhase.value === 'failed' && !usePlatformNativePlugin.value
 );
-const mapModePill = computed(() => (showPreviewFallback.value ? '原生失败回退' : '地图加载中'));
+const showLoadingMask = computed(() =>
+  props.enabled && (
+    !capabilityResolved.value
+    || nativeStartupPhase.value === 'checking'
+    || nativeStartupPhase.value === 'mounting'
+    || (usePlatformNativePlugin.value && !renderState.ready)
+  )
+);
+const mapModePill = computed(() => (showPreviewFallback.value ? '原生失败回退' : '原生启动中'));
 const showOverlayMeta = computed(() => showPreviewFallback.value);
 
 const viewportBottomPx = computed(() => Math.max(Number(renderState.viewportInset?.bottom || 0), 0));
@@ -335,12 +343,13 @@ onMounted(async () => {
   adapter.setSource(props.src);
   adapter.init(props.initialView || {});
   renderState.ready = false;
+  nativeStartupPhase.value = 'checking';
 
   await resolvePlatformNativeMode();
   removeNativeMapListener = addPlatformNativeMapListener(handlePlatformNativeEvent);
   if (usePlatformNativePlugin.value) {
     await nextTick();
-    mountPlatformNativeMap({
+    const mounted = mountPlatformNativeMap({
       containerId: mapId,
       center: renderState.center.slice(),
       zoom: renderState.zoom,
@@ -348,6 +357,20 @@ onMounted(async () => {
       layers: renderState.layers.slice(),
       layerConfig: Array.isArray(renderState.layerConfig) ? renderState.layerConfig.slice() : [],
     });
+    if (!mounted) {
+      nativeStartupPhase.value = 'failed';
+      usePlatformNativePlugin.value = false;
+      emitNativeError('native-mount-failed');
+    } else {
+      nativeStartupPhase.value = 'mounting';
+      emit('map-event', {
+        type: 'native-status',
+        payload: {
+          phase: 'mounting',
+          reason: 'mounting',
+        },
+      });
+    }
   }
 
   emit('ready', controller);
@@ -363,23 +386,33 @@ onUnmounted(() => {
 
 async function resolvePlatformNativeMode() {
   // #ifdef APP-PLUS
+  nativeStartupPhase.value = 'checking';
   const capability = await detectPlatformNativeMapCapability();
   runtimeCapability.checked = true;
   runtimeCapability.enabled = capability.enabled;
   runtimeCapability.reason = capability.reason;
   capabilityResolved.value = true;
-  usePlatformNativePlugin.value = capability.enabled;
-  renderState.mode = capability.enabled ? 'native-platform-plugin' : 'native-preview';
-  renderState.ready = !capability.enabled;
-  if (!capability.enabled) {
+
+  if (capability.enabled || capability.reason === 'plugin-not-render-ready') {
+    usePlatformNativePlugin.value = true;
+    renderState.mode = capability.enabled ? 'native-platform-plugin' : 'native-platform-plugin-pending';
+    renderState.ready = false;
+    nativeStartupPhase.value = 'mounting';
     emit('map-event', {
-      type: 'error',
+      type: 'native-status',
       payload: {
-        message: capability.reason || 'native plugin unavailable',
+        phase: 'mounting',
+        reason: capability.reason,
       },
       raw: capability,
     });
+    return;
   }
+  usePlatformNativePlugin.value = false;
+  renderState.mode = 'native-preview';
+  renderState.ready = true;
+  nativeStartupPhase.value = 'failed';
+  emitNativeError(capability.reason || 'native plugin unavailable', capability);
   // #endif
 
   // #ifndef APP-PLUS
@@ -390,10 +423,12 @@ async function resolvePlatformNativeMode() {
   usePlatformNativePlugin.value = false;
   renderState.mode = 'native-preview';
   renderState.ready = true;
+  nativeStartupPhase.value = 'failed';
   emit('map-event', {
-    type: 'error',
+    type: 'native-status',
     payload: {
-      message: 'not-app-plus',
+      phase: 'failed',
+      reason: 'not-app-plus',
     },
     raw: {},
   });
@@ -411,6 +446,15 @@ function handlePlatformNativeEvent(event) {
 
   if (type === 'ready') {
     renderState.ready = true;
+    nativeStartupPhase.value = 'ready';
+    emit('map-event', {
+      type: 'native-status',
+      payload: {
+        phase: 'ready',
+        reason: 'native-ready',
+      },
+      raw: event,
+    });
     emit('map-event', {
       type: 'ready',
       payload,
@@ -465,14 +509,49 @@ function handlePlatformNativeEvent(event) {
   }
 
   if (type === 'error') {
-    emit('map-event', {
-      type: 'error',
-      payload: {
-        message: event.message || payload.message || 'native plugin render failed',
-      },
-      raw: event,
-    });
+    const message = event.message || payload.message || 'native plugin render failed';
+    if (isPendingNativeMessage(message)) {
+      nativeStartupPhase.value = 'mounting';
+      emit('map-event', {
+        type: 'native-status',
+        payload: {
+          phase: 'mounting',
+          reason: message,
+        },
+        raw: event,
+      });
+      return;
+    }
+    nativeStartupPhase.value = 'failed';
+    usePlatformNativePlugin.value = false;
+    emitNativeError(message, event);
   }
+}
+
+function emitNativeError(message, raw = {}) {
+  emit('map-event', {
+    type: 'native-status',
+    payload: {
+      phase: 'failed',
+      reason: message,
+    },
+    raw,
+  });
+  emit('map-event', {
+    type: 'error',
+    payload: {
+      message,
+    },
+    raw,
+  });
+}
+
+function isPendingNativeMessage(message) {
+  const text = String(message || '').toLowerCase();
+  return text.includes('plugin-not-render-ready')
+    || text.includes('waiting-ready')
+    || text.includes('mounting')
+    || text.includes('bridge');
 }
 
 function handlePreviewTouchStart(event) {
@@ -599,9 +678,7 @@ function resolveSceneKey(layers = []) {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top left, rgba(84, 145, 255, 0.22), transparent 28%),
-    linear-gradient(180deg, #eef4f8 0%, #dbe6ef 100%);
+  background: transparent;
 }
 
 .native-map__surface,
@@ -671,7 +748,7 @@ function resolveSceneKey(layers = []) {
   align-items: center;
   justify-content: center;
   gap: 16rpx;
-  background: linear-gradient(180deg, rgba(219, 229, 239, 0.6), rgba(219, 229, 239, 0.78));
+  background: rgba(219, 229, 239, 0.22);
   pointer-events: none;
 }
 
