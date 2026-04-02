@@ -144,11 +144,15 @@ export async function detectPlatformNativeMapCapability() {
   const capabilities = plugin && typeof plugin.getCapabilities === 'function'
     ? normalizeCapabilities(plugin.getCapabilities() || {})
     : normalizeCapabilities({});
+  const runtimeStatus = String(capabilities.status || '').toLowerCase();
+  const runtimeReady = capabilities.rendersBasemap && runtimeStatus !== 'dependency-missing';
   return {
-    enabled: !!plugin && capabilities.rendersBasemap,
+    enabled: !!plugin && runtimeReady,
     reason: !plugin
       ? (isAppPlusRuntime() ? 'plugin-missing' : 'not-app-plus')
-      : (capabilities.rendersBasemap ? 'plugin-ready' : 'plugin-not-render-ready'),
+      : (runtimeReady
+        ? 'plugin-ready'
+        : (runtimeStatus === 'dependency-missing' ? 'plugin-runtime-missing' : 'plugin-not-render-ready')),
     pluginId: PLUGIN_ID,
     capabilities,
   };

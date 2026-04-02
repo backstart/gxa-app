@@ -132,18 +132,6 @@ final class NativeMapController {
         if (map != null) {
             map.setPadding(left, top, right, bottom);
         }
-
-        if (host != null) {
-            ViewGroup.LayoutParams layoutParams = host.getLayoutParams();
-            if (layoutParams instanceof FrameLayout.LayoutParams) {
-                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) layoutParams;
-                params.leftMargin = left;
-                params.topMargin = top;
-                params.rightMargin = right;
-                params.bottomMargin = bottom;
-                host.setLayoutParams(params);
-            }
-        }
     }
 
     void setActiveLayers(@Nullable JSONArray layers) {
@@ -238,10 +226,11 @@ final class NativeMapController {
             return;
         }
         if (host.getParent() == null) {
-            root.addView(host, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
-            ));
+            );
+            root.addView(host, 0, params);
         }
     }
 

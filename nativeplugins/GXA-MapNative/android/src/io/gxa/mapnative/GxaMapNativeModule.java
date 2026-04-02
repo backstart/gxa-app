@@ -15,19 +15,21 @@ import io.dcloud.feature.uniapp.bridge.UniJSCallback;
 import io.dcloud.feature.uniapp.common.UniModule;
 
 public class GxaMapNativeModule extends UniModule {
+    private static final String MAPLIBRE_CLASS = "org.maplibre.android.MapLibre";
     private static final NativeMapEventEmitter emitter = new NativeMapEventEmitter();
     @Nullable
     private static NativeMapController controller;
 
     @UniJSMethod(uiThread = true)
     public Map<String, Object> getCapabilities() {
+        boolean runtimeReady = hasMapLibreRuntime();
         Map<String, Object> payload = new HashMap<>();
-        payload.put("rendersBasemap", true);
-        payload.put("supportsMarkers", true);
-        payload.put("supportsViewportInset", true);
+        payload.put("rendersBasemap", runtimeReady);
+        payload.put("supportsMarkers", runtimeReady);
+        payload.put("supportsViewportInset", runtimeReady);
         payload.put("provider", "gxa-platform");
         payload.put("engine", "maplibre-android-native");
-        payload.put("status", "ready");
+        payload.put("status", runtimeReady ? "ready" : "dependency-missing");
         return payload;
     }
 
@@ -43,6 +45,11 @@ public class GxaMapNativeModule extends UniModule {
         GxaMapNativeStore.setMountOptions(payload);
         GxaMapNativeStore.setCameraState(extractCameraFromMount(payload));
         GxaMapNativeStore.setMounted(true);
+
+        if (!hasMapLibreRuntime()) {
+            emitter.emit("error", null, "native dependency missing: " + MAPLIBRE_CLASS);
+            return;
+        }
 
         Activity activity = getActivity();
         if (activity == null) {
@@ -164,5 +171,15 @@ public class GxaMapNativeModule extends UniModule {
             result.put(key, value.opt(key));
         }
         return result;
+    }
+
+    private static boolean hasMapLibreRuntime() {
+        try {
+            Class.forName(MAPLIBRE_CLASS);
+            Class.forName("org.maplibre.android.maps.MapView");
+            return true;
+        } catch (Throwable ignore) {
+            return false;
+        }
     }
 }

@@ -6,7 +6,7 @@
   "_dp_type": "nativeplugin",
   "_dp_nativeplugin": {
     "android": {
-      "integrateType": "aar",
+      "integrateType": "source",
       "plugins": [
         {
           "type": "module",

@@ -46,3 +46,11 @@
 - `android/src/io/gxa/mapnative/NativeMapController.java`
 - `android/src/io/gxa/mapnative/NativeMapStyleResolver.java`
 - `android/src/io/gxa/mapnative/GxaMapNativeStore.java`
+
+## 依赖与基座要求
+
+- 插件接入方式：`integrateType = source`（`nativeplugins/GXA-MapNative/package.json`）
+- Android 依赖声明：`nativeplugins/GXA-MapNative/android/build.gradle`
+  - `api 'org.maplibre.gl:android-sdk:11.13.5'`
+- 修改插件依赖后，必须重新制作并安装自定义调试基座，避免运行时出现：
+  - `Failed resolution of: Lorg/maplibre/android/MapLibre;`

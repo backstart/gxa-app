@@ -11,7 +11,9 @@
   - 地图层：`MapContainer -> NativeMapContainer`
   - 浮层：`top-overlay`
   - 面板：`BottomSheet`
-- 通过原生插件 `setViewportInset` 控制原生地图可视区域，给顶部和底部 UI 预留承载空间
+- 原生地图宿主 `FrameLayout` 挂载到 `android.R.id.content` 的底层（index=0）
+- 页面 webview 背景设为透明，让地图作为底图透出
+- 通过原生插件 `setViewportInset` 控制地图 padding（不再裁剪 host 区域），给顶部和底部 UI 预留交互空间
   - `top-overlay` 使用顶部 inset
   - `BottomSheet` 三态切换驱动底部 inset 动态更新
 

@@ -9,6 +9,7 @@
 - 插件内核为 Android 原生 MapView 渲染
 - `WebViewMapAdapter` 仅作为 native 明确失败时兜底
 - 已去掉首屏默认 preview 假地图闪现，改为轻量 loading
+- 情报页容器 webview 背景改为透明，原生地图宿主下沉到根视图底层，确保顶部与 BottomSheet 可见
 - 已引入 native 启动状态机，避免 `plugin-not-render-ready` 过早触发 WebView fallback
 
 ## 当前默认链路
@@ -44,11 +45,12 @@
 ## 首屏与容错策略
 
 - 首屏关键请求只有 `/api/embed/config`，`/api/embed/layers` 改为预热请求，不阻塞首屏出图
-- `/api/embed/*` 请求超时统一为 `10000ms`
+- `/api/embed/*` 请求超时统一为 `30000ms`
 - 请求失败日志包含：`path`、`url`、`elapsed`、`detail`，便于定位具体超时接口
 - native 启动状态机：`idle -> checking -> mounting -> ready/failed`
 - `plugin-not-render-ready` 归类为 `mounting` 阶段等待状态，不再直接 fallback
-- 仅当插件缺失、mount 失败、原生渲染明确报错、或 ready 超时（10s）时才触发 WebView fallback
+- 仅当插件缺失、运行时依赖缺失、mount 失败、原生渲染明确报错、或 ready 超时（15s）时才触发 WebView fallback
+- 进入 WebView fallback 后，不再请求 native 扩展接口（`/api/embed/geojson/*`、`/api/embed/bbox`）
 
 ## 当前限制
 

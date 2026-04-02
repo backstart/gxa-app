@@ -113,7 +113,7 @@ const {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: #dbe5ef;
+  background: transparent;
 }
 
 .map-layer {
@@ -225,5 +225,16 @@ const {
 
 .metric-value.accent {
   color: #de5a39;
+}
+</style>
+
+<style lang="scss">
+page {
+  background: transparent !important;
+}
+
+.uni-page-body,
+.uni-page-wrapper {
+  background: transparent !important;
 }
 </style>

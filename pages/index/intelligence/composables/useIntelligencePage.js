@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onHide, onShow } from '@dcloudio/uni-app';
 import { getStatusBarHeight } from '@/utils/system.js';
 import {
   INTELLIGENCE_ACTIONS,
@@ -23,7 +23,7 @@ import {
 
 const ADAPTER_NATIVE = 'native';
 const ADAPTER_WEBVIEW = 'webview';
-const NATIVE_READY_TIMEOUT_MS = 10000;
+const NATIVE_READY_TIMEOUT_MS = 15000;
 
 export function useIntelligencePage() {
   const safeTop = ref(getStatusBarHeight() || 0);
@@ -119,6 +119,7 @@ export function useIntelligencePage() {
 
   async function syncDomainGeoJson() {
     if (!mapController.value || !mapReady.value) return;
+    if (mapAdapterType.value !== ADAPTER_NATIVE) return;
     const featureCollection = await getNativeMapGeoJSON({
       domain: activeActionKey.value,
       items: items.value,
@@ -167,6 +168,11 @@ export function useIntelligencePage() {
 
   async function loadViewportMarkers(options = {}) {
     if (!mapReady.value) return;
+    if (mapAdapterType.value !== ADAPTER_NATIVE) {
+      viewportMarkers.value = getMapMarkersFromItems(items.value.slice(0, 24));
+      syncMapMarkers(false);
+      return;
+    }
     const center = options.center || mapInitialView.value?.center || items.value[0]?.coordinate || DEFAULT_MAP_VIEW.center;
     const zoom = options.zoom || mapInitialView.value?.zoom || items.value[0]?.mapZoom || DEFAULT_MAP_VIEW.zoom;
     const layers = options.layers || currentAction.value.mapLayers;
@@ -223,10 +229,16 @@ export function useIntelligencePage() {
     selectedItemId.value = item.id;
     if (!mapController.value || !item.coordinate) return;
 
-    const objectGeometry = await getNativeMapObjectGeometry({
-      domain: activeActionKey.value,
-      item,
-    });
+    const objectGeometry = mapAdapterType.value === ADAPTER_NATIVE
+      ? await getNativeMapObjectGeometry({
+        domain: activeActionKey.value,
+        item,
+      })
+      : {
+        center: Array.isArray(item.coordinate) ? item.coordinate.slice() : null,
+        zoom: item.mapZoom || 15,
+        featureCollection: null,
+      };
     const selectPayload = {
       id: item.id,
       coordinate: objectGeometry?.center || item.coordinate,
@@ -394,10 +406,29 @@ export function useIntelligencePage() {
     if (!text) return false;
     if (isWaitingNativeMessage(text)) return false;
     return text.includes('plugin-missing')
+      || text.includes('plugin-runtime-missing')
       || text.includes('mount-failed')
       || text.includes('native-mount-failed')
+      || text.includes('native dependency missing')
       || text.includes('not-app-plus')
       || text.includes('load style failed');
+  }
+
+  function ensureTransparentPageWebview() {
+    // #ifdef APP-PLUS
+    try {
+      const pages = getCurrentPages();
+      const current = pages[pages.length - 1];
+      const webview = current?.$getAppWebview?.();
+      if (webview && typeof webview.setStyle === 'function') {
+        webview.setStyle({
+          background: '#00000000',
+        });
+      }
+    } catch (error) {
+      console.warn('[intelligence] set transparent webview failed', error);
+    }
+    // #endif
   }
 
   onShow(() => {
@@ -416,9 +447,14 @@ export function useIntelligencePage() {
       layers: currentAction.value.mapLayers,
       keyword: committedKeyword.value,
     });
+    ensureTransparentPageWebview();
     startNativeStartupTimer();
     loadMapBootstrap();
     refreshPage({ focusSelected: false });
+  });
+
+  onHide(() => {
+    stopNativeStartupTimer();
   });
 
   refreshActionCounters();

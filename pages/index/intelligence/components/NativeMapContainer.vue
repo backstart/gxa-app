@@ -138,6 +138,7 @@ const renderState = reactive({
 const usePlatformNativePlugin = ref(false);
 const capabilityResolved = ref(false);
 const nativeStartupPhase = ref('idle');
+const allowPreviewFallback = ref(false);
 let removeNativeMapListener = null;
 const runtimeCapability = reactive({
   checked: false,
@@ -151,7 +152,10 @@ const visibleLayerPills = computed(() => {
 });
 
 const showPreviewFallback = computed(() =>
-  capabilityResolved.value && nativeStartupPhase.value === 'failed' && !usePlatformNativePlugin.value
+  allowPreviewFallback.value
+  && capabilityResolved.value
+  && nativeStartupPhase.value === 'failed'
+  && !usePlatformNativePlugin.value
 );
 const showLoadingMask = computed(() =>
   props.enabled && (
@@ -319,6 +323,7 @@ watch(
 );
 
 onMounted(async () => {
+  allowPreviewFallback.value = String(uni.getStorageSync('intelligence_native_preview_debug') || '') === '1';
   adapter.setHost({
     syncState(nextState) {
       if (!nextState || typeof nextState !== 'object') return;

@@ -7,8 +7,7 @@ import {
 } from './intelligence.js';
 
 const MAP_SERVICE_BASE_KEY = 'intelligence_map_service_base_url';
-const MAP_REQUEST_TIMEOUT = 10000;
-const LAYER_CONFIG_BOOTSTRAP_WAIT_MS = 280;
+const MAP_REQUEST_TIMEOUT = 30000;
 let cachedLayerConfig = [];
 let layerConfigRequestTask = null;
 
@@ -81,10 +80,11 @@ async function requestMapService({ path, query, fallback }) {
       throw new Error(`HTTP ${statusCode}`);
     }
     const elapsed = Date.now() - startedAt;
-    if (elapsed > 1500) {
+    if (elapsed > 3000) {
       console.info('[native-map] request slow', {
         path: normalizedPath,
         url,
+        timeout: MAP_REQUEST_TIMEOUT,
         elapsed,
       });
     }
@@ -94,6 +94,7 @@ async function requestMapService({ path, query, fallback }) {
     console.warn('[native-map] request failed', {
       path: normalizedPath,
       url,
+      timeout: MAP_REQUEST_TIMEOUT,
       elapsed,
       detail: normalizeRequestError(error),
     });
@@ -168,12 +169,6 @@ function normalizeLayerConfig(value) {
     .filter(Boolean);
 }
 
-function wait(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 function loadLayerConfig() {
   if (layerConfigRequestTask) return layerConfigRequestTask;
   layerConfigRequestTask = requestMapService({
@@ -193,18 +188,9 @@ function loadLayerConfig() {
 }
 
 async function getLayerConfigForBootstrap() {
+  void loadLayerConfig();
   if (cachedLayerConfig.length) {
-    void loadLayerConfig();
     return cachedLayerConfig.slice();
-  }
-
-  const pending = loadLayerConfig();
-  const result = await Promise.race([
-    pending,
-    wait(LAYER_CONFIG_BOOTSTRAP_WAIT_MS).then(() => null),
-  ]);
-  if (Array.isArray(result) && result.length) {
-    return result.slice();
   }
   return cachedLayerConfig.slice();
 }
