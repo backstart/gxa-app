@@ -16,6 +16,8 @@ import {
 } from '../services/mapEmbed.js';
 import {
   getNativeMapBootstrapConfig,
+  getNativeMapGeoJSON,
+  getNativeMapObjectGeometry,
   getNativeMapViewportPoints,
 } from '../services/nativeMap.js';
 
@@ -103,6 +105,17 @@ export function useIntelligencePage() {
     }
   }
 
+  async function syncDomainGeoJson() {
+    if (!mapController.value) return;
+    const featureCollection = await getNativeMapGeoJSON({
+      domain: activeActionKey.value,
+      items: items.value,
+      keyword: committedKeyword.value,
+      limit: 200,
+    });
+    mapController.value.drawGeoJSON(featureCollection);
+  }
+
   async function loadSummary() {
     summary.value = await getIntelligenceSummary({ keyword: committedKeyword.value });
     refreshActionCounters();
@@ -124,6 +137,7 @@ export function useIntelligencePage() {
         zoom: list[0]?.mapZoom || mapInitialView.value?.zoom || DEFAULT_MAP_VIEW.zoom,
         layers: currentAction.value.mapLayers,
       });
+      await syncDomainGeoJson();
       syncMapMarkers(options.focusSelected !== false);
     } finally {
       loading.value = false;
@@ -178,22 +192,34 @@ export function useIntelligencePage() {
     refreshPage({ focusSelected: false });
   }
 
-  function handleCardSelect(item) {
+  async function handleCardSelect(item) {
     selectedItemId.value = item.id;
     if (!mapController.value || !item.coordinate) return;
+
+    const objectGeometry = await getNativeMapObjectGeometry({
+      domain: activeActionKey.value,
+      item,
+    });
+    const selectPayload = {
+      id: item.id,
+      coordinate: objectGeometry?.center || item.coordinate,
+      center: objectGeometry?.center || item.coordinate,
+      mapZoom: objectGeometry?.zoom || item.mapZoom || 15,
+    };
+
     mapController.value.flyTo({
-      center: item.coordinate,
-      zoom: item.mapZoom || 15,
+      center: selectPayload.center,
+      zoom: selectPayload.mapZoom,
       duration: 900,
     });
-    mapController.value.selectObject({
-      id: item.id,
-      coordinate: item.coordinate,
-      mapZoom: item.mapZoom || 15,
-    });
+    mapController.value.selectObject(selectPayload);
+    if (objectGeometry?.featureCollection) {
+      mapController.value.drawGeoJSON(objectGeometry.featureCollection);
+    }
+
     scheduleViewportReload({
-      center: item.coordinate,
-      zoom: item.mapZoom || 15,
+      center: selectPayload.center,
+      zoom: selectPayload.mapZoom,
       layers: currentAction.value.mapLayers,
     });
   }
@@ -244,6 +270,7 @@ export function useIntelligencePage() {
     if (event.type === 'ready') {
       syncMapLayers();
       syncMapMarkers(false);
+      syncDomainGeoJson();
       return;
     }
     if (event.type === 'markerClick' || event.type === 'objectSelect') {

@@ -24,6 +24,8 @@ function hasPluginShape(mod) {
     typeof mod.updateCamera === 'function' &&
     typeof mod.setMarkers === 'function' &&
     typeof mod.setViewportInset === 'function' &&
+    typeof mod.drawGeoJSON === 'function' &&
+    typeof mod.selectObject === 'function' &&
     typeof mod.destroy === 'function'
   );
 }
@@ -61,9 +63,18 @@ function normalizeEvent(raw) {
     }
   }
 
+  let payload = raw.payload;
+  if (typeof payload === 'string' && payload) {
+    try {
+      payload = JSON.parse(payload);
+    } catch (error) {
+      payload = {};
+    }
+  }
+
   return {
     type: String(raw.type || 'unknown'),
-    payload: raw.payload && typeof raw.payload === 'object' ? raw.payload : {},
+    payload: payload && typeof payload === 'object' ? payload : {},
     message: String(raw.message || ''),
     ts: Number(raw.ts || Date.now()),
   };
@@ -149,6 +160,7 @@ export function mountPlatformNativeMap(options = {}) {
       zoom: Number(options.zoom || 13),
       basemap: options.basemap || null,
       layers: Array.isArray(options.layers) ? options.layers : [],
+      layerConfig: Array.isArray(options.layerConfig) ? options.layerConfig : [],
     });
     return true;
   } catch (error) {
@@ -169,6 +181,15 @@ export function syncPlatformNativeMap(state = {}) {
     plugin.setViewportInset(state.viewportInset || {});
     if (typeof plugin.setActiveLayers === 'function') {
       plugin.setActiveLayers(Array.isArray(state.layers) ? state.layers : []);
+    }
+    if (typeof plugin.drawGeoJSON === 'function') {
+      plugin.drawGeoJSON(state.geojson && typeof state.geojson === 'object' ? state.geojson : {
+        type: 'FeatureCollection',
+        features: [],
+      });
+    }
+    if (typeof plugin.selectObject === 'function' && state.selectedObject && typeof state.selectedObject === 'object') {
+      plugin.selectObject(state.selectedObject);
     }
     return true;
   } catch (error) {

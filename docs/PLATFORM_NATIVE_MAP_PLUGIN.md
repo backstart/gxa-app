@@ -1,30 +1,43 @@
 # PLATFORM_NATIVE_MAP_PLUGIN
 
-## 插件 ID
+## 当前实现结论
 
-- `GXA-MapNative`
+`GXA-MapNative` 默认承载路径已经切到 Android 原生 Map 引擎，不再依赖 `android/assets/gxa-map-native/index.html` 作为主渲染内核。
+
+当前主引擎：
+
+- `engine: maplibre-android-native`
+- `rendersBasemap: true`
 
 ## 初始化链路
 
-1. 页面调用 `getNativeMapBootstrapConfig()` 拉取 `/api/embed/config`
-2. `NativeMapAdapter` 写入 `basemap/styleUrl/tilesUrl/center/zoom`
+1. 页面层通过 `nativeMap.js` 请求 `GET /api/embed/config`
+2. `NativeMapAdapter` 把 `styleUrl/tilesUrl/defaultCenter/defaultZoom/layerConfig` 写入状态
 3. `NativeMapContainer` 调用 `mountPlatformNativeMap()`
-4. `platformNativeMapPlugin.js` 调用原生插件 `mount`
-5. Android 插件加载 `android/assets/gxa-map-native/index.html`，渲染底图
+4. `platformNativeMapPlugin.js` 调用插件 `mount(...)`
+5. Android 插件：
+   - 读取 style JSON
+   - 把 `pmtiles://` source 改写为 `/api/embed/native/tiles/{z}/{x}/{y}.pbf?pmtilesUrl=...`
+   - 用原生 MapView 加载 style
 
 ## mount 参数
 
 ```json
 {
   "containerId": "intelligenceNativeMap",
-  "center": [113.4445, 22.4915],
-  "zoom": 13,
-  "layers": ["places", "shops"],
+  "center": [113.3926, 22.5159],
+  "zoom": 11.8,
+  "layers": ["shops", "areas"],
+  "layerConfig": [
+    { "key": "shops", "entityType": "shop", "name": "店铺", "minZoom": 12 },
+    { "key": "areas", "entityType": "area", "name": "区域", "minZoom": 9 }
+  ],
   "basemap": {
     "provider": "platform-config",
     "source": "embed-config",
     "tilesUrl": "http://159.75.54.99:8002/tiles/city.pmtiles",
     "styleUrl": "http://159.75.54.99:8002/map-resources/styles/amap-like.json",
+    "nativeTileUrlTemplate": "http://159.75.54.99:8002/api/embed/native/tiles/{z}/{x}/{y}.pbf?pmtilesUrl={pmtilesUrl}",
     "kind": "platform-config"
   }
 }
@@ -39,21 +52,13 @@
 - `setMarkers(markers)`
 - `setViewportInset(inset)`
 - `setActiveLayers(layers)`
+- `drawGeoJSON(featureCollection)`
+- `selectObject(object)`
 - `destroy(options)`
 
-## getCapabilities 约定
+## 事件回传
 
-当前插件返回：
-
-- `rendersBasemap: true`
-- `supportsMarkers: true`
-- `supportsViewportInset: true`
-- `engine: "android-webview-maplibre-pmtiles"`
-- `status: "ready"`
-
-## 事件回传结构
-
-统一事件结构：
+统一结构：
 
 ```json
 {
@@ -64,7 +69,7 @@
 }
 ```
 
-当前已回传事件：
+事件类型：
 
 - `bridgeReady`
 - `ready`
@@ -72,15 +77,9 @@
 - `markerClick`
 - `moveEnd`
 - `zoomEnd`
+- `objectSelect`
 - `error`
 
-## URL 处理策略
+## legacy/debug 说明
 
-插件运行页会对 `styleUrl` 做资源绝对化处理：
-
-- `sprite`
-- `glyphs`
-- `sources[*].url`
-- `sources[*].tiles[]`
-
-并把 `pmtiles://` 指向 `tilesUrl`，用于消费平台 PMTiles 资源。
+`android/assets/gxa-map-native/index.html` 仍保留在仓库中，仅用于兼容或调试。默认承载链路不再使用该 HTML 内核。

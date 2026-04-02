@@ -15,11 +15,13 @@ export const DEFAULT_NATIVE_MAP_BOOTSTRAP = {
   theme: 'light',
   source: 'local-default',
   featureToggles: {},
+  layerConfig: [],
   basemap: {
     provider: 'platform-config',
     source: 'local-default',
     tilesUrl: '',
     styleUrl: '',
+    nativeTileUrlTemplate: '',
     kind: 'config-only',
   },
 };
@@ -109,13 +111,34 @@ function resolveAbsoluteUrl(url, baseUrl) {
 function normalizeBasemap(result, baseUrl, fallback) {
   const tilesUrl = resolveAbsoluteUrl(result?.tilesUrl || result?.TilesUrl, baseUrl);
   const styleUrl = resolveAbsoluteUrl(result?.styleUrl || result?.StyleUrl, baseUrl);
+  const nativeTileUrlTemplate = resolveAbsoluteUrl(
+    result?.nativeTileUrlTemplate || result?.NativeTileUrlTemplate,
+    baseUrl
+  );
   return {
     provider: result?.provider || result?.mapProvider || fallback.provider,
     source: tilesUrl || styleUrl ? 'embed-config' : fallback.source,
     tilesUrl,
     styleUrl,
+    nativeTileUrlTemplate,
     kind: tilesUrl || styleUrl ? 'platform-config' : fallback.kind,
   };
+}
+
+function normalizeLayerConfig(value) {
+  const list = Array.isArray(value) ? value : [];
+  return list
+    .map((item) => {
+      const key = String(item?.key || '').trim();
+      if (!key) return null;
+      return {
+        key,
+        entityType: String(item?.entityType || '').trim(),
+        name: String(item?.name || '').trim(),
+        minZoom: Number(item?.minZoom || 0),
+      };
+    })
+    .filter(Boolean);
 }
 
 export async function getNativeMapBootstrapConfig(options = {}) {
@@ -136,6 +159,11 @@ export async function getNativeMapBootstrapConfig(options = {}) {
     fallback: () => fallback,
   });
 
+  const layerResult = await requestMapService({
+    path: '/api/embed/layers',
+    fallback: () => ({ layers: [] }),
+  });
+
   return {
     center: normalizeCenter(result?.defaultCenter || result?.center),
     zoom: Number(result?.defaultZoom || fallback.zoom) || fallback.zoom,
@@ -145,6 +173,7 @@ export async function getNativeMapBootstrapConfig(options = {}) {
     theme: result?.defaultTheme || fallback.theme,
     source: result?.generatedAtUtc ? 'embed-config' : fallback.source,
     featureToggles: result?.featureToggles || fallback.featureToggles,
+    layerConfig: normalizeLayerConfig(layerResult?.layers),
     basemap: normalizeBasemap(result, baseUrl, fallback.basemap),
   };
 }

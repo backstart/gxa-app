@@ -113,15 +113,19 @@ const renderState = reactive({
   zoom: 13,
   layers: [],
   markers: [],
+  geojson: null,
   selectedId: '',
+  selectedObject: null,
   viewportInset: { bottom: 0 },
   mode: 'native-preview',
   source: 'local-default',
+  layerConfig: [],
   basemap: {
     provider: 'platform-config',
     source: 'local-default',
     tilesUrl: '',
     styleUrl: '',
+    nativeTileUrlTemplate: '',
     kind: 'config-only',
   },
 });
@@ -272,7 +276,10 @@ watch(
     center: renderState.center,
     zoom: renderState.zoom,
     markers: renderState.markers,
+    geojson: renderState.geojson,
     layers: renderState.layers,
+    layerConfig: renderState.layerConfig,
+    selectedObject: renderState.selectedObject,
     viewportInset: renderState.viewportInset,
   }),
   () => {
@@ -281,7 +288,12 @@ watch(
       center: renderState.center.slice(),
       zoom: renderState.zoom,
       markers: renderState.markers.slice(),
+      geojson: renderState.geojson && typeof renderState.geojson === 'object' ? { ...renderState.geojson } : null,
       layers: renderState.layers.slice(),
+      layerConfig: Array.isArray(renderState.layerConfig) ? renderState.layerConfig.slice() : [],
+      selectedObject: renderState.selectedObject && typeof renderState.selectedObject === 'object'
+        ? { ...renderState.selectedObject }
+        : null,
       viewportInset: { ...renderState.viewportInset },
     });
   },
@@ -296,7 +308,12 @@ onMounted(async () => {
       if (Number.isFinite(Number(nextState.zoom))) renderState.zoom = Number(nextState.zoom);
       if (Array.isArray(nextState.layers)) renderState.layers = nextState.layers.slice();
       if (Array.isArray(nextState.markers)) renderState.markers = nextState.markers.slice();
+      if (nextState.geojson && typeof nextState.geojson === 'object') renderState.geojson = { ...nextState.geojson };
       if (typeof nextState.selectedId === 'string') renderState.selectedId = nextState.selectedId;
+      if (Array.isArray(nextState.layerConfig)) renderState.layerConfig = nextState.layerConfig.slice();
+      if (nextState.selectedObject && typeof nextState.selectedObject === 'object') {
+        renderState.selectedObject = { ...nextState.selectedObject };
+      }
       if (nextState.viewportInset) renderState.viewportInset = { ...renderState.viewportInset, ...nextState.viewportInset };
       if (typeof nextState.ready === 'boolean') renderState.ready = nextState.ready;
       if (nextState.mode) renderState.mode = nextState.mode;
@@ -318,6 +335,7 @@ onMounted(async () => {
       zoom: renderState.zoom,
       basemap: { ...renderState.basemap },
       layers: renderState.layers.slice(),
+      layerConfig: Array.isArray(renderState.layerConfig) ? renderState.layerConfig.slice() : [],
     });
   }
 
@@ -404,6 +422,15 @@ function handlePlatformNativeEvent(event) {
         raw: event,
       });
     }
+    return;
+  }
+
+  if (type === 'objectSelect') {
+    emit('map-event', {
+      type: 'objectSelect',
+      payload,
+      raw: event,
+    });
     return;
   }
 

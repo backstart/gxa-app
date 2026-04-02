@@ -13,6 +13,8 @@ public class GxaMapNativeStore {
     private static JSONArray markers = new JSONArray();
     private static JSONObject viewportInset = new JSONObject();
     private static JSONArray activeLayers = new JSONArray();
+    private static JSONObject geoJson = new JSONObject();
+    private static JSONObject selectedObject = new JSONObject();
     private static boolean pageReady = false;
     private static boolean mounted = false;
 
@@ -56,6 +58,22 @@ public class GxaMapNativeStore {
         return activeLayers;
     }
 
+    public static synchronized void setGeoJson(JSONObject value) {
+        geoJson = value == null ? new JSONObject() : value;
+    }
+
+    public static synchronized JSONObject getGeoJson() {
+        return geoJson;
+    }
+
+    public static synchronized void setSelectedObject(JSONObject value) {
+        selectedObject = value == null ? new JSONObject() : value;
+    }
+
+    public static synchronized JSONObject getSelectedObject() {
+        return selectedObject;
+    }
+
     public static synchronized void setPageReady(boolean value) {
         pageReady = value;
     }
@@ -78,6 +96,8 @@ public class GxaMapNativeStore {
         markers = new JSONArray();
         viewportInset = new JSONObject();
         activeLayers = new JSONArray();
+        geoJson = new JSONObject();
+        selectedObject = new JSONObject();
         pageReady = false;
         mounted = false;
     }

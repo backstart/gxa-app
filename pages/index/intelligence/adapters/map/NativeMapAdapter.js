@@ -15,14 +15,17 @@ export class NativeMapAdapter {
       markers: [],
       geojson: null,
       selectedId: '',
+      selectedObject: null,
       viewportInset: { bottom: 0 },
       source: '',
       mode: 'native-preview',
+      layerConfig: [],
       basemap: {
         provider: 'platform-config',
         source: 'local-default',
         tilesUrl: '',
         styleUrl: '',
+        nativeTileUrlTemplate: '',
         kind: 'config-only',
       },
     };
@@ -58,6 +61,9 @@ export class NativeMapAdapter {
     }
     if (payload.mode) {
       this.state.mode = String(payload.mode);
+    }
+    if (Array.isArray(payload.layerConfig)) {
+      this.state.layerConfig = payload.layerConfig.slice();
     }
     if (payload.basemap && typeof payload.basemap === 'object') {
       this.state.basemap = {
@@ -164,6 +170,7 @@ export class NativeMapAdapter {
     if (object?.id) {
       this.state.selectedId = String(object.id);
     }
+    this.state.selectedObject = object && typeof object === 'object' ? { ...object } : null;
     if (nextCenter) {
       this.state.center = nextCenter;
       if (Number.isFinite(Number(object?.mapZoom))) {
@@ -225,9 +232,11 @@ export class NativeMapAdapter {
       markers: this.state.markers.slice(),
       geojson: this.state.geojson,
       selectedId: this.state.selectedId,
+      selectedObject: this.state.selectedObject ? { ...this.state.selectedObject } : null,
       viewportInset: { ...this.state.viewportInset },
       source: this.state.source,
       mode: this.state.mode,
+      layerConfig: this.state.layerConfig.slice(),
       basemap: { ...this.state.basemap },
     });
   }

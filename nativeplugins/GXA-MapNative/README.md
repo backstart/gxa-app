@@ -1,32 +1,31 @@
-# GXA-MapNative（Android 最小可用）
+# GXA-MapNative（Android 原生渲染）
 
-## 说明
+## 定位
 
-该插件是 `gxa-app` 情报页使用的自建底图原生插件。
+`GXA-MapNative` 是情报页默认地图承载插件。
 
-目标：
+当前主路径已经从“插件 + 内置 HTML 地图内核”升级为：
 
-- 不依赖第三方在线地图平台
-- 由原生层承载内网地图底图
-- JS 层通过统一接口传入：
-  - `tilesUrl`
-  - `styleUrl`
-  - `center`
-  - `zoom`
-  - `markers`
-  - `viewportInset`
+- Android 原生 `MapView` 渲染（MapLibre Android SDK）
+- 插件直接消费 `/api/embed/config` 提供的 `styleUrl + tilesUrl`
+- 通过 `/api/embed/native/tiles/{z}/{x}/{y}.pbf` 代理 PMTiles 数据
 
-## 当前阶段
+`android/assets/gxa-map-native/index.html` 仅保留为 legacy/debug 兼容资源，不再是默认承载内核。
 
-当前已实现最小可用底图渲染链路：
+## 能力
 
-- 引擎：Android 插件内置 MapLibre + PMTiles 运行页
-- 资源来源：`/api/embed/config` 返回的 `styleUrl + tilesUrl`
-- 能力：
-  - `rendersBasemap = true`
-  - `supportsMarkers = true`
-  - `supportsViewportInset = true`
-  - 基础事件：`ready/mapClick/markerClick/moveEnd/zoomEnd/error`
+- `rendersBasemap = true`
+- `supportsMarkers = true`
+- `supportsViewportInset = true`
+- `engine = maplibre-android-native`
+- 支持事件：
+  - `ready`
+  - `mapClick`
+  - `markerClick`
+  - `moveEnd`
+  - `zoomEnd`
+  - `objectSelect`
+  - `error`
 
 ## JS 调用接口
 
@@ -37,17 +36,13 @@
 - `setMarkers(markers)`
 - `setViewportInset(inset)`
 - `setActiveLayers(layers)`
+- `drawGeoJSON(featureCollection)`
+- `selectObject(object)`
 - `destroy(options)`
 
-## 后续原生实现建议
-
-后续增强建议：
-
-1. 进一步替换为纯原生地图 SDK 渲染（非 WebView 内核）
-2. 补齐 GeoJSON 图层渲染与对象高亮
-3. 完善多图层可见性控制策略
-
-## 目录
+## 关键目录
 
 - `android/src/io/gxa/mapnative/GxaMapNativeModule.java`
+- `android/src/io/gxa/mapnative/NativeMapController.java`
+- `android/src/io/gxa/mapnative/NativeMapStyleResolver.java`
 - `android/src/io/gxa/mapnative/GxaMapNativeStore.java`
