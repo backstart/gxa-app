@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.2'
+    }
+}
+
 apply plugin: 'com.android.library'
 
 android {
@@ -35,5 +45,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.maplibre.gl:android-sdk:9.7.0'
+    implementation 'org.maplibre.gl:android-sdk:11.13.5'
+    compileOnly 'io.dcloud.unimp:uni-app-v8:4.17.2024051110'
+    compileOnly 'androidx.annotation:annotation:1.7.1'
 }

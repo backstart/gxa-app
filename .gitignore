@@ -28,3 +28,6 @@ Thumbs.db
 *.aab
 *.ipa
 
+# Android/Gradle temporary build files
+nativeplugins/**/android/.gradle/
+nativeplugins/**/android/build/
