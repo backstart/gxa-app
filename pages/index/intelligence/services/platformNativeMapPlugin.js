@@ -97,6 +97,14 @@ function dispatchEvent(raw) {
   });
 }
 
+function encodePayload(value, fallback) {
+  try {
+    return JSON.stringify(value ?? fallback);
+  } catch (error) {
+    return JSON.stringify(fallback);
+  }
+}
+
 function ensureEventBridge(plugin) {
   if (!plugin || eventBridgeBound || typeof plugin.onEvent !== 'function') {
     return;
@@ -145,6 +153,7 @@ export async function detectPlatformNativeMapCapability() {
     ? normalizeCapabilities(plugin.getCapabilities() || {})
     : normalizeCapabilities({});
   const runtimeStatus = String(capabilities.status || '').toLowerCase();
+  const runtimeReason = String(capabilities.reason || '').trim();
   const runtimeReady = capabilities.rendersBasemap && runtimeStatus !== 'dependency-missing';
   return {
     enabled: !!plugin && runtimeReady,
@@ -152,7 +161,9 @@ export async function detectPlatformNativeMapCapability() {
       ? (isAppPlusRuntime() ? 'plugin-missing' : 'not-app-plus')
       : (runtimeReady
         ? 'plugin-ready'
-        : (runtimeStatus === 'dependency-missing' ? 'plugin-runtime-missing' : 'plugin-not-render-ready')),
+        : (runtimeReason
+          ? runtimeReason
+          : (runtimeStatus === 'dependency-missing' ? 'plugin-runtime-missing' : 'plugin-not-render-ready'))),
     pluginId: PLUGIN_ID,
     capabilities,
   };
@@ -186,10 +197,10 @@ export function syncPlatformNativeMap(state = {}) {
       center: state.center || [],
       zoom: Number(state.zoom || 13),
     });
-    plugin.setMarkers(Array.isArray(state.markers) ? state.markers : []);
+    plugin.setMarkers(encodePayload(Array.isArray(state.markers) ? state.markers : [], []));
     plugin.setViewportInset(state.viewportInset || {});
     if (typeof plugin.setActiveLayers === 'function') {
-      plugin.setActiveLayers(Array.isArray(state.layers) ? state.layers : []);
+      plugin.setActiveLayers(encodePayload(Array.isArray(state.layers) ? state.layers : [], []));
     }
     if (typeof plugin.drawGeoJSON === 'function') {
       plugin.drawGeoJSON(state.geojson && typeof state.geojson === 'object' ? state.geojson : {

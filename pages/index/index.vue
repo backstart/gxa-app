@@ -6,6 +6,7 @@
       :enabled="mapEnabled"
       :src="mapSrc"
       :initial-view="mapInitialView"
+      :session-key="mapSessionKey"
       @ready="handleMapControllerReady"
       @activate-request="handleMapActivate"
       @map-event="handleMapEvent"
@@ -96,6 +97,7 @@ const {
   mapEnabled,
   mapSrc,
   mapInitialView,
+  mapSessionKey,
   sheetState,
   handleSearch,
   handleActionSelect,

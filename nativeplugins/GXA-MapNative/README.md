@@ -1,57 +1,84 @@
-# GXA-MapNative（Android 原生渲染）
+# GXA-MapNative（Android 原生地图插件）
 
-## 定位
+## 当前集成方式
 
-`GXA-MapNative` 是情报页默认地图承载插件。
+- `nativeplugins/GXA-MapNative/package.json`
+  - `_dp_nativeplugin.android.integrateType = "aar"`
+- 产物模式：预编译 AAR
+- 关键变化：AAR 通过 **fat-aar** 将 `org.maplibre.gl:android-sdk:11.13.5` 及其运行时内容内嵌进插件产物，避免宿主运行时缺类。
 
-当前主路径已经从“插件 + 内置 HTML 地图内核”升级为：
+## 为什么这样改
 
-- Android 原生 `MapView` 渲染（MapLibre Android SDK）
-- 插件直接消费 `/api/embed/config` 提供的 `styleUrl + tilesUrl`
-- 通过 `/api/embed/native/tiles/{z}/{x}/{y}.pbf` 代理 PMTiles 数据
+此前仅在 `build.gradle` 使用 `api 'org.maplibre.gl:android-sdk:11.13.5'`，生成的插件 AAR 不会自动携带 Maven 传递依赖；
+HBuilderX 自定义基座集成本地插件 AAR 时，也不会替插件再解析 Maven 依赖，导致真机运行时报：
 
-`android/assets/gxa-map-native/index.html` 仅保留为 legacy/debug 兼容资源，不再是默认承载内核。
+- `native dependency missing: org.maplibre.android.MapLibre`
 
-## 能力
+现在改为 fat-aar 后，`GXA-MapNative-release.aar` 自身包含：
 
-- `rendersBasemap = true`
-- `supportsMarkers = true`
-- `supportsViewportInset = true`
-- `engine = maplibre-android-native`
-- 支持事件：
-  - `ready`
-  - `mapClick`
-  - `markerClick`
-  - `moveEnd`
-  - `zoomEnd`
-  - `objectSelect`
-  - `error`
+- `org/maplibre/android/MapLibre.class`
+- `org/maplibre/android/maps/MapView.class`
+- `jni/*/libmaplibre.so`
 
-## JS 调用接口
+## Android 构建配置
 
-- `getCapabilities()`
-- `onEvent(callback)`
-- `mount(options)`
-- `updateCamera(options)`
-- `setMarkers(markers)`
-- `setViewportInset(inset)`
-- `setActiveLayers(layers)`
-- `drawGeoJSON(featureCollection)`
-- `selectObject(object)`
-- `destroy(options)`
+文件：`nativeplugins/GXA-MapNative/android/build.gradle`
 
-## 关键目录
+- `apply plugin: 'com.kezong.fat-aar'`
+- `embed('org.maplibre.gl:android-sdk:11.13.5') { transitive = true }`
+- `namespace 'io.gxa.mapnative'`
+- 仓库增加 `https://jitpack.io`（用于 fat-aar 插件）
 
-- `android/src/io/gxa/mapnative/GxaMapNativeModule.java`
-- `android/src/io/gxa/mapnative/NativeMapController.java`
-- `android/src/io/gxa/mapnative/NativeMapStyleResolver.java`
-- `android/src/io/gxa/mapnative/GxaMapNativeStore.java`
+文件：`nativeplugins/GXA-MapNative/android/gradle.properties`
 
-## 依赖与基座要求
+- 增加：`android.experimental.legacyTransform.forceNonIncremental=true`
 
-- 插件接入方式：`integrateType = source`（`nativeplugins/GXA-MapNative/package.json`）
-- Android 依赖声明：`nativeplugins/GXA-MapNative/android/build.gradle`
-  - `api 'org.maplibre.gl:android-sdk:11.13.5'`
-- 不再使用仓库内预编译 `GXA-MapNative-release.aar` 作为主集成方式，避免运行时依赖缺失
-- 修改插件依赖后，必须重新制作并安装自定义调试基座，避免运行时出现：
-  - `Failed resolution of: Lorg/maplibre/android/MapLibre;`
+## 重新生成 AAR
+
+在 `D:\Code\gxa\gxa-app\nativeplugins\GXA-MapNative\android` 执行：
+
+```powershell
+$env:JAVA_HOME='C:\Users\ckstart\AppData\Local\Temp\msjdk11\jdk-11.0.30+7'
+$env:ANDROID_HOME='C:\Users\ckstart\AppData\Local\Android\Sdk'
+$env:ANDROID_SDK_ROOT='C:\Users\ckstart\AppData\Local\Android\Sdk'
+$env:PATH="$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:PATH"
+.\gradlew.bat --no-daemon clean assembleRelease
+Copy-Item .\build\outputs\aar\GXA-MapNative-android-release.aar .\GXA-MapNative-release.aar -Force
+```
+
+## 重新制作自定义基座
+
+1. 在 HBuilderX 中确认插件目录为 `nativeplugins/GXA-MapNative` 且 `integrateType=aar`。
+2. 重新制作自定义调试基座（Android）。
+3. 卸载旧基座并安装新基座后再运行情报页。
+
+## 如何验证依赖已生效
+
+### 1) 离线验证 AAR 内容
+
+```powershell
+# 检查类
+jar tf .\build\outputs\aar\GXA-MapNative-android-release.aar | findstr /i "org/maplibre/android/MapLibre.class"
+# 检查 so
+jar tf .\build\outputs\aar\GXA-MapNative-android-release.aar | findstr /i "libmaplibre.so"
+```
+
+### 2) 真机验证
+
+- `getCapabilities()` 返回：
+  - `status = ready`
+  - `reason = runtime-ready`
+- 不再出现：`native dependency missing: org.maplibre.android.MapLibre`
+- `mount()` 后可看到 `native-status` 的 `mount success`，并继续收到 `ready` 事件。
+
+## 原生诊断说明
+
+`GxaMapNativeModule` 已增强诊断：
+
+- 区分：
+  - `maplibre-class-missing`
+  - `mapview-class-missing`
+  - `activity-unavailable`
+  - `controller-init-failed`
+- `getCapabilities()` 返回 `status/reason/details`
+- `mount()` 失败会标注 `stage`，便于真机快速定位失败阶段。

@@ -1,65 +1,72 @@
-# 情报页原生地图方案（当前状态）
+# 情报页原生地图方案（运行态对齐版）
 
-## 分阶段落地状态
+## 2026-04-02 依赖接入收口
 
-当前处于“阶段二稳定化”迭代：
+- `GXA-MapNative` 当前保持 `integrateType = aar`，但 AAR 已切换为 fat-aar 产物。
+- MapLibre Android 运行时（class + so）已内嵌到插件 AAR，避免仅编译可见、运行时缺类。
+- 插件 `getCapabilities()` 与 `mount()` 已增强诊断，能区分：
+  - `maplibre-class-missing`
+  - `mapview-class-missing`
+  - `activity-unavailable`
+  - `controller-init-failed`
 
-- 页面层 / adapter 层 / service 层结构保持不变
-- 默认承载继续是 `NativeMapAdapter`
-- 插件内核为 Android 原生 MapView 渲染
-- `WebViewMapAdapter` 仅作为 native 明确失败时兜底
-- 已去掉首屏默认 preview 假地图闪现，改为轻量 loading
-- 情报页容器 webview 背景改为透明，原生地图宿主下沉到根视图底层，确保顶部与 BottomSheet 可见
-- 已引入 native 启动状态机，避免 `plugin-not-render-ready` 过早触发 WebView fallback
+> 只有在依赖接入真实可用（`status=ready`）后，页面层状态治理才有意义继续推进。
 
-## 当前默认链路
+## 当前真实行为
 
-1. `pages/index/index.vue` 渲染情报页
-2. `useIntelligencePage.js` 初始化地图配置、列表与面板
-3. `nativeMap.js` 拉取：
-   - `GET /api/embed/config`
-   - `GET /api/embed/layers`（非首屏阻塞）
-   - `GET /api/embed/bbox`
-   - `GET /api/embed/geojson/{type}`
-   - `GET /api/embed/object/{type}/{id}`
-4. `NativeMapAdapter` 输出统一地图控制协议
-5. `platformNativeMapPlugin.js` 调用 `GXA-MapNative`
-6. 插件原生渲染底图并回传事件
+- 情报页地图默认走 `NativeMapContainer` + `GXA-MapNative`。
+- 首屏不再渲染 preview 假地图；只显示统一 loading 遮罩，等待原生地图 ready。
+- tabbar 切换回情报页时，会创建新的 `page session`，并通过 `mapSessionKey` 强制重建地图容器。
+- 地图请求链路保持：
+  - 首屏关键请求：`GET /api/embed/config`
+  - 非首屏阻塞请求：`/api/embed/layers`、`/api/embed/bbox`、`/api/embed/geojson/*`、`/api/embed/object/*`
 
-## 关键能力
+## 关键修复点
 
-- 原生底图：`styleUrl + tilesUrl`
-- marker：`setMarkers`
-- 相机：`updateCamera/flyTo`
-- 面板避让：`setViewportInset`（在 map 未 ready 前也会先作用于原生容器边距）
-- 图层切换：`setActiveLayers`（基于 `/api/embed/layers` 的 key/entityType 映射）
-- GeoJSON：`drawGeoJSON`
-- 对象选中：`selectObject`
+### 1) 首屏闪屏治理
 
-## 与 WebView 路径关系
+- `NativeMapContainer` 去掉默认 preview 渲染路径。
+- 增加统一启动遮罩：`checking/mounting/not-ready` 时显示 loading，避免透明页透出旧页面内容。
+- 仅在失败时显示简洁失败卡片，debug 模式下才展示失败原因文本。
 
-- Native 是正式路径
-- WebView 是 fallback/debug 路径
-- `nativeplugins/GXA-MapNative/android/assets/gxa-map-native/index.html` 仅保留 legacy/debug，不再是主路径
+### 2) 地图初始化与恢复
 
-## 首屏与容错策略
+- `MapContainer` 增加 `sessionKey`，native/webview 子容器按 key 重建。
+- `useIntelligencePage` 在 `onShow` 生成新 session，`onHide` 销毁 mapController，确保原生宿主生命周期收口。
+- `nativeMap.js` 增加 basemap 字段兜底：当后端配置缺字段时，回落到
+  - `styleUrl: /map-resources/styles/amap-like.json`
+  - `tilesUrl: /tiles/city.pmtiles`
+  - `nativeTileUrlTemplate: /api/embed/native/tiles/{z}/{x}/{y}.pbf?pmtilesUrl={pmtilesUrl}`
+- Android 插件 manifest 明确 `usesCleartextTraffic=true`，避免 HTTP 地图资源在原生层被系统策略阻断。
 
-- 首屏关键请求只有 `/api/embed/config`，`/api/embed/layers` 改为预热请求，不阻塞首屏出图
-- `/api/embed/*` 请求超时统一为 `30000ms`
-- 请求失败日志包含：`path`、`url`、`elapsed`、`detail`，便于定位具体超时接口
-- native 启动状态机：`idle -> checking -> mounting -> ready/failed`
-- `plugin-not-render-ready` 归类为 `mounting` 阶段等待状态，不再直接 fallback
-- 仅当插件缺失、运行时依赖缺失、mount 失败、原生渲染明确报错、或 ready 超时（15s）时才触发 WebView fallback
-- 进入 WebView fallback 后，不再请求 native 扩展接口（`/api/embed/geojson/*`、`/api/embed/bbox`）
-- 默认关闭自动 WebView fallback，只有显式开启调试降级开关时才切 WebView
+### 3) tabbar 切换后的状态隔离
 
-## 当前限制
+- `useIntelligencePage` 引入 page session 与 request sequence 双重防护：
+  - 切页后旧请求回包不会覆盖当前页状态
+  - action/搜索切换后旧请求回包不会覆盖当前 action
+- `onHide` 统一清理：
+  - `mapController`
+  - 启动超时 timer
+  - viewport debounce timer
+  - pending payload / map data sync 标记
+- 关键状态在 session 中重建或重新拉取，避免跨 tab 污染。
 
-- 原生层当前聚焦最小可用能力，复杂符号化渲染仍可继续增强
-- `setActiveLayers` 仍依赖服务端 key/entityType 与样式层命名的一致性
+## 启动状态机
 
-## 下一步建议
+- `idle -> checking -> mounting -> ready/failed`
+- `plugin-not-render-ready` 仍归类为 `mounting` 等待态。
+- 仅明确失败原因才进入 `failed`。
 
-1. 对 style layer 与业务 layer key 建立可配置映射（服务端下发）
-2. 增加对象高亮样式（非仅相机定位）
-3. 加入离线缓存与瓦片预取策略（内网弱网场景）
+## 超时与失败策略
+
+- `/api/embed/*` 请求 timeout 统一 `30000ms`。
+- 非关键请求失败仅记录日志，不改写首屏控制流。
+- stale response 会被丢弃，不再污染当前页面。
+
+## 当前入口与主控
+
+- 情报页入口：`pages/index/index.vue`
+- 地图容器：`pages/index/intelligence/components/MapContainer.vue`
+- 原生容器：`pages/index/intelligence/components/NativeMapContainer.vue`
+- 页面状态主控：`pages/index/intelligence/composables/useIntelligencePage.js`
+- 请求与超时：`pages/index/intelligence/services/nativeMap.js`

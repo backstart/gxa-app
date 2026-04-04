@@ -2,15 +2,19 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'com.github.kezong:fat-aar:1.3.8'
     }
 }
 
 apply plugin: 'com.android.library'
+apply plugin: 'com.kezong.fat-aar'
 
 android {
+    namespace 'io.gxa.mapnative'
     compileSdkVersion 34
 
     defaultConfig {
@@ -42,10 +46,19 @@ android {
 repositories {
     google()
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    api 'org.maplibre.gl:android-sdk:11.13.5'
+    embed('org.maplibre.gl:android-sdk:11.13.5') {
+        transitive = true
+    }
+    embed('org.maplibre.gl:android-sdk-geojson:6.0.1') {
+        transitive = true
+    }
+    embed('com.google.code.gson:gson:2.10.1') {
+        transitive = true
+    }
     compileOnly 'io.dcloud.unimp:uni-app-v8:4.17.2024051110'
     compileOnly 'androidx.annotation:annotation:1.7.1'
 }

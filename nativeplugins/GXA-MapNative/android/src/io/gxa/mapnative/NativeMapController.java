@@ -25,7 +25,6 @@ import org.maplibre.android.style.layers.Layer;
 import org.maplibre.android.style.layers.LineLayer;
 import org.maplibre.android.style.layers.Property;
 import org.maplibre.android.style.sources.GeoJsonSource;
-import org.maplibre.geojson.FeatureCollection;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -168,7 +167,7 @@ final class NativeMapController {
 
         try {
             String json = featureCollection == null ? "{\"type\":\"FeatureCollection\",\"features\":[]}" : featureCollection.toString();
-            source.setGeoJson(FeatureCollection.fromJson(json));
+            source.setGeoJson(json);
         } catch (Throwable error) {
             emitter.emit("error", null, "drawGeoJSON failed: " + error.getMessage());
         }
@@ -388,7 +387,7 @@ final class NativeMapController {
     private void ensureGeoJsonLayers(@NonNull Style style) {
         GeoJsonSource source = style.getSourceAs(GEOJSON_SOURCE_ID);
         if (source == null) {
-            source = new GeoJsonSource(GEOJSON_SOURCE_ID, FeatureCollection.fromFeatures(new ArrayList<>()));
+            source = new GeoJsonSource(GEOJSON_SOURCE_ID, "{\"type\":\"FeatureCollection\",\"features\":[]}");
             style.addSource(source);
         }
 

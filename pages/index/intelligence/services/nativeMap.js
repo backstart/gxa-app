@@ -8,6 +8,9 @@ import {
 
 const MAP_SERVICE_BASE_KEY = 'intelligence_map_service_base_url';
 const MAP_REQUEST_TIMEOUT = 30000;
+const DEFAULT_BASEMAP_STYLE_PATH = '/map-resources/styles/amap-like.json';
+const DEFAULT_BASEMAP_TILES_PATH = '/tiles/city.pmtiles';
+const DEFAULT_NATIVE_TILE_TEMPLATE = '/api/embed/native/tiles/{z}/{x}/{y}.pbf?pmtilesUrl={pmtilesUrl}';
 let cachedLayerConfig = [];
 let layerConfigRequestTask = null;
 
@@ -137,15 +140,18 @@ function resolveAbsoluteUrl(url, baseUrl) {
 }
 
 function normalizeBasemap(result, baseUrl, fallback) {
-  const tilesUrl = resolveAbsoluteUrl(result?.tilesUrl || result?.TilesUrl, baseUrl);
-  const styleUrl = resolveAbsoluteUrl(result?.styleUrl || result?.StyleUrl, baseUrl);
+  const tilesUrl = resolveAbsoluteUrl(result?.tilesUrl || result?.TilesUrl, baseUrl)
+    || resolveAbsoluteUrl(DEFAULT_BASEMAP_TILES_PATH, baseUrl);
+  const styleUrl = resolveAbsoluteUrl(result?.styleUrl || result?.StyleUrl, baseUrl)
+    || resolveAbsoluteUrl(DEFAULT_BASEMAP_STYLE_PATH, baseUrl);
   const nativeTileUrlTemplate = resolveAbsoluteUrl(
-    result?.nativeTileUrlTemplate || result?.NativeTileUrlTemplate,
+    result?.nativeTileUrlTemplate || result?.NativeTileUrlTemplate || DEFAULT_NATIVE_TILE_TEMPLATE,
     baseUrl
   );
+  const fromService = !!(result?.tilesUrl || result?.TilesUrl || result?.styleUrl || result?.StyleUrl);
   return {
     provider: result?.provider || result?.mapProvider || fallback.provider,
-    source: tilesUrl || styleUrl ? 'embed-config' : fallback.source,
+    source: tilesUrl || styleUrl ? (fromService ? 'embed-config' : 'embed-default') : fallback.source,
     tilesUrl,
     styleUrl,
     nativeTileUrlTemplate,

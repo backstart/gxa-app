@@ -44,6 +44,7 @@ export function useIntelligencePage() {
   const mapInitialView = ref(null);
   const mapController = ref(null);
   const mapReady = ref(false);
+  const mapSessionKey = ref(0);
   const nativeStartupState = ref('idle');
   const allowWebViewFallback = ref(false);
   const windowHeight = ref(780);
@@ -52,8 +53,16 @@ export function useIntelligencePage() {
   const nativeFailureFallbackApplied = ref(false);
   const pendingViewportPayload = ref(null);
   const pendingMapDataSync = ref(false);
+
   let viewportTimer = null;
   let nativeStartupTimer = null;
+  let activePageSessionId = 0;
+  let bootstrapReqSeq = 0;
+  let summaryReqSeq = 0;
+  let domainReqSeq = 0;
+  let viewportReqSeq = 0;
+  let geoReqSeq = 0;
+  let objectReqSeq = 0;
 
   const currentAction = computed(
     () => INTELLIGENCE_ACTIONS.find((item) => item.key === activeActionKey.value) || INTELLIGENCE_ACTIONS[0]
@@ -72,6 +81,48 @@ export function useIntelligencePage() {
       ...item,
       count: summary.value.domainCounts[item.key] || 0,
     }));
+  }
+
+  function beginPageSession() {
+    activePageSessionId += 1;
+    mapSessionKey.value = activePageSessionId;
+    return activePageSessionId;
+  }
+
+  function invalidatePageSession() {
+    activePageSessionId += 1;
+  }
+
+  function isSessionActive(sessionId) {
+    return Number(sessionId) === Number(activePageSessionId);
+  }
+
+  function clearViewportTimer() {
+    if (!viewportTimer) return;
+    clearTimeout(viewportTimer);
+    viewportTimer = null;
+  }
+
+  function clearAllAsyncGuards() {
+    bootstrapReqSeq += 1;
+    summaryReqSeq += 1;
+    domainReqSeq += 1;
+    viewportReqSeq += 1;
+    geoReqSeq += 1;
+    objectReqSeq += 1;
+    pendingViewportPayload.value = null;
+    pendingMapDataSync.value = false;
+  }
+
+  function teardownMapController() {
+    if (mapController.value && typeof mapController.value.destroy === 'function') {
+      try {
+        mapController.value.destroy();
+      } catch (error) {
+        console.warn('[intelligence] destroy map controller failed', error);
+      }
+    }
+    mapController.value = null;
   }
 
   function resolveViewportInset(state) {
@@ -119,30 +170,61 @@ export function useIntelligencePage() {
     }
   }
 
-  async function syncDomainGeoJson() {
+  async function syncDomainGeoJson(options = {}) {
     if (!mapController.value || !mapReady.value) return;
     if (mapAdapterType.value !== ADAPTER_NATIVE) return;
+
+    const sessionId = options.sessionId ?? activePageSessionId;
+    const actionKey = options.actionKey || activeActionKey.value;
+    const requestId = ++geoReqSeq;
+
     const featureCollection = await getNativeMapGeoJSON({
-      domain: activeActionKey.value,
+      domain: actionKey,
       items: items.value,
       keyword: committedKeyword.value,
       limit: 200,
     });
+
+    if (!isSessionActive(sessionId) || requestId !== geoReqSeq || actionKey !== activeActionKey.value) {
+      return;
+    }
+
     mapController.value.drawGeoJSON(featureCollection);
   }
 
-  async function loadSummary() {
-    summary.value = await getIntelligenceSummary({ keyword: committedKeyword.value });
+  async function loadSummary(options = {}) {
+    const sessionId = options.sessionId ?? activePageSessionId;
+    const requestId = ++summaryReqSeq;
+    const nextSummary = await getIntelligenceSummary({ keyword: committedKeyword.value });
+
+    if (!isSessionActive(sessionId) || requestId !== summaryReqSeq) {
+      return false;
+    }
+
+    summary.value = nextSummary;
     refreshActionCounters();
+    return true;
   }
 
   async function loadDomain(options = {}) {
-    loading.value = true;
+    const sessionId = options.sessionId ?? activePageSessionId;
+    const actionKey = options.actionKey || activeActionKey.value;
+    const requestId = ++domainReqSeq;
+
+    if (isSessionActive(sessionId)) {
+      loading.value = true;
+    }
+
     try {
       const list = await getIntelligenceList({
-        domain: activeActionKey.value,
+        domain: actionKey,
         keyword: committedKeyword.value,
       });
+
+      if (!isSessionActive(sessionId) || requestId !== domainReqSeq || actionKey !== activeActionKey.value) {
+        return false;
+      }
+
       items.value = list;
       if (!list.find((item) => item.id === selectedItemId.value)) {
         selectedItemId.value = list[0]?.id || '';
@@ -150,90 +232,164 @@ export function useIntelligencePage() {
       syncMapMarkers(options.focusSelected !== false);
       pendingMapDataSync.value = true;
       if (mapReady.value) {
-        await refreshMapDataForCurrentDomain({ focusSelected: options.focusSelected !== false });
+        await refreshMapDataForCurrentDomain({
+          focusSelected: options.focusSelected !== false,
+          sessionId,
+          actionKey,
+        });
       }
+      return true;
     } finally {
-      loading.value = false;
+      if (isSessionActive(sessionId) && requestId === domainReqSeq) {
+        loading.value = false;
+      }
     }
   }
 
   async function refreshPage(options = {}) {
-    await loadSummary();
-    await loadDomain(options);
+    const sessionId = options.sessionId ?? activePageSessionId;
+    const actionKey = options.actionKey || activeActionKey.value;
+
+    await Promise.allSettled([
+      loadSummary({ sessionId }),
+      loadDomain({ ...options, sessionId, actionKey }),
+    ]);
   }
 
-  async function loadMapBootstrap() {
-    mapInitialView.value = await getNativeMapBootstrapConfig({
+  async function loadMapBootstrap(options = {}) {
+    const sessionId = options.sessionId ?? activePageSessionId;
+    const actionKey = options.actionKey || activeActionKey.value;
+    const requestId = ++bootstrapReqSeq;
+
+    const bootstrap = await getNativeMapBootstrapConfig({
       layers: currentAction.value.mapLayers,
     });
+
+    if (!isSessionActive(sessionId) || requestId !== bootstrapReqSeq || actionKey !== activeActionKey.value) {
+      return false;
+    }
+
+    mapInitialView.value = bootstrap;
+    if (mapController.value) {
+      mapController.value.init(bootstrap);
+      syncMapLayers();
+    }
+    return true;
   }
 
   async function loadViewportMarkers(options = {}) {
     if (!mapReady.value) return;
+
+    const sessionId = options.sessionId ?? activePageSessionId;
+    const actionKey = options.actionKey || activeActionKey.value;
+    const requestId = ++viewportReqSeq;
+
     if (mapAdapterType.value !== ADAPTER_NATIVE) {
+      if (!isSessionActive(sessionId) || requestId !== viewportReqSeq || actionKey !== activeActionKey.value) {
+        return;
+      }
       viewportMarkers.value = getMapMarkersFromItems(items.value.slice(0, 24));
       syncMapMarkers(false);
       return;
     }
+
     const center = options.center || mapInitialView.value?.center || items.value[0]?.coordinate || DEFAULT_MAP_VIEW.center;
     const zoom = options.zoom || mapInitialView.value?.zoom || items.value[0]?.mapZoom || DEFAULT_MAP_VIEW.zoom;
     const layers = options.layers || currentAction.value.mapLayers;
-    viewportMarkers.value = await getNativeMapViewportPoints({
+
+    const points = await getNativeMapViewportPoints({
       center,
       zoom,
       layers,
       items: items.value,
     });
+
+    if (!isSessionActive(sessionId) || requestId !== viewportReqSeq || actionKey !== activeActionKey.value) {
+      return;
+    }
+
+    viewportMarkers.value = points;
     syncMapMarkers(false);
   }
 
   function scheduleViewportReload(payload = {}) {
-    pendingViewportPayload.value = payload;
+    const scopedPayload = {
+      ...payload,
+      sessionId: activePageSessionId,
+      actionKey: activeActionKey.value,
+    };
+    pendingViewportPayload.value = scopedPayload;
+
     if (!mapReady.value) return;
-    if (viewportTimer) {
-      clearTimeout(viewportTimer);
-    }
+
+    clearViewportTimer();
     viewportTimer = setTimeout(() => {
-      loadViewportMarkers(payload);
+      if (!pendingViewportPayload.value) return;
+      const latest = pendingViewportPayload.value;
+      pendingViewportPayload.value = null;
+      if (!isSessionActive(latest.sessionId) || latest.actionKey !== activeActionKey.value) {
+        return;
+      }
+      loadViewportMarkers(latest);
     }, 180);
   }
 
   async function refreshMapDataForCurrentDomain(options = {}) {
     if (!mapController.value || !mapReady.value) return;
+
+    const sessionId = options.sessionId ?? activePageSessionId;
+    const actionKey = options.actionKey || activeActionKey.value;
+    if (!isSessionActive(sessionId) || actionKey !== activeActionKey.value) {
+      return;
+    }
+
     const center = items.value[0]?.coordinate || mapInitialView.value?.center || DEFAULT_MAP_VIEW.center;
     const zoom = items.value[0]?.mapZoom || mapInitialView.value?.zoom || DEFAULT_MAP_VIEW.zoom;
     const layers = currentAction.value.mapLayers;
 
     await Promise.allSettled([
-      loadViewportMarkers({ center, zoom, layers }),
-      syncDomainGeoJson(),
+      loadViewportMarkers({ center, zoom, layers, sessionId, actionKey }),
+      syncDomainGeoJson({ sessionId, actionKey }),
     ]);
+
+    if (!isSessionActive(sessionId) || actionKey !== activeActionKey.value) {
+      return;
+    }
+
     syncMapMarkers(options.focusSelected !== false);
     pendingMapDataSync.value = false;
   }
 
   function handleSearch() {
     committedKeyword.value = keyword.value.trim();
-    refreshPage();
+    const sessionId = activePageSessionId;
+    refreshPage({ focusSelected: false, sessionId, actionKey: activeActionKey.value });
   }
 
   function handleActionSelect(key) {
     if (key === activeActionKey.value) return;
+
     activeActionKey.value = key;
     if (sheetState.value === 'collapsed') {
       sheetState.value = 'half';
     }
-    loadMapBootstrap();
-    refreshPage({ focusSelected: false });
+
+    const sessionId = activePageSessionId;
+    loadMapBootstrap({ sessionId, actionKey: key });
+    refreshPage({ focusSelected: false, sessionId, actionKey: key });
   }
 
   async function handleCardSelect(item) {
     selectedItemId.value = item.id;
     if (!mapController.value || !item.coordinate) return;
 
+    const sessionId = activePageSessionId;
+    const actionKey = activeActionKey.value;
+    const requestId = ++objectReqSeq;
+
     const objectGeometry = mapAdapterType.value === ADAPTER_NATIVE
       ? await getNativeMapObjectGeometry({
-        domain: activeActionKey.value,
+        domain: actionKey,
         item,
       })
       : {
@@ -241,6 +397,11 @@ export function useIntelligencePage() {
         zoom: item.mapZoom || 15,
         featureCollection: null,
       };
+
+    if (!isSessionActive(sessionId) || requestId !== objectReqSeq || actionKey !== activeActionKey.value) {
+      return;
+    }
+
     const selectPayload = {
       id: item.id,
       coordinate: objectGeometry?.center || item.coordinate,
@@ -254,6 +415,7 @@ export function useIntelligencePage() {
       duration: 900,
     });
     mapController.value.selectObject(selectPayload);
+
     if (objectGeometry?.featureCollection) {
       mapController.value.drawGeoJSON(objectGeometry.featureCollection);
     }
@@ -273,12 +435,23 @@ export function useIntelligencePage() {
     handleCardSelect(item);
   }
 
-  function handleMapControllerReady(controller) {
+  function handleMapControllerReady(payload) {
+    const scopedSessionKey = Number(payload?.sessionKey);
+    if (Number.isFinite(scopedSessionKey) && !isSessionActive(scopedSessionKey)) {
+      return;
+    }
+
+    const controller = payload?.controller || payload;
+    if (!controller) return;
+
     mapController.value = controller;
+    mapReady.value = false;
     nativeStartupState.value = mapAdapterType.value === ADAPTER_NATIVE ? 'mounting' : 'ready';
+
     if (mapInitialView.value) {
       mapController.value.init(mapInitialView.value);
     }
+
     syncMapLayers();
     syncMapMarkers(false);
   }
@@ -290,6 +463,7 @@ export function useIntelligencePage() {
   function fallbackToWebViewByNativeFailure(message = '') {
     if (nativeFailureFallbackApplied.value) return;
     if (mapAdapterType.value !== ADAPTER_NATIVE) return;
+
     if (isWaitingNativeMessage(message)) {
       nativeStartupState.value = 'mounting';
       return;
@@ -299,7 +473,7 @@ export function useIntelligencePage() {
       nativeFailureFallbackApplied.value = true;
       nativeStartupState.value = 'failed';
       stopNativeStartupTimer();
-      console.warn('[intelligence] native map failed, keep native path without webview fallback:', message || 'unknown');
+      console.error('[intelligence][native-runtime] native map failed (no webview fallback):', message || 'unknown');
       return;
     }
 
@@ -320,8 +494,15 @@ export function useIntelligencePage() {
     }
   }
 
-  function handleMapEvent(event) {
+  function handleMapEvent(payload) {
+    const scopedSessionKey = Number(payload?.sessionKey);
+    if (Number.isFinite(scopedSessionKey) && !isSessionActive(scopedSessionKey)) {
+      return;
+    }
+
+    const event = payload?.event || payload;
     if (!event) return;
+
     if (event.type === 'native-status') {
       const phase = String(event.payload?.phase || '').trim();
       const reason = String(event.payload?.reason || '').trim();
@@ -333,23 +514,32 @@ export function useIntelligencePage() {
       }
       return;
     }
+
     if (event.type === 'ready') {
       mapReady.value = true;
       nativeStartupState.value = 'ready';
       stopNativeStartupTimer();
       syncMapLayers();
       syncMapMarkers(false);
+
+      const sessionId = activePageSessionId;
+      const actionKey = activeActionKey.value;
       if (pendingMapDataSync.value) {
-        refreshMapDataForCurrentDomain({ focusSelected: false });
+        refreshMapDataForCurrentDomain({
+          focusSelected: false,
+          sessionId,
+          actionKey,
+        });
       } else {
-        syncDomainGeoJson();
+        syncDomainGeoJson({ sessionId, actionKey });
       }
+
       if (pendingViewportPayload.value) {
         scheduleViewportReload(pendingViewportPayload.value);
-        pendingViewportPayload.value = null;
       }
       return;
     }
+
     if (event.type === 'markerClick' || event.type === 'objectSelect') {
       const nextId = String(event.payload?.id || event.payload?.item?.id || '');
       if (!nextId) return;
@@ -359,6 +549,7 @@ export function useIntelligencePage() {
       }
       return;
     }
+
     if (event.type === 'moveEnd' || event.type === 'zoomEnd') {
       lastViewport.value = event.payload || null;
       scheduleViewportReload({
@@ -368,6 +559,7 @@ export function useIntelligencePage() {
       });
       return;
     }
+
     if (event.type === 'error') {
       const message = event.payload?.message || '';
       if (isWaitingNativeMessage(message)) {
@@ -385,13 +577,14 @@ export function useIntelligencePage() {
     }
   }
 
-  function startNativeStartupTimer() {
+  function startNativeStartupTimer(expectedSessionId) {
     stopNativeStartupTimer();
     if (mapAdapterType.value !== ADAPTER_NATIVE) return;
+
     nativeStartupState.value = 'checking';
     nativeStartupTimer = setTimeout(() => {
-      if (mapAdapterType.value !== ADAPTER_NATIVE) return;
-      if (mapReady.value) return;
+      if (mapAdapterType.value !== ADAPTER_NATIVE || mapReady.value) return;
+      if (!isSessionActive(expectedSessionId)) return;
       fallbackToWebViewByNativeFailure('native-ready-timeout');
     }, NATIVE_READY_TIMEOUT_MS);
   }
@@ -424,7 +617,7 @@ export function useIntelligencePage() {
       || text.includes('load style failed');
   }
 
-  function ensureTransparentPageWebview() {
+  function ensurePageWebviewBackground(isTransparent) {
     // #ifdef APP-PLUS
     try {
       const pages = getCurrentPages();
@@ -432,40 +625,62 @@ export function useIntelligencePage() {
       const webview = current?.$getAppWebview?.();
       if (webview && typeof webview.setStyle === 'function') {
         webview.setStyle({
-          background: '#00000000',
+          background: isTransparent ? '#00000000' : '#ffffffff',
         });
       }
     } catch (error) {
-      console.warn('[intelligence] set transparent webview failed', error);
+      console.warn('[intelligence] set webview background failed', error);
     }
     // #endif
   }
 
   onShow(() => {
     const sys = uni.getSystemInfoSync();
+    const sessionId = beginPageSession();
+
     safeBottom.value = sys.safeAreaInsets?.bottom || 0;
     windowHeight.value = sys.windowHeight || 780;
     mapAdapterType.value = resolvePreferredMapAdapter();
     allowWebViewFallback.value = isDebugMapFallbackEnabled() || mapAdapterType.value === ADAPTER_WEBVIEW;
     mapEnabled.value = shouldAutoLoadMap();
+
     nativeFailureFallbackApplied.value = false;
     mapReady.value = false;
     nativeStartupState.value = 'idle';
     pendingMapDataSync.value = false;
     pendingViewportPayload.value = null;
+    mapInitialView.value = null;
+    viewportMarkers.value = [];
+    lastViewport.value = null;
+
     mapSrc.value = buildWebViewMapSrc({
       ...DEFAULT_MAP_VIEW,
       layers: currentAction.value.mapLayers,
       keyword: committedKeyword.value,
     });
-    ensureTransparentPageWebview();
-    startNativeStartupTimer();
-    loadMapBootstrap();
-    refreshPage({ focusSelected: false });
+
+    teardownMapController();
+    clearViewportTimer();
+    clearAllAsyncGuards();
+    ensurePageWebviewBackground(true);
+    startNativeStartupTimer(sessionId);
+
+    Promise.allSettled([
+      loadMapBootstrap({ sessionId, actionKey: activeActionKey.value }),
+      refreshPage({ focusSelected: false, sessionId, actionKey: activeActionKey.value }),
+    ]);
   });
 
   onHide(() => {
     stopNativeStartupTimer();
+    clearViewportTimer();
+    clearAllAsyncGuards();
+    teardownMapController();
+    mapReady.value = false;
+    nativeStartupState.value = 'idle';
+    loading.value = false;
+    invalidatePageSession();
+    ensurePageWebviewBackground(false);
   });
 
   refreshActionCounters();
@@ -487,6 +702,7 @@ export function useIntelligencePage() {
     mapEnabled,
     mapSrc,
     mapInitialView,
+    mapSessionKey,
     sheetState,
     handleSearch,
     handleActionSelect,
