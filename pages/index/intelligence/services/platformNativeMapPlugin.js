@@ -155,7 +155,7 @@ export async function detectPlatformNativeMapCapability() {
   const runtimeStatus = String(capabilities.status || '').toLowerCase();
   const runtimeReason = String(capabilities.reason || '').trim();
   const runtimeReady = capabilities.rendersBasemap && runtimeStatus !== 'dependency-missing';
-  return {
+  const result = {
     enabled: !!plugin && runtimeReady,
     reason: !plugin
       ? (isAppPlusRuntime() ? 'plugin-missing' : 'not-app-plus')
@@ -167,6 +167,13 @@ export async function detectPlatformNativeMapCapability() {
     pluginId: PLUGIN_ID,
     capabilities,
   };
+  console.info('[platform-native-map] capability', {
+    enabled: result.enabled,
+    reason: result.reason,
+    status: capabilities.status,
+    engine: capabilities.engine,
+  });
+  return result;
 }
 
 export function mountPlatformNativeMap(options = {}) {
@@ -181,6 +188,11 @@ export function mountPlatformNativeMap(options = {}) {
       basemap: options.basemap || null,
       layers: Array.isArray(options.layers) ? options.layers : [],
       layerConfig: Array.isArray(options.layerConfig) ? options.layerConfig : [],
+    });
+    console.info('[platform-native-map] mount', {
+      containerId: options.containerId || '',
+      center: options.center || [],
+      zoom: Number(options.zoom || 13),
     });
     return true;
   } catch (error) {

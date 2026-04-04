@@ -466,6 +466,10 @@ export function useIntelligencePage() {
 
     if (isWaitingNativeMessage(message)) {
       nativeStartupState.value = 'mounting';
+      console.info('[intelligence][map-runtime]', {
+        path: 'native-mounting',
+        reason: message || 'waiting-native-ready',
+      });
       return;
     }
 
@@ -473,7 +477,11 @@ export function useIntelligencePage() {
       nativeFailureFallbackApplied.value = true;
       nativeStartupState.value = 'failed';
       stopNativeStartupTimer();
-      console.error('[intelligence][native-runtime] native map failed (no webview fallback):', message || 'unknown');
+      console.error('[intelligence][map-runtime]', {
+        path: 'degraded-preview',
+        reason: message || 'native-failed',
+        fallback: 'webview-disabled',
+      });
       return;
     }
 
@@ -490,7 +498,10 @@ export function useIntelligencePage() {
     });
 
     if (message) {
-      console.warn('[intelligence] native map failed, fallback to webview:', message);
+      console.warn('[intelligence][map-runtime]', {
+        path: 'degraded-webview',
+        reason: message,
+      });
     }
   }
 
@@ -508,6 +519,10 @@ export function useIntelligencePage() {
       const reason = String(event.payload?.reason || '').trim();
       if (phase) {
         nativeStartupState.value = phase;
+        console.info('[intelligence][map-runtime]', {
+          path: `native-${phase}`,
+          reason,
+        });
       }
       if (phase === 'failed' && shouldFallbackOnNativeReason(reason)) {
         fallbackToWebViewByNativeFailure(reason);
@@ -519,6 +534,9 @@ export function useIntelligencePage() {
       mapReady.value = true;
       nativeStartupState.value = 'ready';
       stopNativeStartupTimer();
+      console.info('[intelligence][map-runtime]', {
+        path: 'native-ready',
+      });
       syncMapLayers();
       syncMapMarkers(false);
 
@@ -643,6 +661,10 @@ export function useIntelligencePage() {
     mapAdapterType.value = resolvePreferredMapAdapter();
     allowWebViewFallback.value = isDebugMapFallbackEnabled() || mapAdapterType.value === ADAPTER_WEBVIEW;
     mapEnabled.value = shouldAutoLoadMap();
+    console.info('[intelligence][map-runtime]', {
+      path: mapAdapterType.value === ADAPTER_NATIVE ? 'native-startup' : 'webview-startup',
+      allowWebViewFallback: allowWebViewFallback.value,
+    });
 
     nativeFailureFallbackApplied.value = false;
     mapReady.value = false;

@@ -1,21 +1,19 @@
-# 情报页原生地图方案（运行态对齐版）
+# 情报页原生地图方案（可见性收口版）
 
-## 2026-04-02 依赖接入收口
+## 2026-04-04 关键变更
 
-- `GXA-MapNative` 当前保持 `integrateType = aar`，但 AAR 已切换为 fat-aar 产物。
-- MapLibre Android 运行时（class + so）已内嵌到插件 AAR，避免仅编译可见、运行时缺类。
-- 插件 `getCapabilities()` 与 `mount()` 已增强诊断，能区分：
-  - `maplibre-class-missing`
-  - `mapview-class-missing`
-  - `activity-unavailable`
-  - `controller-init-failed`
-
-> 只有在依赖接入真实可用（`status=ready`）后，页面层状态治理才有意义继续推进。
+- `GXA-MapNative` 改为 `integrateType = source`，由自定义基座统一编译 MapLibre 依赖，避免 AAR 运行时缺类。
+- `NativeMapContainer` 新增可见性状态收口：
+  - `idle/checking/mounting/ready/failed/degraded`
+  - 首屏只显示 loading，不再默认先闪 preview。
+  - native 明确失败后进入 `degraded-preview`，保证地图区域不空白。
+- 页面日志统一输出运行路径：`native-ready/native-mounting/native-runtime-missing/degraded-preview/degraded-webview`。
 
 ## 当前真实行为
 
 - 情报页地图默认走 `NativeMapContainer` + `GXA-MapNative`。
-- 首屏不再渲染 preview 假地图；只显示统一 loading 遮罩，等待原生地图 ready。
+- 首屏优先尝试 native，`checking/mounting` 仅显示 loading。
+- native 失败时不再灰底空白，切入 degraded preview（保留 marker 可视化）。
 - tabbar 切换回情报页时，会创建新的 `page session`，并通过 `mapSessionKey` 强制重建地图容器。
 - 地图请求链路保持：
   - 首屏关键请求：`GET /api/embed/config`
@@ -25,9 +23,9 @@
 
 ### 1) 首屏闪屏治理
 
-- `NativeMapContainer` 去掉默认 preview 渲染路径。
-- 增加统一启动遮罩：`checking/mounting/not-ready` 时显示 loading，避免透明页透出旧页面内容。
-- 仅在失败时显示简洁失败卡片，debug 模式下才展示失败原因文本。
+- preview 不再首屏默认展示。
+- `checking/mounting` 显示 loading。
+- native 明确失败才进入 `degraded-preview`。
 
 ### 2) 地图初始化与恢复
 
@@ -38,6 +36,7 @@
   - `tilesUrl: /tiles/city.pmtiles`
   - `nativeTileUrlTemplate: /api/embed/native/tiles/{z}/{x}/{y}.pbf?pmtilesUrl={pmtilesUrl}`
 - Android 插件 manifest 明确 `usesCleartextTraffic=true`，避免 HTTP 地图资源在原生层被系统策略阻断。
+- plugin 接入改为 source 模式后，需重新制作并安装新自定义基座（建议同步提升 manifest 版本号）。
 
 ### 3) tabbar 切换后的状态隔离
 
@@ -53,15 +52,16 @@
 
 ## 启动状态机
 
-- `idle -> checking -> mounting -> ready/failed`
+- `idle -> checking -> mounting -> ready/failed -> degraded`
 - `plugin-not-render-ready` 仍归类为 `mounting` 等待态。
-- 仅明确失败原因才进入 `failed`。
+- `failed` 表示 native 运行时失败；随后转入 `degraded` 保证地图可见。
 
 ## 超时与失败策略
 
 - `/api/embed/*` 请求 timeout 统一 `30000ms`。
 - 非关键请求失败仅记录日志，不改写首屏控制流。
 - stale response 会被丢弃，不再污染当前页面。
+- `plugin-runtime-missing`、`native-mount-failed` 等 native 失败仅触发 degraded，不再导致地图区空白。
 
 ## 当前入口与主控
 

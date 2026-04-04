@@ -6,11 +6,32 @@
     >
       <!-- #ifdef APP-PLUS -->
       <view
-        v-if="usePlatformNativePlugin"
+        v-if="showNativeCore"
         :id="mapId"
         class="native-map__core"
       />
       <!-- #endif -->
+
+      <view v-if="showDegradedPreview" class="native-map__preview">
+        <view class="native-map__preview-grid"></view>
+        <view class="native-map__preview-road native-map__preview-road--a"></view>
+        <view class="native-map__preview-road native-map__preview-road--b"></view>
+        <view class="native-map__preview-road native-map__preview-road--c"></view>
+        <view class="native-map__preview-lake native-map__preview-lake--a"></view>
+        <view class="native-map__preview-lake native-map__preview-lake--b"></view>
+        <view
+          v-for="marker in previewMarkers"
+          :key="marker.id"
+          class="native-map__preview-marker"
+          :class="{ 'native-map__preview-marker--selected': marker.selected }"
+          :style="{ left: `${marker.x}%`, top: `${marker.y}%` }"
+        >
+          <text
+            v-if="marker.showLabel"
+            class="native-map__preview-marker-label"
+          >{{ marker.label }}</text>
+        </view>
+      </view>
 
       <view v-if="showLoadingMask" class="native-map__loading">
         <view class="native-map__loading-dot"></view>
@@ -89,8 +110,17 @@ const nativeStartupPhase = ref('idle');
 const nativeFailureReason = ref('');
 const debugPreviewEnabled = ref(false);
 let removeNativeMapListener = null;
+let nativeReadyTimer = null;
 
 const viewportBottomPx = computed(() => Math.max(Number(renderState.viewportInset?.bottom || 0), 0));
+const showNativeCore = computed(() =>
+  props.enabled && usePlatformNativePlugin.value
+);
+const showDegradedPreview = computed(() =>
+  props.enabled
+  && (nativeStartupPhase.value === 'degraded' || nativeStartupPhase.value === 'failed')
+  && !usePlatformNativePlugin.value
+);
 const showLoadingMask = computed(() =>
   props.enabled && (
     !capabilityResolved.value
@@ -101,12 +131,46 @@ const showLoadingMask = computed(() =>
 );
 const showFailureMask = computed(() =>
   props.enabled
-  && nativeStartupPhase.value === 'failed'
+  && (nativeStartupPhase.value === 'failed' || nativeStartupPhase.value === 'degraded')
   && (!usePlatformNativePlugin.value || !renderState.ready)
 );
+const previewMarkers = computed(() => {
+  const list = Array.isArray(renderState.markers) ? renderState.markers.slice(0, 80) : [];
+  if (!list.length) return [];
+
+  const centerLng = Number(renderState.center?.[0] || 113.4445);
+  const centerLat = Number(renderState.center?.[1] || 22.4915);
+  const zoom = Math.max(6, Number(renderState.zoom || 12));
+  const lngScale = 180 * (zoom / 12);
+  const latScale = 220 * (zoom / 12);
+
+  return list.map((item, index) => {
+    const id = String(item?.id || `preview-${index + 1}`);
+    const lng = Number(item?.lng);
+    const lat = Number(item?.lat);
+    const hash = hashMarkerId(id);
+    const dx = Number.isFinite(lng) ? (lng - centerLng) * lngScale : ((hash % 43) - 21) * 0.7;
+    const dy = Number.isFinite(lat) ? (centerLat - lat) * latScale : ((((hash / 43) | 0) % 39) - 19) * 0.8;
+    const x = clamp(8, 92, 50 + dx);
+    const y = clamp(9, 88, 50 + dy);
+    const selected = String(renderState.selectedId || '') === id;
+    const label = String(item?.label || '').trim();
+    return {
+      id,
+      x: Number(x.toFixed(2)),
+      y: Number(y.toFixed(2)),
+      selected,
+      label: label || id,
+      showLabel: selected || index < 4,
+    };
+  });
+});
 const mapVisualStateClass = computed(() => {
   if (nativeStartupPhase.value === 'ready' && renderState.ready) {
     return 'native-map__surface--ready';
+  }
+  if (nativeStartupPhase.value === 'degraded') {
+    return 'native-map__surface--degraded';
   }
   if (showFailureMask.value) {
     return 'native-map__surface--failed';
@@ -185,6 +249,7 @@ watch(
   () => props.enabled,
   (nextEnabled) => {
     if (!nextEnabled) {
+      clearNativeReadyTimer();
       nativeStartupPhase.value = 'idle';
       renderState.ready = false;
       nativeFailureReason.value = '';
@@ -274,6 +339,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  clearNativeReadyTimer();
   if (typeof removeNativeMapListener === 'function') {
     removeNativeMapListener();
     removeNativeMapListener = null;
@@ -285,6 +351,7 @@ onUnmounted(() => {
 async function resolvePlatformNativeMode() {
   // #ifdef APP-PLUS
   nativeStartupPhase.value = 'checking';
+  logMapSurfaceStatus('native-checking');
   const capability = await detectPlatformNativeMapCapability();
   capabilityResolved.value = true;
 
@@ -293,6 +360,8 @@ async function resolvePlatformNativeMode() {
     renderState.mode = capability.enabled ? 'native-platform-plugin' : 'native-platform-plugin-pending';
     renderState.ready = false;
     nativeStartupPhase.value = 'mounting';
+    scheduleNativeReadyTimeout();
+    logMapSurfaceStatus('native-mounting', capability.reason);
     emit('map-event', {
       type: 'native-status',
       payload: {
@@ -304,29 +373,12 @@ async function resolvePlatformNativeMode() {
     return;
   }
 
-  usePlatformNativePlugin.value = false;
-  renderState.mode = 'native-unavailable';
-  renderState.ready = false;
-  nativeStartupPhase.value = 'failed';
-  nativeFailureReason.value = capability.reason || 'native plugin unavailable';
-  emitNativeError(nativeFailureReason.value, capability);
+  enterDegradedMode(capability.reason || 'native plugin unavailable', capability);
   // #endif
 
   // #ifndef APP-PLUS
   capabilityResolved.value = true;
-  usePlatformNativePlugin.value = false;
-  renderState.mode = 'native-unavailable';
-  renderState.ready = false;
-  nativeStartupPhase.value = 'failed';
-  nativeFailureReason.value = 'not-app-plus';
-  emit('map-event', {
-    type: 'native-status',
-    payload: {
-      phase: 'failed',
-      reason: nativeFailureReason.value,
-    },
-    raw: {},
-  });
+  enterDegradedMode('not-app-plus', {});
   // #endif
 }
 
@@ -342,14 +394,13 @@ async function mountPluginSurface() {
   });
 
   if (!mounted) {
-    nativeStartupPhase.value = 'failed';
-    usePlatformNativePlugin.value = false;
-    nativeFailureReason.value = 'native-mount-failed';
-    emitNativeError(nativeFailureReason.value);
+    enterDegradedMode('native-mount-failed');
     return;
   }
 
   nativeStartupPhase.value = 'mounting';
+  scheduleNativeReadyTimeout();
+  logMapSurfaceStatus('native-mounting', 'mounting');
   emit('map-event', {
     type: 'native-status',
     payload: {
@@ -365,9 +416,11 @@ function handlePlatformNativeEvent(event) {
   const payload = event.payload && typeof event.payload === 'object' ? event.payload : {};
 
   if (type === 'ready') {
+    clearNativeReadyTimer();
     renderState.ready = true;
     nativeStartupPhase.value = 'ready';
     nativeFailureReason.value = '';
+    logMapSurfaceStatus('native-ready');
     emit('map-event', {
       type: 'native-status',
       payload: {
@@ -433,6 +486,8 @@ function handlePlatformNativeEvent(event) {
     const message = event.message || payload.message || 'native plugin render failed';
     if (isPendingNativeMessage(message)) {
       nativeStartupPhase.value = 'mounting';
+      scheduleNativeReadyTimeout();
+      logMapSurfaceStatus('native-mounting', message);
       emit('map-event', {
         type: 'native-status',
         payload: {
@@ -444,15 +499,12 @@ function handlePlatformNativeEvent(event) {
       return;
     }
 
-    nativeStartupPhase.value = 'failed';
-    renderState.ready = false;
-    usePlatformNativePlugin.value = false;
-    nativeFailureReason.value = message;
-    emitNativeError(message, event);
+    enterDegradedMode(message, event);
   }
 }
 
 function emitNativeError(message, raw = {}) {
+  logMapSurfaceStatus('native-failed', message);
   emit('map-event', {
     type: 'native-status',
     payload: {
@@ -470,6 +522,29 @@ function emitNativeError(message, raw = {}) {
   });
 }
 
+function emitDegradedStatus(reason, raw = {}) {
+  logMapSurfaceStatus('degraded-preview', reason);
+  emit('map-event', {
+    type: 'native-status',
+    payload: {
+      phase: 'degraded',
+      reason: reason || 'degraded-preview',
+    },
+    raw,
+  });
+}
+
+function enterDegradedMode(reason, raw = {}) {
+  clearNativeReadyTimer();
+  usePlatformNativePlugin.value = false;
+  renderState.mode = 'native-degraded';
+  renderState.ready = false;
+  nativeStartupPhase.value = 'degraded';
+  nativeFailureReason.value = reason || 'native-unavailable';
+  emitNativeError(nativeFailureReason.value, raw);
+  emitDegradedStatus(nativeFailureReason.value, raw);
+}
+
 function isPendingNativeMessage(message) {
   const text = String(message || '').toLowerCase();
   return text.includes('plugin-not-render-ready')
@@ -477,6 +552,45 @@ function isPendingNativeMessage(message) {
     || text.includes('mounting')
     || text.includes('bridge')
     || text.includes('initializing');
+}
+
+function clamp(min, max, value) {
+  return Math.min(max, Math.max(min, Number(value || 0)));
+}
+
+function hashMarkerId(value) {
+  const text = String(value || '');
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function logMapSurfaceStatus(path, reason = '') {
+  console.info('[intelligence][map-surface]', {
+    path,
+    reason: String(reason || ''),
+    phase: nativeStartupPhase.value,
+    nativeEnabled: usePlatformNativePlugin.value,
+    ready: renderState.ready,
+  });
+}
+
+function scheduleNativeReadyTimeout() {
+  clearNativeReadyTimer();
+  nativeReadyTimer = setTimeout(() => {
+    if (nativeStartupPhase.value !== 'mounting') return;
+    if (renderState.ready) return;
+    enterDegradedMode('native-ready-timeout');
+  }, 15000);
+}
+
+function clearNativeReadyTimer() {
+  if (!nativeReadyTimer) return;
+  clearTimeout(nativeReadyTimer);
+  nativeReadyTimer = null;
 }
 </script>
 
@@ -504,6 +618,112 @@ function isPendingNativeMessage(message) {
 
 .native-map__surface--ready {
   background: transparent;
+}
+
+.native-map__surface--degraded {
+  background:
+    radial-gradient(circle at top left, rgba(70, 136, 228, 0.14), transparent 30%),
+    linear-gradient(180deg, #eff4f8 0%, #dbe6ef 100%);
+}
+
+.native-map__preview {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.native-map__preview-grid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(129, 149, 171, 0.07) 1px, transparent 1px) 0 0 / 62rpx 62rpx,
+    linear-gradient(180deg, rgba(129, 149, 171, 0.07) 1px, transparent 1px) 0 0 / 62rpx 62rpx;
+}
+
+.native-map__preview-road {
+  position: absolute;
+  height: 14rpx;
+  border-radius: 999rpx;
+  background: rgba(246, 249, 252, 0.92);
+  box-shadow: 0 8rpx 16rpx rgba(20, 44, 65, 0.08);
+}
+
+.native-map__preview-road--a {
+  width: 56%;
+  left: -2%;
+  top: 34%;
+  transform: rotate(-9deg);
+}
+
+.native-map__preview-road--b {
+  width: 44%;
+  right: -2%;
+  top: 53%;
+  transform: rotate(19deg);
+}
+
+.native-map__preview-road--c {
+  width: 32%;
+  left: 38%;
+  bottom: 18%;
+  transform: rotate(-22deg);
+}
+
+.native-map__preview-lake {
+  position: absolute;
+  border-radius: 999rpx;
+  background: rgba(126, 188, 244, 0.32);
+}
+
+.native-map__preview-lake--a {
+  width: 240rpx;
+  height: 240rpx;
+  left: -42rpx;
+  top: 30%;
+}
+
+.native-map__preview-lake--b {
+  width: 170rpx;
+  height: 170rpx;
+  right: -34rpx;
+  bottom: 24%;
+}
+
+.native-map__preview-marker {
+  position: absolute;
+  z-index: 3;
+  width: 20rpx;
+  height: 20rpx;
+  margin-left: -10rpx;
+  margin-top: -10rpx;
+  border-radius: 999rpx;
+  background: #2285ff;
+  box-shadow:
+    0 0 0 4rpx rgba(255, 255, 255, 0.9),
+    0 5rpx 11rpx rgba(16, 53, 90, 0.28);
+}
+
+.native-map__preview-marker--selected {
+  background: #ff7c49;
+  box-shadow:
+    0 0 0 5rpx rgba(255, 255, 255, 0.94),
+    0 8rpx 16rpx rgba(193, 92, 54, 0.36);
+}
+
+.native-map__preview-marker-label {
+  position: absolute;
+  left: 10rpx;
+  top: -14rpx;
+  max-width: 220rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(14, 32, 47, 0.72);
+  color: #f5fbff;
+  font-size: 20rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .native-map__loading {
