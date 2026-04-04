@@ -2,11 +2,11 @@
   "name": "GXA-MapNative",
   "id": "GXA-MapNative",
   "version": "0.3.0",
-  "description": "GXA 原生地图插件（source 集成 MapLibre Android 运行时）",
+  "description": "GXA 原生地图插件（AAR 集成 MapLibre Android 运行时）",
   "_dp_type": "nativeplugin",
   "_dp_nativeplugin": {
     "android": {
-      "integrateType": "source",
+      "integrateType": "aar",
       "plugins": [
         {
           "type": "module",
