@@ -9,7 +9,7 @@
     <view v-else class="card info-card">
       <view class="info-header">
         <view>
-          <view class="plate">{{ car.plateNo || '警车详情' }}</view>
+          <view class="plate">{{ car.plateNo || '警车' }}</view>
           <view class="sub">{{ car.type || '—' }}</view>
         </view>
         <text :class="['status-pill', status]">{{ statusLabel }}</text>
