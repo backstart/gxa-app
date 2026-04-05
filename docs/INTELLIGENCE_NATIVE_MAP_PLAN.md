@@ -17,9 +17,9 @@
 ## 当前真实行为
 
 - 情报页地图默认走 `NativeMapContainer` + `GXA-MapNative`。
-- 首屏优先尝试 native，`checking/mounting` 仅显示 loading。
-- native 失败时不再灰底空白，切入 degraded preview（保留 marker 可视化）。
-- 若 `sourceType=platform-real` 且 native 失败，自动切到 degraded webview 优先保留平台真实底图。
+- 首屏优先尝试 native，`checking/mounting` 不再独占灰底，容器会保持可见降级底图层。
+- native 失败时不再灰底空白，切入 degraded 地图表面（优先 `degraded-platform-real`，其次 `degraded-platform-default-fallback`）。
+- WebView 仅在显式开启 debug fallback 时启用，不再作为常规自动兜底。
 - tabbar 切换回情报页时，会创建新的 `page session`，并通过 `mapSessionKey` 强制重建地图容器。
 - 地图请求链路保持：
   - 首屏关键请求：`GET /api/embed/config`
@@ -58,9 +58,19 @@
 
 ## 启动状态机
 
-- `idle -> checking -> mounting -> ready/failed -> degraded`
+- `idle -> checking -> waiting-basemap -> mounting -> ready/failed -> degraded`
 - `plugin-not-render-ready` 仍归类为 `mounting` 等待态。
-- `failed` 表示 native 运行时失败；随后转入 `degraded` 保证地图可见。
+- `failed` 表示 native 运行时失败；随后转入 `degraded`，并通过可见地图表面路径兜底。
+
+## 地图可见路径（新增）
+
+- `[map-surface] path=native-platform-real`
+- `[map-surface] path=native-platform-default-fallback`
+- `[map-surface] path=degraded-platform-real`
+- `[map-surface] path=degraded-platform-default-fallback`
+- `[map-surface] path=preview-only`
+
+说明：底图“来源类型”与“是否已有可见地图表面”已拆分。即便 `sourceType=platform-real`，只要 native 尚未出图，也会先进入 degraded 可见路径，避免灰底/空白。
 
 ## 超时与失败策略
 

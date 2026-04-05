@@ -118,25 +118,54 @@ const viewportBottomPx = computed(() => Math.max(Number(renderState.viewportInse
 const showNativeCore = computed(() =>
   props.enabled && usePlatformNativePlugin.value
 );
-const showDegradedPreview = computed(() =>
+const basemapSourceType = computed(() => String(renderState.basemap?.sourceType || '').trim());
+const hasRenderableBasemap = computed(() => {
+  const styleUrl = String(renderState.basemap?.styleUrl || '').trim();
+  const tilesUrl = String(renderState.basemap?.tilesUrl || '').trim();
+  return !!styleUrl && !!tilesUrl;
+});
+const showNativeReadySurface = computed(() =>
   props.enabled
-  && (nativeStartupPhase.value === 'degraded' || nativeStartupPhase.value === 'failed')
-  && !usePlatformNativePlugin.value
-  && String(renderState.basemap?.sourceType || '') !== 'platform-real'
+  && showNativeCore.value
+  && renderState.ready
+  && nativeStartupPhase.value === 'ready'
+);
+const mapSurfacePath = computed(() => {
+  if (!props.enabled) return 'disabled';
+  if (showNativeReadySurface.value) {
+    return basemapSourceType.value === 'platform-real'
+      ? 'native-platform-real'
+      : 'native-platform-default-fallback';
+  }
+
+  if (hasRenderableBasemap.value) {
+    return basemapSourceType.value === 'platform-real'
+      ? 'degraded-platform-real'
+      : 'degraded-platform-default-fallback';
+  }
+
+  return 'preview-only';
+});
+const showDegradedPreview = computed(() =>
+  props.enabled && !showNativeReadySurface.value
 );
 const showLoadingMask = computed(() =>
-  props.enabled && (
+  props.enabled
+  && !showNativeReadySurface.value
+  && mapSurfacePath.value === 'preview-only'
+  && (
     !capabilityResolved.value
     || nativeStartupPhase.value === 'checking'
     || nativeStartupPhase.value === 'waiting-basemap'
     || nativeStartupPhase.value === 'mounting'
-    || (usePlatformNativePlugin.value && !renderState.ready)
   )
 );
 const showFailureMask = computed(() =>
   props.enabled
+  && !showLoadingMask.value
+  && !showNativeReadySurface.value
+  && mapSurfacePath.value === 'preview-only'
   && (nativeStartupPhase.value === 'failed' || nativeStartupPhase.value === 'degraded')
-  && (!usePlatformNativePlugin.value || !renderState.ready)
 );
 const previewMarkers = computed(() => {
   const list = Array.isArray(renderState.markers) ? renderState.markers.slice(0, 80) : [];
@@ -170,10 +199,10 @@ const previewMarkers = computed(() => {
   });
 });
 const mapVisualStateClass = computed(() => {
-  if (nativeStartupPhase.value === 'ready' && renderState.ready) {
+  if (showNativeReadySurface.value) {
     return 'native-map__surface--ready';
   }
-  if (nativeStartupPhase.value === 'degraded') {
+  if (mapSurfacePath.value === 'degraded-platform-real' || mapSurfacePath.value === 'degraded-platform-default-fallback') {
     return 'native-map__surface--degraded';
   }
   if (showFailureMask.value) {
@@ -299,6 +328,24 @@ watch(
     });
   },
   { deep: true }
+);
+
+watch(
+  () => mapSurfacePath.value,
+  (path) => {
+    if (!path || path === 'disabled') return;
+    logMapSurfaceStatus(path, nativeFailureReason.value || nativeStartupPhase.value);
+    emit('map-event', {
+      type: 'map-surface',
+      payload: {
+        path,
+        phase: nativeStartupPhase.value,
+        sourceType: basemapSourceType.value,
+        nativeReady: showNativeReadySurface.value,
+      },
+    });
+  },
+  { immediate: true }
 );
 
 watch(
@@ -602,9 +649,11 @@ function logMapSurfaceStatus(path, reason = '') {
   console.info('[intelligence][map-surface]', {
     path,
     reason: String(reason || ''),
+    surfacePath: mapSurfacePath.value,
     phase: nativeStartupPhase.value,
     nativeEnabled: usePlatformNativePlugin.value,
     ready: renderState.ready,
+    sourceType: basemapSourceType.value,
   });
 }
 
@@ -824,7 +873,7 @@ function clearNativeReadyTimer() {
   align-items: center;
   justify-content: center;
   gap: 16rpx;
-  background: rgba(233, 237, 242, 0.92);
+  background: rgba(233, 237, 242, 0.22);
   pointer-events: none;
 }
 

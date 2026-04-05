@@ -44,6 +44,8 @@ function normalizeCapabilities(raw) {
     provider: raw?.provider || 'custom-native',
     engine: raw?.engine || 'unknown',
     status: raw?.status || 'unknown',
+    reason: raw?.reason || '',
+    details: raw?.details && typeof raw.details === 'object' ? raw.details : {},
   };
 }
 
@@ -154,7 +156,7 @@ export async function detectPlatformNativeMapCapability() {
     : normalizeCapabilities({});
   const runtimeStatus = String(capabilities.status || '').toLowerCase();
   const runtimeReason = String(capabilities.reason || '').trim();
-  const runtimeReady = capabilities.rendersBasemap && runtimeStatus !== 'dependency-missing';
+  const runtimeReady = capabilities.rendersBasemap && runtimeStatus === 'ready';
   const result = {
     enabled: !!plugin && runtimeReady,
     reason: !plugin
@@ -172,6 +174,7 @@ export async function detectPlatformNativeMapCapability() {
     reason: result.reason,
     status: capabilities.status,
     engine: capabilities.engine,
+    details: capabilities.details || {},
   });
   return result;
 }

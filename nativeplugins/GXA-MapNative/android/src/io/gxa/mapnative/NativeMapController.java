@@ -312,8 +312,12 @@ final class NativeMapController {
             + " resolvedTilesUrl=" + resolvedTilesUrl
             + " resolvedTileUrlTemplate=" + resolvedTileUrlTemplate);
 
-        if (styleUrl.isEmpty() || tilesUrl.isEmpty()) {
-            emitter.emit("error", basemapPayload, "styleUrl/tilesUrl missing, sourceType=" + sourceType);
+        if (styleUrl.isEmpty()) {
+            emitBasemapError("style-url-missing", "styleUrl missing, sourceType=" + sourceType, basemapPayload);
+            return;
+        }
+        if (tilesUrl.isEmpty()) {
+            emitBasemapError("tiles-url-missing", "tilesUrl missing, sourceType=" + sourceType, basemapPayload);
             return;
         }
 
@@ -331,17 +335,34 @@ final class NativeMapController {
                     if (map == null) {
                         return;
                     }
-                    map.setStyle(new Style.Builder().fromJson(styleJson), style -> {
-                        ensureGeoJsonLayers(style);
-                        applyActiveLayers();
-                        emitter.emit("basemap", basemapPayload, "native basemap ready");
-                        emitter.emit("ready", buildCameraPayload(), "native map ready");
-                    });
+                    try {
+                        map.setStyle(new Style.Builder().fromJson(styleJson), style -> {
+                            ensureGeoJsonLayers(style);
+                            applyActiveLayers();
+                            emitter.emit("basemap", basemapPayload, "native basemap ready");
+                            emitter.emit("ready", buildCameraPayload(), "native map ready");
+                        });
+                    } catch (Throwable error) {
+                        emitBasemapError("map-style-apply-failed", "apply style failed: " + error.getMessage(), basemapPayload);
+                    }
                 });
             } catch (Throwable error) {
-                emitter.emit("error", basemapPayload, "load style failed: " + error.getMessage());
+                emitBasemapError("style-json-resolve-failed", "load style failed: " + error.getMessage(), basemapPayload);
             }
         }).start();
+    }
+
+    private void emitBasemapError(@NonNull String code, @NonNull String message, @NonNull JSONObject basemapPayload) {
+        JSONObject payload = new JSONObject();
+        try {
+            payload.put("code", code);
+            payload.put("message", message);
+            payload.put("basemap", basemapPayload);
+        } catch (Throwable ignore) {
+            // noop
+        }
+        emitter.emit("error", payload, message);
+        Log.e(TAG, "basemap error code=" + code + " message=" + message);
     }
 
     private void bindMapEvents() {

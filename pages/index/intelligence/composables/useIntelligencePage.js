@@ -482,31 +482,17 @@ export function useIntelligencePage() {
       return;
     }
 
-    const basemapSourceType = String(mapInitialView.value?.basemap?.sourceType || '').trim();
-    const forceRealBasemapFallback = basemapSourceType === 'platform-real'
-      || basemapSourceType === 'platform-default-fallback'
-      || !basemapSourceType;
-
     if (!allowWebViewFallback.value) {
-      if (forceRealBasemapFallback) {
-        console.warn('[intelligence][map-runtime]', {
-          path: 'degraded-webview',
-          reason: message || 'native-failed',
-          fallback: 'forced-by-platform-real-basemap',
-          basemapSourceType,
-        });
-      } else {
-        nativeFailureFallbackApplied.value = true;
-        nativeStartupState.value = 'failed';
-        stopNativeStartupTimer();
-        console.error('[intelligence][map-runtime]', {
-          path: 'degraded-preview',
-          reason: message || 'native-failed',
-          fallback: 'webview-disabled',
-          basemapSourceType,
-        });
-        return;
-      }
+      nativeFailureFallbackApplied.value = true;
+      nativeStartupState.value = 'failed';
+      stopNativeStartupTimer();
+      console.error('[intelligence][map-runtime]', {
+        path: 'degraded-preview',
+        reason: message || 'native-failed',
+        fallback: 'webview-disabled',
+        basemapSourceType: String(mapInitialView.value?.basemap?.sourceType || '').trim(),
+      });
+      return;
     }
 
     nativeFailureFallbackApplied.value = true;
@@ -525,7 +511,7 @@ export function useIntelligencePage() {
       console.warn('[intelligence][map-runtime]', {
         path: 'degraded-webview',
         reason: message,
-        basemapSourceType,
+        basemapSourceType: String(mapInitialView.value?.basemap?.sourceType || '').trim(),
       });
     }
   }
@@ -565,6 +551,16 @@ export function useIntelligencePage() {
       if (phase === 'failed' && shouldFallbackOnNativeReason(reason)) {
         fallbackToWebViewByNativeFailure(reason);
       }
+      return;
+    }
+
+    if (event.type === 'map-surface') {
+      console.info('[map-surface]', {
+        path: String(event.payload?.path || ''),
+        phase: String(event.payload?.phase || ''),
+        sourceType: String(event.payload?.sourceType || ''),
+        nativeReady: !!event.payload?.nativeReady,
+      });
       return;
     }
 
