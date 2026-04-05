@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fuyao Degraded Basemap</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #e8edf3;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    #map-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #e8edf3;
+    }
+
+    #loading {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #60768d;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    #dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #2f7cff;
+      box-shadow: 0 0 0 8px rgba(47, 124, 255, 0.18);
+    }
+
+    #error {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: none;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #54697f;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <iframe id="map-frame" title="degraded-basemap"></iframe>
+  <div id="loading"><span id="dot"></span><span>降级底图加载中</span></div>
+  <div id="error"></div>
+
+  <script>
+    (function () {
+      var READY_TIMEOUT_MS = 12000;
+      var params = new URLSearchParams(window.location.search || '');
+      var frame = document.getElementById('map-frame');
+      var loading = document.getElementById('loading');
+      var errorBox = document.getElementById('error');
+      var readyTimer = null;
+      var settled = false;
+
+      function parseCenter(raw) {
+        var text = String(raw || '');
+        if (!text) return '113.4445,22.4915';
+        var parts = text.split(',');
+        if (parts.length < 2) return '113.4445,22.4915';
+        var lng = Number(parts[0]);
+        var lat = Number(parts[1]);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return '113.4445,22.4915';
+        return lng + ',' + lat;
+      }
+
+      function emit(type, payload) {
+        var message = {
+          source: 'degraded-basemap',
+          type: type,
+          payload: payload || {}
+        };
+        try {
+          if (window.uni && typeof window.uni.postMessage === 'function') {
+            window.uni.postMessage({ data: message });
+          }
+        } catch (e) {}
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(message, '*');
+          }
+        } catch (e) {}
+      }
+
+      function doneReady(extra) {
+        if (settled) return;
+        settled = true;
+        if (readyTimer) {
+          clearTimeout(readyTimer);
+          readyTimer = null;
+        }
+        loading.style.display = 'none';
+        emit('ready', extra || {});
+      }
+
+      function doneError(message, extra) {
+        if (settled) return;
+        settled = true;
+        if (readyTimer) {
+          clearTimeout(readyTimer);
+          readyTimer = null;
+        }
+        loading.style.display = 'none';
+        errorBox.style.display = 'block';
+        errorBox.textContent = message || '降级底图加载失败';
+        var payload = extra || {};
+        payload.message = message || payload.message || 'degraded-load-failed';
+        emit('error', payload);
+      }
+
+      function buildEmbedSrc() {
+        var embedBase = String(params.get('embedUrl') || '').trim();
+        if (!embedBase) {
+          return '';
+        }
+        var query = new URLSearchParams();
+        query.set('mode', 'view');
+        query.set('readonly', params.get('readonly') || '1');
+        query.set('theme', params.get('theme') || 'light');
+        query.set('center', parseCenter(params.get('center')));
+        query.set('zoom', String(params.get('zoom') || '12'));
+        var layers = String(params.get('layers') || '').trim();
+        if (layers) query.set('activeLayers', layers);
+        var sourceType = String(params.get('sourceType') || '').trim();
+        if (sourceType) query.set('sourceType', sourceType);
+        var styleUrl = String(params.get('styleUrl') || '').trim();
+        var tilesUrl = String(params.get('tilesUrl') || '').trim();
+        var nativeTileUrlTemplate = String(params.get('nativeTileUrlTemplate') || '').trim();
+        if (styleUrl) query.set('styleUrl', styleUrl);
+        if (tilesUrl) query.set('tilesUrl', tilesUrl);
+        if (nativeTileUrlTemplate) query.set('nativeTileUrlTemplate', nativeTileUrlTemplate);
+        return embedBase + (embedBase.indexOf('?') >= 0 ? '&' : '?') + query.toString();
+      }
+
+      var src = buildEmbedSrc();
+      emit('status', {
+        stage: 'degraded-src-built',
+        sourceType: String(params.get('sourceType') || ''),
+        styleUrl: String(params.get('styleUrl') || ''),
+        tilesUrl: String(params.get('tilesUrl') || ''),
+        nativeTileUrlTemplate: String(params.get('nativeTileUrlTemplate') || ''),
+        src: src
+      });
+      if (!src) {
+        doneError('degraded embedUrl missing', {
+          code: 'degraded-src-missing'
+        });
+        return;
+      }
+
+      readyTimer = setTimeout(function () {
+        doneError('degraded ready timeout', {
+          code: 'degraded-ready-timeout',
+          src: src
+        });
+      }, READY_TIMEOUT_MS);
+
+      frame.addEventListener('load', function () {
+        doneReady({
+          stage: 'iframe-load',
+          src: src
+        });
+      });
+      frame.addEventListener('error', function () {
+        doneError('degraded iframe load failed', {
+          code: 'degraded-iframe-error',
+          src: src
+        });
+      });
+
+      window.addEventListener('message', function (event) {
+        var data = event && event.data;
+        if (!data || typeof data !== 'object') return;
+        var source = String(data.source || '').toLowerCase();
+        var type = String(data.type || '').toLowerCase();
+        if (source === 'fuyaomap-embedded' && type === 'map-ready') {
+          doneReady({
+            stage: 'embedded-map-ready',
+            src: src
+          });
+          return;
+        }
+        if (source === 'fuyaomap-embedded' && (type === 'map-error' || type === 'error')) {
+          doneError(String(data.message || data.payload?.message || 'embedded-map-error'), {
+            code: 'embedded-map-error',
+            src: src
+          });
+        }
+      });
+
+      frame.src = src;
+    })();
+  </script>
+</body>
+</html>

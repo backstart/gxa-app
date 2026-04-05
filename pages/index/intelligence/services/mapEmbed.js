@@ -163,5 +163,28 @@ export function buildDegradedBasemapSrc(options = {}) {
     mode: 'view',
     keyword: '',
   };
-  return buildWebViewMapSrc(view);
+  const basemap = view.basemap && typeof view.basemap === 'object' ? view.basemap : {};
+  const embedBaseUrl = String(getConfiguredMapEmbedUrl() || '').replace(/\/+$/, '');
+  const query = buildQuery({
+    embedUrl: embedBaseUrl,
+    center: formatCenter(view.center),
+    zoom: view.zoom,
+    layers: Array.isArray(view.layers) ? view.layers.join(',') : '',
+    sourceType: basemap.sourceType || '',
+    styleUrl: basemap.styleUrl || '',
+    tilesUrl: basemap.tilesUrl || '',
+    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
+    theme: view.theme || 'light',
+    readonly: '1',
+  });
+  const src = `/static/map/fuyaomap-degraded.html${query ? `?${query}` : ''}`;
+  console.info('[map-surface]', {
+    path: 'degraded-src-built',
+    sourceType: basemap.sourceType || '',
+    styleUrl: basemap.styleUrl || '',
+    tilesUrl: basemap.tilesUrl || '',
+    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
+    src,
+  });
+  return src;
 }

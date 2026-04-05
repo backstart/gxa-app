@@ -106,6 +106,15 @@ function ensureSurface() {
   });
   activeSrc.value = src;
   phase.value = 'loading';
+  console.info('[map-surface]', {
+    path: 'degraded-src-built',
+    phase: phase.value,
+    sourceType,
+    styleUrl,
+    tilesUrl,
+    nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || '').trim(),
+    src,
+  });
   emitStatus();
   startReadyTimer();
 }
@@ -115,15 +124,46 @@ function handleMessage(event) {
   for (let i = 0; i < list.length; i += 1) {
     const message = normalizeMessage(list[i]?.data ?? list[i]);
     if (!message) continue;
+    if (String(message?.source || '') !== 'degraded-basemap') continue;
+    if (String(message?.type || '').toLowerCase() === 'status') {
+      console.info('[map-surface]', {
+        path: 'degraded-status',
+        phase: phase.value,
+        sourceType: String(props.basemap?.sourceType || ''),
+        styleUrl: String(props.basemap?.styleUrl || ''),
+        tilesUrl: String(props.basemap?.tilesUrl || ''),
+        nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
+        payload: message?.payload || {},
+      });
+      continue;
+    }
     if (isReadyMessage(message)) {
       clearReadyTimer();
       phase.value = 'ready';
+      console.info('[map-surface]', {
+        path: 'degraded-ready',
+        phase: phase.value,
+        sourceType: String(props.basemap?.sourceType || ''),
+        styleUrl: String(props.basemap?.styleUrl || ''),
+        tilesUrl: String(props.basemap?.tilesUrl || ''),
+        nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
+        payload: message?.payload || {},
+      });
       emitStatus();
       return;
     }
     if (isErrorMessage(message)) {
       clearReadyTimer();
       phase.value = 'failed';
+      console.error('[map-surface]', {
+        path: 'degraded-failed',
+        phase: phase.value,
+        sourceType: String(props.basemap?.sourceType || ''),
+        styleUrl: String(props.basemap?.styleUrl || ''),
+        tilesUrl: String(props.basemap?.tilesUrl || ''),
+        nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
+        payload: message?.payload || {},
+      });
       emitStatus(message?.message || message?.type || 'degraded-map-error');
       return;
     }
@@ -146,17 +186,13 @@ function normalizeMessage(message) {
 function isReadyMessage(message) {
   const source = String(message?.source || '').toLowerCase();
   const type = String(message?.type || '').toLowerCase();
-  return (source === 'fuyaomap-embedded' && type === 'map-ready')
-    || (source === 'gxa-map-bridge' && type === 'ready')
-    || type === 'ready';
+  return source === 'degraded-basemap' && type === 'ready';
 }
 
 function isErrorMessage(message) {
   const source = String(message?.source || '').toLowerCase();
   const type = String(message?.type || '').toLowerCase();
-  return (source === 'fuyaomap-embedded' && (type === 'map-error' || type === 'error'))
-    || (source === 'gxa-map-bridge' && type === 'error')
-    || type === 'error';
+  return source === 'degraded-basemap' && type === 'error';
 }
 
 function startReadyTimer() {
@@ -164,6 +200,15 @@ function startReadyTimer() {
   readyTimer = setTimeout(() => {
     if (phase.value !== 'loading') return;
     phase.value = 'failed';
+    console.error('[map-surface]', {
+      path: 'degraded-failed',
+      phase: phase.value,
+      sourceType: String(props.basemap?.sourceType || ''),
+      styleUrl: String(props.basemap?.styleUrl || ''),
+      tilesUrl: String(props.basemap?.tilesUrl || ''),
+      nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
+      reason: 'degraded-ready-timeout',
+    });
     emitStatus('degraded-ready-timeout');
   }, READY_TIMEOUT_MS);
 }

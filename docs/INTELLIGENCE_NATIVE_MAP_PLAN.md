@@ -75,6 +75,7 @@
 ## 2026-04-05 补充：degraded 可见层与 preview-only 解耦
 
 - 新增 `DegradedBasemapSurface`，当 `sourceType` 为 `platform-real` 或 `platform-default-fallback` 且 native 未 ready 时，优先显示可渲染的 degraded 底图层。
+- degraded 底图不再复用 `fuyaomap-bridge.html`，改为独立最小页 `static/map/fuyaomap-degraded.html`，只负责底图显示与 ready/error 回传。
 - `preview-only` 只在两种场景出现：
   - `styleUrl/tilesUrl` 不可用；
   - degraded 底图层初始化失败。
