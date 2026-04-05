@@ -3,9 +3,9 @@
 ## 当前集成方式
 
 - `nativeplugins/GXA-MapNative/package.json`
-  - `_dp_nativeplugin.android.integrateType = "source"`
-- 产物模式：源码集成（由自定义基座统一编译）
-- 关键变化：MapLibre 依赖由插件 module 的 `implementation` 进入宿主构建，避免 AAR 预编译模式的运行时缺类。
+  - `_dp_nativeplugin.android.integrateType = "aar"`
+- 产物模式：AAR 集成（`android/GXA-MapNative-release.aar`）
+- 关键变化：MapLibre 依赖（maplibre sdk/gestures/geojson/turf + kotlin/okhttp/okio）已并入插件 AAR，避免运行时缺类。
 
 ## 为什么这样改
 
@@ -13,7 +13,7 @@
 
 - `native dependency missing: org.maplibre.android.MapLibre`
 
-改为 `source` 后，MapLibre 依赖由宿主 Gradle 一起解析和打包，运行时类可见性更稳定。
+改为 fat-aar 后，MapLibre 运行时随插件一起打包，运行时类可见性更稳定。
 
 ## Android 构建配置
 
@@ -30,7 +30,7 @@
 
 ## 重新制作自定义基座
 
-1. 在 HBuilderX 中确认插件目录为 `nativeplugins/GXA-MapNative` 且 `integrateType=source`。
+1. 在 HBuilderX 中确认插件目录为 `nativeplugins/GXA-MapNative` 且 `integrateType=aar`。
 2. 重新制作自定义调试基座（Android）。
 3. 卸载旧基座并安装新基座后再运行情报页。
 4. 建议同步提升 `manifest.json` 版本号，确保手机端不会“版本相同跳过更新”。

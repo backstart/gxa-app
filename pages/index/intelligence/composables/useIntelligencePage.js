@@ -723,7 +723,6 @@ export function useIntelligencePage() {
     clearViewportTimer();
     clearAllAsyncGuards();
     ensurePageWebviewBackground(true);
-    startNativeStartupTimer(sessionId);
 
     Promise.allSettled([
       loadMapBootstrap({ sessionId, actionKey: activeActionKey.value }),

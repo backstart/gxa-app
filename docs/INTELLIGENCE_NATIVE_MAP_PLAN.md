@@ -2,7 +2,7 @@
 
 ## 2026-04-04 关键变更
 
-- `GXA-MapNative` 改为 `integrateType = source`，由自定义基座统一编译 MapLibre 依赖，避免 AAR 运行时缺类。
+- `GXA-MapNative` 保持 `integrateType = aar`，并将 MapLibre 运行时（含 kotlin/okhttp/gestures）并入 `GXA-MapNative-release.aar`，避免 `maplibre-class-missing`。
 - 底图来源拆分为三类并强制打日志：
   - `platform-real`
   - `platform-default-fallback`
@@ -42,7 +42,7 @@
   - `tilesUrl: /tiles/city.pmtiles`
   - `nativeTileUrlTemplate: /api/embed/native/tiles/{z}/{x}/{y}.pbf?pmtilesUrl={pmtilesUrl}`
 - Android 插件 manifest 明确 `usesCleartextTraffic=true`，避免 HTTP 地图资源在原生层被系统策略阻断。
-- plugin 接入改为 source 模式后，需重新制作并安装新自定义基座（建议同步提升 manifest 版本号）。
+- plugin 接入保持 aar 模式，更新 `GXA-MapNative-release.aar` 后需重新制作并安装新自定义基座（建议同步提升 manifest 版本号）。
 
 ### 3) tabbar 切换后的状态隔离
 

@@ -110,6 +110,7 @@ const nativeStartupPhase = ref('idle');
 const nativeFailureReason = ref('');
 const debugPreviewEnabled = ref(false);
 const lastBasemapSignature = ref('');
+const nativeMountRequested = ref(false);
 let removeNativeMapListener = null;
 let nativeReadyTimer = null;
 
@@ -127,6 +128,7 @@ const showLoadingMask = computed(() =>
   props.enabled && (
     !capabilityResolved.value
     || nativeStartupPhase.value === 'checking'
+    || nativeStartupPhase.value === 'waiting-basemap'
     || nativeStartupPhase.value === 'mounting'
     || (usePlatformNativePlugin.value && !renderState.ready)
   )
@@ -255,6 +257,7 @@ watch(
       nativeStartupPhase.value = 'idle';
       renderState.ready = false;
       nativeFailureReason.value = '';
+      nativeMountRequested.value = false;
       destroyPlatformNativeMap(mapId);
       return;
     }
@@ -264,8 +267,7 @@ watch(
     }
 
     if (nextEnabled && usePlatformNativePlugin.value) {
-      nativeStartupPhase.value = 'mounting';
-      mountPluginSurface();
+      tryMountPluginSurface('enabled-watch');
     }
   }
 );
@@ -295,6 +297,19 @@ watch(
         : null,
       viewportInset: { ...renderState.viewportInset },
     });
+  },
+  { deep: true }
+);
+
+watch(
+  () => ({
+    sourceType: renderState.basemap?.sourceType || '',
+    styleUrl: renderState.basemap?.styleUrl || '',
+    tilesUrl: renderState.basemap?.tilesUrl || '',
+    nativeTileUrlTemplate: renderState.basemap?.nativeTileUrlTemplate || '',
+  }),
+  () => {
+    tryMountPluginSurface('basemap-sync');
   },
   { deep: true }
 );
@@ -336,15 +351,14 @@ onMounted(async () => {
   nativeFailureReason.value = '';
 
   await resolvePlatformNativeMode();
-  if (props.enabled && usePlatformNativePlugin.value) {
-    await mountPluginSurface();
-  }
+  tryMountPluginSurface('mounted');
 
   emit('ready', controller);
 });
 
 onUnmounted(() => {
   clearNativeReadyTimer();
+  nativeMountRequested.value = false;
   if (typeof removeNativeMapListener === 'function') {
     removeNativeMapListener();
     removeNativeMapListener = null;
@@ -364,14 +378,13 @@ async function resolvePlatformNativeMode() {
     usePlatformNativePlugin.value = true;
     renderState.mode = capability.enabled ? 'native-platform-plugin' : 'native-platform-plugin-pending';
     renderState.ready = false;
-    nativeStartupPhase.value = 'mounting';
-    scheduleNativeReadyTimeout();
-    logMapSurfaceStatus('native-mounting', capability.reason);
+    nativeStartupPhase.value = 'waiting-basemap';
+    logMapSurfaceStatus('native-waiting-basemap', capability.reason || 'capability-ready');
     emit('map-event', {
       type: 'native-status',
       payload: {
-        phase: 'mounting',
-        reason: capability.reason,
+        phase: 'waiting-basemap',
+        reason: capability.reason || 'capability-ready',
       },
       raw: capability,
     });
@@ -399,12 +412,12 @@ async function mountPluginSurface() {
   });
 
   if (!mounted) {
+    nativeMountRequested.value = false;
     enterDegradedMode('native-mount-failed');
-    return;
+    return false;
   }
 
   nativeStartupPhase.value = 'mounting';
-  scheduleNativeReadyTimeout();
   logMapSurfaceStatus('native-mounting', 'mounting');
   emit('map-event', {
     type: 'native-status',
@@ -413,6 +426,7 @@ async function mountPluginSurface() {
       reason: 'mounting',
     },
   });
+  return true;
 }
 
 function handlePlatformNativeEvent(event) {
@@ -551,6 +565,7 @@ function emitDegradedStatus(reason, raw = {}) {
 
 function enterDegradedMode(reason, raw = {}) {
   clearNativeReadyTimer();
+  nativeMountRequested.value = false;
   usePlatformNativePlugin.value = false;
   renderState.mode = 'native-degraded';
   renderState.ready = false;
@@ -599,6 +614,13 @@ function logBasemapStatus(stage, basemap) {
   const styleUrl = String(basemap.styleUrl || '');
   const tilesUrl = String(basemap.tilesUrl || '');
   const nativeTileUrlTemplate = String(basemap.nativeTileUrlTemplate || '');
+  const isEmptyLocalSeed = stage === 'container-sync'
+    && !sourceType
+    && !styleUrl
+    && !tilesUrl
+    && !nativeTileUrlTemplate
+    && String(basemap.source || '').trim() === 'local-default';
+  if (isEmptyLocalSeed) return;
   const signature = `${stage}|${sourceType}|${styleUrl}|${tilesUrl}|${nativeTileUrlTemplate}`;
   if (lastBasemapSignature.value === signature) return;
   lastBasemapSignature.value = signature;
@@ -624,6 +646,34 @@ function scheduleNativeReadyTimeout() {
     if (renderState.ready) return;
     enterDegradedMode('native-ready-timeout');
   }, 15000);
+}
+
+function hasUsableBasemap() {
+  const styleUrl = String(renderState.basemap?.styleUrl || '').trim();
+  const tilesUrl = String(renderState.basemap?.tilesUrl || '').trim();
+  return !!styleUrl && !!tilesUrl;
+}
+
+function tryMountPluginSurface(reason = '') {
+  if (!props.enabled) return;
+  if (!usePlatformNativePlugin.value) return;
+  if (renderState.ready || nativeMountRequested.value) return;
+  if (!hasUsableBasemap()) {
+    nativeStartupPhase.value = 'waiting-basemap';
+    logMapSurfaceStatus('native-waiting-basemap', reason || 'basemap-missing');
+    emit('map-event', {
+      type: 'native-status',
+      payload: {
+        phase: 'waiting-basemap',
+        reason: reason || 'basemap-missing',
+      },
+    });
+    return;
+  }
+  nativeMountRequested.value = true;
+  nativeStartupPhase.value = 'mounting';
+  scheduleNativeReadyTimeout();
+  void mountPluginSurface();
 }
 
 function clearNativeReadyTimer() {

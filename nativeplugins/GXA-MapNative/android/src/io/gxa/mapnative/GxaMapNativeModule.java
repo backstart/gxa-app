@@ -21,6 +21,9 @@ public class GxaMapNativeModule extends UniModule {
     private static final String ENGINE_NAME = "maplibre-android-native";
     private static final String MAPLIBRE_CLASS = "org.maplibre.android.MapLibre";
     private static final String MAPVIEW_CLASS = "org.maplibre.android.maps.MapView";
+    private static final String GESTURES_CLASS = "org.maplibre.android.gestures.AndroidGesturesManager";
+    private static final String KOTLIN_CLASS = "kotlin.Unit";
+    private static final String OKHTTP_CLASS = "okhttp3.OkHttpClient";
     private static final NativeMapEventEmitter emitter = new NativeMapEventEmitter();
 
     @Nullable
@@ -251,7 +254,14 @@ public class GxaMapNativeModule extends UniModule {
         RuntimeCheck check = new RuntimeCheck();
         check.mapLibrePresent = checkClassPresent(MAPLIBRE_CLASS, check, "mapLibreMissing");
         check.mapViewPresent = checkClassPresent(MAPVIEW_CLASS, check, "mapViewMissing");
-        check.ready = check.mapLibrePresent && check.mapViewPresent;
+        check.gesturesPresent = checkClassPresent(GESTURES_CLASS, check, "gesturesMissing");
+        check.kotlinPresent = checkClassPresent(KOTLIN_CLASS, check, "kotlinMissing");
+        check.okHttpPresent = checkClassPresent(OKHTTP_CLASS, check, "okHttpMissing");
+        check.ready = check.mapLibrePresent
+            && check.mapViewPresent
+            && check.gesturesPresent
+            && check.kotlinPresent
+            && check.okHttpPresent;
 
         if (check.ready) {
             check.status = "ready";
@@ -259,16 +269,28 @@ public class GxaMapNativeModule extends UniModule {
         } else if (!check.mapLibrePresent) {
             check.status = "dependency-missing";
             check.reason = "maplibre-class-missing";
-        } else {
+        } else if (!check.mapViewPresent) {
             check.status = "dependency-missing";
             check.reason = "mapview-class-missing";
+        } else if (!check.gesturesPresent) {
+            check.status = "dependency-missing";
+            check.reason = "gestures-class-missing";
+        } else if (!check.kotlinPresent) {
+            check.status = "dependency-missing";
+            check.reason = "kotlin-runtime-missing";
+        } else if (!check.okHttpPresent) {
+            check.status = "dependency-missing";
+            check.reason = "okhttp-runtime-missing";
+        } else {
+            check.status = "dependency-missing";
+            check.reason = "runtime-class-missing";
         }
         return check;
     }
 
     private static boolean checkClassPresent(String className, RuntimeCheck check, String key) {
         try {
-            Class.forName(className);
+            Class.forName(className, false, GxaMapNativeModule.class.getClassLoader());
             return true;
         } catch (Throwable error) {
             check.errors.put(key, error.getClass().getName() + ": " + String.valueOf(error.getMessage()));
@@ -280,6 +302,9 @@ public class GxaMapNativeModule extends UniModule {
         boolean ready;
         boolean mapLibrePresent;
         boolean mapViewPresent;
+        boolean gesturesPresent;
+        boolean kotlinPresent;
+        boolean okHttpPresent;
         String status = "unknown";
         String reason = "unknown";
         Map<String, Object> errors = new HashMap<>();
@@ -288,8 +313,14 @@ public class GxaMapNativeModule extends UniModule {
             Map<String, Object> details = new HashMap<>();
             details.put("mapLibreClass", MAPLIBRE_CLASS);
             details.put("mapViewClass", MAPVIEW_CLASS);
+            details.put("gesturesClass", GESTURES_CLASS);
+            details.put("kotlinClass", KOTLIN_CLASS);
+            details.put("okHttpClass", OKHTTP_CLASS);
             details.put("mapLibrePresent", mapLibrePresent);
             details.put("mapViewPresent", mapViewPresent);
+            details.put("gesturesPresent", gesturesPresent);
+            details.put("kotlinPresent", kotlinPresent);
+            details.put("okHttpPresent", okHttpPresent);
             details.put("errors", new HashMap<>(errors));
             return details;
         }

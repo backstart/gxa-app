@@ -140,13 +140,38 @@ function normalizeCenter(center) {
   return [lng, lat];
 }
 
+function hasHttpScheme(value) {
+  return /^https?:\/\//i.test(String(value || '').trim());
+}
+
+function hasAnyScheme(value) {
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(String(value || '').trim());
+}
+
 function resolveAbsoluteUrl(url, baseUrl) {
   const text = String(url || '').trim();
   if (!text) return '';
-  if (/^https?:\/\//i.test(text)) return text;
+  if (hasHttpScheme(text)) return text;
+  if (hasAnyScheme(text)) return '';
+  if (text.startsWith('//')) {
+    const base = String(baseUrl || '').trim();
+    const protocolMatch = base.match(/^(https?):\/\//i);
+    const protocol = protocolMatch ? protocolMatch[1] : 'http';
+    return `${protocol}:${text}`;
+  }
   const base = String(baseUrl || '').trim().replace(/\/+$/, '');
   if (!base) return text;
   return `${base}/${text.replace(/^\/+/, '')}`;
+}
+
+function pickPreferredBasemapUrl(baseUrl, candidates = []) {
+  for (let i = 0; i < candidates.length; i += 1) {
+    const resolved = resolveAbsoluteUrl(candidates[i], baseUrl);
+    if (hasHttpScheme(resolved)) {
+      return resolved;
+    }
+  }
+  return '';
 }
 
 function normalizeBasemap(result, baseUrl, fallback) {
@@ -154,14 +179,24 @@ function normalizeBasemap(result, baseUrl, fallback) {
   const fallbackTilesUrl = resolveAbsoluteUrl(DEFAULT_BASEMAP_TILES_PATH, baseUrl);
   const fallbackNativeTileTemplate = resolveAbsoluteUrl(DEFAULT_NATIVE_TILE_TEMPLATE, baseUrl);
 
-  const rawStyleUrl = result?.styleUrlAbsolute || result?.StyleUrlAbsolute || result?.styleUrl || result?.StyleUrl || '';
-  const rawTilesUrl = result?.tilesUrlAbsolute || result?.TilesUrlAbsolute || result?.tilesUrl || result?.TilesUrl || '';
-  const rawNativeTileTemplate = result?.nativeTileUrlTemplateAbsolute || result?.NativeTileUrlTemplateAbsolute
-    || result?.nativeTileUrlTemplate || result?.NativeTileUrlTemplate || '';
-
-  const resolvedRealStyleUrl = resolveAbsoluteUrl(rawStyleUrl, baseUrl);
-  const resolvedRealTilesUrl = resolveAbsoluteUrl(rawTilesUrl, baseUrl);
-  const resolvedRealNativeTemplate = resolveAbsoluteUrl(rawNativeTileTemplate, baseUrl);
+  const resolvedRealStyleUrl = pickPreferredBasemapUrl(baseUrl, [
+    result?.styleUrl,
+    result?.StyleUrl,
+    result?.styleUrlAbsolute,
+    result?.StyleUrlAbsolute,
+  ]);
+  const resolvedRealTilesUrl = pickPreferredBasemapUrl(baseUrl, [
+    result?.tilesUrl,
+    result?.TilesUrl,
+    result?.tilesUrlAbsolute,
+    result?.TilesUrlAbsolute,
+  ]);
+  const resolvedRealNativeTemplate = pickPreferredBasemapUrl(baseUrl, [
+    result?.nativeTileUrlTemplate,
+    result?.NativeTileUrlTemplate,
+    result?.nativeTileUrlTemplateAbsolute,
+    result?.NativeTileUrlTemplateAbsolute,
+  ]);
 
   const explicitSourceType = normalizeBasemapSourceType(result?.basemapSourceType || result?.BasemapSourceType);
   const inferredSourceType = inferBasemapSourceType({
