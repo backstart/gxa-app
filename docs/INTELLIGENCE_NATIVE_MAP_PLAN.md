@@ -17,6 +17,10 @@
 ## 当前真实行为
 
 - 情报页地图默认走 `NativeMapContainer` + `GXA-MapNative`。
+- App 端浮层改为 `subNVue` 原生覆盖层，不再依赖普通 Vue DOM 叠在地图上：
+  - 地图层：`MapContainer`（native/degraded）
+  - 覆盖层：`pages/index/intelligence/subnvue/overlay.nvue`
+  - 通信桥：`pages/index/intelligence/services/intelligenceOverlayBridge.js`
 - 首屏优先尝试 native，`checking/mounting` 不再独占灰底，容器会保持可见降级底图层。
 - native 失败时不再灰底空白，切入 degraded 地图表面（优先 `degraded-platform-real`，其次 `degraded-platform-default-fallback`）。
 - WebView 仅在显式开启 debug fallback 时启用，不再作为常规自动兜底。
@@ -71,6 +75,20 @@
 - `[map-surface] path=preview-only`
 
 说明：底图“来源类型”与“是否已有可见地图表面”已拆分。即便 `sourceType=platform-real`，只要 native 尚未出图，也会先进入 degraded 可见路径，避免灰底/空白。
+
+## 2026-04-05 补充：App 端 overlay 改为 subNVue
+
+- 根因：App 端 `web-view/native` 地图层是原生高层视图，普通 Vue DOM 无法稳定覆盖，继续调 `z-index/CSS` 无法根治“地图和面板轮流出现”。
+- 方案：
+  - App 端不再直接渲染 DOM 版 `top-overlay + BottomSheet`。
+  - 改为 `subNVue` 承载顶部 pill 与 BottomSheet 全量内容。
+  - H5/非 app-plus 仍保留 DOM 版 overlay 作为开发兜底。
+- 通信模型：
+  - 主页面 -> subNVue：`init/sync-state/sync-sheet-state`。
+  - subNVue -> 主页面：`overlay-mounted/search/select-action/select-card/navigate-card/change-sheet-state/keyword-change`。
+- 稳定性收口：
+  - 主页面 overlay 初始化支持重试（避免首帧拿不到 subNVue）。
+  - overlay 事件按 `event.id` 去重，避免 `uni.$emit + evalJS` 双通道重复触发业务动作。
 
 ## 2026-04-05 补充：degraded 可见层与 preview-only 解耦
 

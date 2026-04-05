@@ -1,0 +1,775 @@
+<template>
+  <view class="overlay-root">
+    <view class="top-overlay" :style="{ paddingTop: safeTopPadding }">
+      <view class="title-pill">
+        <text class="title-text">情报中心</text>
+      </view>
+      <view class="status-pill">
+        <text class="status-text">{{ currentActionLabel }} · {{ summary.total }} 条</text>
+      </view>
+    </view>
+
+    <view class="bottom-sheet" :style="sheetStyle">
+      <view
+        class="handle-row"
+        @tap="toggleSheetState"
+        @touchstart="handleTouchStart"
+        @touchmove.stop.prevent="handleTouchMove"
+        @touchend="handleTouchEnd"
+      >
+        <view class="handle-bar"></view>
+      </view>
+
+      <view class="state-row">
+        <text
+          v-for="item in stateOptions"
+          :key="item"
+          :class="['state-pill', sheetState === item ? 'active' : '']"
+          @tap="selectSheetState(item)"
+        >
+          {{ stateTextMap[item] }}
+        </text>
+      </view>
+
+      <view class="panel-content">
+        <view class="search-bar">
+          <view class="search-shell">
+            <text class="search-icon">搜</text>
+            <input
+              :value="keyword"
+              class="search-input"
+              :placeholder="searchPlaceholder"
+              placeholder-class="search-placeholder"
+              confirm-type="search"
+              @input="handleKeywordInput"
+              @confirm="emitSearch"
+            />
+          </view>
+          <view class="search-btn" @tap="emitSearch">搜索</view>
+        </view>
+
+        <view class="quick-actions">
+          <view
+            v-for="action in actions"
+            :key="action.key"
+            :class="['action-card', activeActionKey === action.key ? 'active' : '']"
+            @tap="emitSelectAction(action.key)"
+          >
+            <view class="action-icon" :style="{ backgroundColor: action.iconBg || '#f2f6fa' }">
+              <text class="action-emoji">{{ action.icon || '' }}</text>
+            </view>
+            <text class="action-label">{{ action.label }}</text>
+            <text v-if="Number(action.count || 0) > 0" class="action-count">{{ action.count }}</text>
+          </view>
+        </view>
+
+        <view class="summary-card">
+          <view class="summary-head">
+            <text class="summary-title">{{ currentActionLabel }}</text>
+            <text class="summary-sub">{{ summaryText }}</text>
+          </view>
+          <view class="summary-metrics">
+            <view class="metric">
+              <text class="metric-label">总量</text>
+              <text class="metric-value">{{ summary.total }}</text>
+            </view>
+            <view class="metric">
+              <text class="metric-label">高风险</text>
+              <text class="metric-value accent">{{ summary.highRisk }}</text>
+            </view>
+            <view class="metric">
+              <text class="metric-label">已定位</text>
+              <text class="metric-value">{{ summary.mapped }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="list-section">
+          <view class="section-head">
+            <text class="section-title">情报卡片</text>
+            <text class="section-sub">{{ sectionSubText }}</text>
+          </view>
+
+          <scroll-view class="card-scroll" :style="{ height: cardScrollHeight }" scroll-y :show-scrollbar="false">
+            <view v-if="loading" class="placeholder-list">
+              <view v-for="index in 3" :key="'p-' + index" class="placeholder-card"></view>
+            </view>
+            <view v-else-if="!items.length" class="empty-card">
+              <text class="empty-title">暂无结果</text>
+              <text class="empty-sub">当前筛选条件下没有可展示的情报对象</text>
+            </view>
+            <view v-else class="card-list">
+              <view
+                v-for="item in items"
+                :key="item.id"
+                :class="['intelligence-card', selectedItemId === item.id ? 'active' : '']"
+                @tap="emitSelectCard(item)"
+              >
+                <view class="card-head">
+                  <view class="card-title-wrap">
+                    <text class="card-title">{{ item.title }}</text>
+                    <text :class="['risk-pill', riskClass(item.riskLevel)]">{{ item.riskLevel || '中' }}</text>
+                  </view>
+                  <text class="card-time">{{ item.updatedAtText }}</text>
+                </view>
+                <text class="card-subtitle">{{ item.subtitle }}</text>
+                <view class="card-meta">
+                  <text class="meta-item">{{ item.metaLabel }}</text>
+                  <text class="meta-item">{{ item.address || '暂无地址' }}</text>
+                </view>
+                <view class="card-actions">
+                  <text class="action-text">{{ item.statusText }}</text>
+                  <text class="action-link" @tap.stop="emitNavigateCard(item)">
+                    {{ item.url ? '查看详情' : '定位查看' }}
+                  </text>
+                </view>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import {
+  INTELLIGENCE_OVERLAY_EVENTS,
+  emitOverlayUiEvent,
+} from '../services/intelligenceOverlayBridge.js';
+
+const STATE_OPTIONS = ['collapsed', 'half', 'full'];
+const STATE_TEXT_MAP = {
+  collapsed: '折叠',
+  half: '半屏',
+  full: '全屏',
+};
+
+function normalizeOverlayMessage(raw) {
+  if (!raw) return null;
+  if (Array.isArray(raw)) {
+    if (!raw.length) return null;
+    return normalizeOverlayMessage(raw[0]);
+  }
+  if (raw.data && typeof raw.data === 'object') {
+    return normalizeOverlayMessage(raw.data);
+  }
+  if (raw.detail && typeof raw.detail === 'object') {
+    return normalizeOverlayMessage(raw.detail.data ?? raw.detail);
+  }
+  if (typeof raw !== 'object') return null;
+  if (!raw.type && raw.payload && typeof raw.payload === 'object' && raw.payload.type) {
+    return normalizeOverlayMessage(raw.payload);
+  }
+  return raw;
+}
+
+export default {
+  data() {
+    return {
+      stateOptions: STATE_OPTIONS,
+      stateTextMap: STATE_TEXT_MAP,
+      safeTop: 0,
+      safeBottom: 0,
+      keyword: '',
+      searchPlaceholder: '搜索警情、人员、场所',
+      actions: [],
+      activeActionKey: 'alerts',
+      currentActionLabel: '警情',
+      summary: { total: 0, highRisk: 0, mapped: 0 },
+      summaryText: '',
+      items: [],
+      loading: false,
+      selectedItemId: '',
+      sheetState: 'half',
+      windowHeight: 780,
+      dragHeight: null,
+      touchStartY: 0,
+      touchStartHeight: 0,
+      plusMessageAttached: false,
+    };
+  },
+  computed: {
+    safeTopPadding() {
+      return `${Number(this.safeTop || 0) + 8}px`;
+    },
+    heights() {
+      const h = Number(this.windowHeight || 780);
+      return {
+        collapsed: Math.round(h * 0.28),
+        half: Math.round(h * 0.56),
+        full: Math.round(h * 0.88),
+      };
+    },
+    currentHeight() {
+      if (this.dragHeight !== null && this.dragHeight !== undefined) return this.dragHeight;
+      const byState = this.heights[this.sheetState];
+      if (typeof byState === 'number') return byState;
+      return this.heights.half;
+    },
+    translateY() {
+      return Math.max(Number(this.windowHeight || 780) - Number(this.currentHeight || 0), 0);
+    },
+    sheetStyle() {
+      return {
+        transform: `translateY(${this.translateY}px)`,
+        paddingBottom: `${this.safeBottom}px`,
+      };
+    },
+    sectionSubText() {
+      return this.loading ? '加载中...' : `共 ${this.items.length} 条`;
+    },
+    cardScrollHeight() {
+      return `${Math.max(Math.round(Number(this.windowHeight || 780) * 0.42), 260)}px`;
+    },
+  },
+  mounted() {
+    const sys = uni.getSystemInfoSync();
+    this.windowHeight = Number(sys.windowHeight || 780);
+    this.safeTop = Number(sys.statusBarHeight || this.safeTop || 0);
+    this.safeBottom = Number((sys.safeAreaInsets && sys.safeAreaInsets.bottom) || this.safeBottom || 0);
+    uni.$on(INTELLIGENCE_OVERLAY_EVENTS.MAIN_TO_OVERLAY_EVENT, this.handleOverlayMessage);
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('message', this.handleWindowMessage);
+    }
+    // #ifdef APP-PLUS
+    if (!this.plusMessageAttached) {
+      const current = plus.webview.currentWebview();
+      if (current && typeof current.addEventListener === 'function') {
+        current.addEventListener('message', this.handlePlusMessage);
+        this.plusMessageAttached = true;
+      }
+    }
+    // #endif
+    emitOverlayUiEvent('overlay-mounted', {});
+  },
+  beforeUnmount() {
+    this.teardownListeners();
+  },
+  beforeDestroy() {
+    this.teardownListeners();
+  },
+  methods: {
+    teardownListeners() {
+      uni.$off(INTELLIGENCE_OVERLAY_EVENTS.MAIN_TO_OVERLAY_EVENT, this.handleOverlayMessage);
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('message', this.handleWindowMessage);
+      }
+    },
+    applyState(payload = {}) {
+      this.safeTop = Number(payload.safeTop || 0);
+      this.safeBottom = Number(payload.safeBottom || 0);
+      this.keyword = String(payload.keyword || '');
+      this.searchPlaceholder = String(payload.searchPlaceholder || '搜索警情、人员、场所');
+      this.actions = Array.isArray(payload.actions) ? payload.actions.slice() : [];
+      this.activeActionKey = String(payload.activeActionKey || '');
+      this.currentActionLabel = String(payload.currentActionLabel || '');
+      this.summary = payload.summary && typeof payload.summary === 'object'
+        ? { ...this.summary, ...payload.summary }
+        : { total: 0, highRisk: 0, mapped: 0 };
+      this.summaryText = String(payload.summaryText || '');
+      this.items = Array.isArray(payload.items) ? payload.items.slice() : [];
+      this.loading = !!payload.loading;
+      this.selectedItemId = String(payload.selectedItemId || '');
+      if (this.stateOptions.includes(payload.sheetState)) {
+        this.sheetState = payload.sheetState;
+      }
+    },
+    handleOverlayMessage(message) {
+      const normalized = normalizeOverlayMessage(message);
+      if (!normalized || typeof normalized !== 'object') return;
+      const type = String(normalized.type || '').trim();
+      if (!type) return;
+      if (type === 'sync-state' || type === 'init') {
+        this.applyState(normalized.payload || {});
+        return;
+      }
+      if (type === 'sync-sheet-state') {
+        const payload = normalized.payload && typeof normalized.payload === 'object' ? normalized.payload : {};
+        const next = String(payload.sheetState || '').trim();
+        if (this.stateOptions.includes(next)) {
+          this.sheetState = next;
+        }
+      }
+    },
+    handleWindowMessage(event) {
+      const data = normalizeOverlayMessage(event);
+      if (!data) return;
+      this.handleOverlayMessage(data);
+    },
+    handlePlusMessage(event) {
+      const data = normalizeOverlayMessage(event);
+      if (!data) return;
+      this.handleOverlayMessage(data);
+    },
+    emitSearch() {
+      emitOverlayUiEvent('search', {
+        keyword: this.keyword,
+      });
+    },
+    handleKeywordInput(event) {
+      const next = String((event && event.detail && event.detail.value) || '');
+      this.keyword = next;
+      emitOverlayUiEvent('keyword-change', {
+        keyword: next,
+      });
+    },
+    emitSelectAction(key) {
+      emitOverlayUiEvent('select-action', { key });
+    },
+    emitSelectCard(item) {
+      emitOverlayUiEvent('select-card', {
+        id: String((item && item.id) || ''),
+      });
+    },
+    emitNavigateCard(item) {
+      emitOverlayUiEvent('navigate-card', {
+        id: String((item && item.id) || ''),
+      });
+    },
+    getNearestState(height) {
+      return this.stateOptions.reduce((nearest, key) => {
+        const nearestDiff = Math.abs(height - this.heights[nearest]);
+        const currentDiff = Math.abs(height - this.heights[key]);
+        return currentDiff < nearestDiff ? key : nearest;
+      }, 'half');
+    },
+    emitSheetState(state) {
+      emitOverlayUiEvent('change-sheet-state', { state });
+    },
+    selectSheetState(state) {
+      if (!this.stateOptions.includes(state)) return;
+      this.sheetState = state;
+      this.emitSheetState(state);
+    },
+    toggleSheetState() {
+      if (this.sheetState === 'collapsed') {
+        this.selectSheetState('half');
+        return;
+      }
+      if (this.sheetState === 'half') {
+        this.selectSheetState('full');
+        return;
+      }
+      this.selectSheetState('collapsed');
+    },
+    handleTouchStart(event) {
+      const touch = event.touches && event.touches[0];
+      if (!touch) return;
+      this.touchStartY = Number(touch.clientY || 0);
+      this.touchStartHeight = Number(this.currentHeight || 0);
+    },
+    handleTouchMove(event) {
+      const touch = event.touches && event.touches[0];
+      if (!touch) return;
+      const delta = this.touchStartY - Number(touch.clientY || 0);
+      const nextHeight = Math.min(
+        Math.max(this.touchStartHeight + delta, this.heights.collapsed),
+        this.heights.full
+      );
+      this.dragHeight = nextHeight;
+    },
+    handleTouchEnd() {
+      const next = this.getNearestState(Number(this.currentHeight || this.heights.half));
+      this.dragHeight = null;
+      this.selectSheetState(next);
+    },
+    riskClass(level) {
+      if (level === '高') return 'high';
+      if (level === '低') return 'low';
+      return 'medium';
+    },
+  },
+};
+</script>
+
+<style scoped>
+.overlay-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.top-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+}
+
+.title-pill,
+.status-pill {
+  border-radius: 999rpx;
+  background-color: rgba(15, 31, 46, 0.62);
+  padding: 14rpx 18rpx;
+}
+
+.title-text,
+.status-text {
+  color: #f7fbff;
+  font-size: 24rpx;
+}
+
+.title-text {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition-property: transform;
+  transition-duration: 180ms;
+  transition-timing-function: ease;
+}
+
+.handle-row {
+  padding-top: 14rpx;
+  padding-bottom: 10rpx;
+  justify-content: center;
+  align-items: center;
+}
+
+.handle-bar {
+  width: 88rpx;
+  height: 8rpx;
+  border-radius: 999rpx;
+  background-color: #c8d3de;
+}
+
+.state-row {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 12rpx;
+}
+
+.state-pill {
+  margin-left: 5rpx;
+  margin-right: 5rpx;
+  padding-top: 8rpx;
+  padding-bottom: 8rpx;
+  padding-left: 18rpx;
+  padding-right: 18rpx;
+  border-radius: 999rpx;
+  background-color: #eef3f7;
+  color: #607386;
+  font-size: 22rpx;
+}
+
+.state-pill.active {
+  background-color: #133452;
+  color: #f7fbff;
+}
+
+.panel-content {
+  min-height: 100vh;
+  border-top-left-radius: 36rpx;
+  border-top-right-radius: 36rpx;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+  padding-bottom: 12rpx;
+  background-color: rgba(255, 255, 255, 0.97);
+}
+
+.search-bar {
+  margin-top: 8rpx;
+  flex-direction: row;
+  align-items: center;
+}
+
+.search-shell {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+  padding-left: 18rpx;
+  padding-right: 18rpx;
+  height: 78rpx;
+  border-radius: 999rpx;
+  background-color: #f8fbfe;
+}
+
+.search-icon {
+  color: #5d7084;
+  font-size: 30rpx;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 78rpx;
+  padding-left: 14rpx;
+  padding-right: 14rpx;
+  font-size: 26rpx;
+  color: #223547;
+}
+
+.search-btn {
+  margin-left: 12rpx;
+  min-width: 128rpx;
+  height: 78rpx;
+  border-radius: 999rpx;
+  justify-content: center;
+  align-items: center;
+  background-color: #1f7cff;
+  color: #f8fbff;
+  font-size: 24rpx;
+}
+
+.quick-actions {
+  margin-top: 18rpx;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.action-card {
+  width: 132rpx;
+  border-radius: 22rpx;
+  padding-top: 18rpx;
+  padding-bottom: 14rpx;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.92);
+}
+
+.action-card.active {
+  background-color: #17324b;
+}
+
+.action-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 24rpx;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-emoji {
+  font-size: 34rpx;
+}
+
+.action-label {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #304455;
+}
+
+.action-card.active .action-label {
+  color: #f7fbff;
+}
+
+.action-count {
+  position: absolute;
+  right: 10rpx;
+  top: 10rpx;
+  min-width: 30rpx;
+  height: 30rpx;
+  padding-left: 8rpx;
+  padding-right: 8rpx;
+  border-radius: 999rpx;
+  background-color: #ff5b47;
+  color: #ffffff;
+  text-align: center;
+  line-height: 30rpx;
+  font-size: 20rpx;
+}
+
+.summary-card {
+  margin-top: 18rpx;
+  border-radius: 24rpx;
+  padding: 20rpx;
+  background-color: rgba(239, 245, 251, 0.98);
+}
+
+.summary-head {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.summary-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #203243;
+}
+
+.summary-sub {
+  font-size: 22rpx;
+  color: #5c7083;
+}
+
+.summary-metrics {
+  margin-top: 18rpx;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.metric {
+  width: 30%;
+  border-radius: 18rpx;
+  padding: 14rpx 12rpx;
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.metric-label {
+  font-size: 22rpx;
+  color: #64788a;
+}
+
+.metric-value {
+  margin-top: 6rpx;
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #1f3346;
+}
+
+.metric-value.accent {
+  color: #de5a39;
+}
+
+.list-section {
+  margin-top: 16rpx;
+}
+
+.section-head {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #213446;
+}
+
+.section-sub {
+  font-size: 22rpx;
+  color: #6d8091;
+}
+
+.card-scroll {
+  margin-top: 12rpx;
+}
+
+.placeholder-list,
+.card-list {
+  padding-bottom: 24rpx;
+}
+
+.placeholder-card,
+.intelligence-card,
+.empty-card {
+  padding: 20rpx;
+  border-radius: 24rpx;
+  background-color: rgba(255, 255, 255, 0.94);
+  margin-bottom: 14rpx;
+}
+
+.intelligence-card.active {
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(31, 124, 255, 0.24);
+}
+
+.card-head {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.card-title-wrap {
+  flex-direction: row;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #223547;
+}
+
+.risk-pill {
+  margin-left: 10rpx;
+  padding-top: 6rpx;
+  padding-bottom: 6rpx;
+  padding-left: 12rpx;
+  padding-right: 12rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  color: #bb7c1d;
+  background-color: #fff2db;
+}
+
+.risk-pill.high {
+  color: #d24f3b;
+  background-color: #ffebe7;
+}
+
+.risk-pill.low {
+  color: #228a52;
+  background-color: #e8f8ef;
+}
+
+.card-time {
+  font-size: 22rpx;
+  color: #7c8ea0;
+}
+
+.card-subtitle {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #44576a;
+}
+
+.card-meta {
+  margin-top: 12rpx;
+}
+
+.meta-item {
+  font-size: 22rpx;
+  color: #738597;
+}
+
+.card-actions {
+  margin-top: 16rpx;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-text {
+  font-size: 22rpx;
+  color: #6c7f91;
+}
+
+.action-link {
+  font-size: 24rpx;
+  color: #1779ff;
+}
+
+.empty-card {
+  align-items: center;
+}
+
+.empty-title {
+  font-size: 28rpx;
+  color: #223547;
+  font-weight: 700;
+}
+
+.empty-sub {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #7c8ea0;
+}
+</style>

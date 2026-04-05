@@ -12,7 +12,7 @@
       @map-event="handleMapEvent"
     />
 
-    <view class="top-overlay" :style="{ paddingTop: `${safeTop + 8}px` }">
+    <view v-if="showDomOverlay" class="top-overlay" :style="{ paddingTop: `${safeTop + 8}px` }">
       <view class="title-pill">
         <text class="title-text">情报中心</text>
       </view>
@@ -22,6 +22,7 @@
     </view>
 
     <BottomSheet
+      v-if="showDomOverlay"
       :model-value="sheetState"
       :safe-bottom="safeBottom"
       @update:modelValue="handleSheetStateChange"
@@ -73,12 +74,15 @@
 </template>
 
 <script setup>
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { onHide, onShow } from '@dcloudio/uni-app';
 import MapContainer from './intelligence/components/MapContainer.vue';
 import BottomSheet from './intelligence/components/BottomSheet.vue';
 import SearchBar from './intelligence/components/SearchBar.vue';
 import QuickActions from './intelligence/components/QuickActions.vue';
 import IntelligenceCardList from './intelligence/components/IntelligenceCardList.vue';
 import { useIntelligencePage } from './intelligence/composables/useIntelligencePage.js';
+import { createIntelligenceOverlayBridge } from './intelligence/services/intelligenceOverlayBridge.js';
 
 const {
   safeTop,
@@ -108,6 +112,253 @@ const {
   handleMapEvent,
   handleSheetStateChange,
 } = useIntelligencePage();
+
+const overlayBridge = createIntelligenceOverlayBridge();
+const nativeOverlayReady = ref(false);
+const nativeOverlayEnabled = computed(() => nativeOverlayReady.value);
+const showDomOverlay = computed(() => !nativeOverlayEnabled.value);
+const OVERLAY_INIT_RETRY_MAX = 30;
+const OVERLAY_INIT_RETRY_INTERVAL = 120;
+const OVERLAY_EVENT_CACHE_LIMIT = 240;
+
+let stopOverlayListener = null;
+let overlaySyncTimer = null;
+let overlaySessionSeq = 0;
+let overlayInitRetryTimer = null;
+let overlayInitAttempts = 0;
+const handledOverlayEventIds = [];
+const handledOverlayEventSet = new Set();
+
+function buildOverlayStatePayload() {
+  return {
+    sessionSeq: overlaySessionSeq,
+    safeTop: Number(safeTop.value || 0),
+    safeBottom: Number(safeBottom.value || 0),
+    keyword: String(keyword.value || ''),
+    searchPlaceholder: String(searchPlaceholder.value || ''),
+    actions: Array.isArray(actions.value) ? actions.value.slice() : [],
+    activeActionKey: String(activeActionKey.value || ''),
+    currentActionLabel: String(currentAction.value?.label || ''),
+    summary: summary.value && typeof summary.value === 'object'
+      ? { ...summary.value }
+      : { total: 0, highRisk: 0, mapped: 0 },
+    summaryText: String(summaryText.value || ''),
+    items: Array.isArray(items.value) ? items.value.slice() : [],
+    loading: !!loading.value,
+    selectedItemId: String(selectedItemId.value || ''),
+    sheetState: String(sheetState.value || 'half'),
+  };
+}
+
+function syncOverlayStateNow(type = 'sync-state') {
+  if (!nativeOverlayEnabled.value) return;
+  overlayBridge.send(type, buildOverlayStatePayload());
+}
+
+function scheduleOverlayStateSync(type = 'sync-state') {
+  if (!nativeOverlayEnabled.value) return;
+  if (overlaySyncTimer) {
+    clearTimeout(overlaySyncTimer);
+    overlaySyncTimer = null;
+  }
+  overlaySyncTimer = setTimeout(() => {
+    overlaySyncTimer = null;
+    syncOverlayStateNow(type);
+  }, 16);
+}
+
+function findItemById(id) {
+  const text = String(id || '');
+  if (!text) return null;
+  return (Array.isArray(items.value) ? items.value : []).find((item) => String(item?.id || '') === text) || null;
+}
+
+function handleOverlayEvent(event) {
+  if (!rememberOverlayEventId(event?.id)) return;
+  const type = String(event?.type || '').trim();
+  const payload = event?.payload && typeof event.payload === 'object' ? event.payload : {};
+  if (!type) return;
+  if (type === 'overlay-mounted') {
+    syncOverlayStateNow('init');
+    return;
+  }
+  if (type === 'keyword-change') {
+    keyword.value = String(payload.keyword || '');
+    return;
+  }
+  if (type === 'search') {
+    keyword.value = String(payload.keyword || keyword.value || '');
+    handleSearch();
+    return;
+  }
+  if (type === 'select-action') {
+    const key = String(payload.key || '');
+    if (key) handleActionSelect(key);
+    return;
+  }
+  if (type === 'select-card') {
+    const item = findItemById(payload.id);
+    if (item) {
+      handleCardSelect(item);
+    }
+    return;
+  }
+  if (type === 'navigate-card') {
+    const item = findItemById(payload.id);
+    if (item) {
+      handleCardNavigate(item);
+    }
+    return;
+  }
+  if (type === 'change-sheet-state') {
+    const state = String(payload.state || '');
+    if (state) {
+      handleSheetStateChange(state);
+    }
+  }
+}
+
+function clearOverlaySyncTimer() {
+  if (!overlaySyncTimer) return;
+  clearTimeout(overlaySyncTimer);
+  overlaySyncTimer = null;
+}
+
+function clearOverlayInitRetryTimer() {
+  if (!overlayInitRetryTimer) return;
+  clearTimeout(overlayInitRetryTimer);
+  overlayInitRetryTimer = null;
+}
+
+function rememberOverlayEventId(eventId) {
+  const id = Number(eventId || 0);
+  if (!id || Number.isNaN(id)) return true;
+  if (handledOverlayEventSet.has(id)) return false;
+  handledOverlayEventSet.add(id);
+  handledOverlayEventIds.push(id);
+  if (handledOverlayEventIds.length > OVERLAY_EVENT_CACHE_LIMIT) {
+    const staleId = handledOverlayEventIds.shift();
+    handledOverlayEventSet.delete(staleId);
+  }
+  return true;
+}
+
+function startOverlayListener() {
+  if (typeof stopOverlayListener === 'function') return;
+  stopOverlayListener = overlayBridge.onOverlayEvent(handleOverlayEvent);
+}
+
+function activateNativeOverlay() {
+  nativeOverlayReady.value = true;
+  startOverlayListener();
+  overlayBridge.show();
+  syncOverlayStateNow('init');
+}
+
+function tryInitNativeOverlay() {
+  // #ifndef APP-PLUS
+  return;
+  // #endif
+  if (nativeOverlayEnabled.value) {
+    scheduleOverlayStateSync('sync-state');
+    return;
+  }
+  clearOverlayInitRetryTimer();
+  overlayInitAttempts += 1;
+  const ok = overlayBridge.init();
+  if (ok) {
+    activateNativeOverlay();
+    return;
+  }
+  if (overlayInitAttempts >= OVERLAY_INIT_RETRY_MAX) {
+    console.warn('[overlay-bridge] init fallback to DOM overlay after max retries');
+    return;
+  }
+  overlayInitRetryTimer = setTimeout(() => {
+    overlayInitRetryTimer = null;
+    tryInitNativeOverlay();
+  }, OVERLAY_INIT_RETRY_INTERVAL);
+}
+
+function attachOverlayGlobalBridge() {
+  // #ifdef APP-PLUS
+  window.__INTELLIGENCE_OVERLAY_BRIDGE__ = (serialized) => {
+    try {
+      const parsed = typeof serialized === 'string' ? JSON.parse(serialized) : serialized;
+      handleOverlayEvent(parsed);
+    } catch (error) {
+      console.warn('[overlay-bridge] parse overlay message failed', error);
+    }
+  };
+  // #endif
+}
+
+function detachOverlayGlobalBridge() {
+  // #ifdef APP-PLUS
+  try {
+    delete window.__INTELLIGENCE_OVERLAY_BRIDGE__;
+  } catch (error) {
+    window.__INTELLIGENCE_OVERLAY_BRIDGE__ = null;
+  }
+  // #endif
+}
+
+onMounted(() => {
+  // #ifdef APP-PLUS
+  attachOverlayGlobalBridge();
+  overlaySessionSeq += 1;
+  overlayInitAttempts = 0;
+  tryInitNativeOverlay();
+  // #endif
+});
+
+onUnmounted(() => {
+  clearOverlayInitRetryTimer();
+  clearOverlaySyncTimer();
+  if (typeof stopOverlayListener === 'function') {
+    stopOverlayListener();
+    stopOverlayListener = null;
+  }
+  overlayBridge.destroy();
+  nativeOverlayReady.value = false;
+  detachOverlayGlobalBridge();
+});
+
+onShow(() => {
+  if (!nativeOverlayEnabled.value) {
+    tryInitNativeOverlay();
+    return;
+  }
+  overlayBridge.show();
+  scheduleOverlayStateSync('sync-state');
+});
+
+onHide(() => {
+  if (!nativeOverlayEnabled.value) return;
+  overlayBridge.hide();
+});
+
+const overlayWatchSources = [
+  safeTop,
+  safeBottom,
+  keyword,
+  searchPlaceholder,
+  actions,
+  activeActionKey,
+  currentAction,
+  summary,
+  summaryText,
+  items,
+  loading,
+  selectedItemId,
+  sheetState,
+];
+
+overlayWatchSources.forEach((sourceRef) => {
+  watch(sourceRef, () => {
+    scheduleOverlayStateSync('sync-state');
+  }, { deep: true });
+});
 </script>
 
 <style lang="scss" scoped>
