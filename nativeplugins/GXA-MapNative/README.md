@@ -5,7 +5,8 @@
 - `nativeplugins/GXA-MapNative/package.json`
   - `_dp_nativeplugin.android.integrateType = "aar"`
 - 产物模式：AAR 集成（`android/GXA-MapNative-release.aar`）
-- 关键变化：MapLibre 依赖（maplibre sdk/gestures/geojson/turf + kotlin/okhttp/okio）已并入插件 AAR，避免运行时缺类。
+- 关键变化：MapLibre 依赖（maplibre sdk/gestures/geojson/turf + timber）已并入插件 AAR，避免运行时缺类。
+- 注意：**kotlin/okhttp/okio 不再并入插件 AAR**，避免云打包与宿主依赖发生 `DuplicateClasses`。
 
 ## 为什么这样改
 
