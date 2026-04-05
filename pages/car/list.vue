@@ -5,7 +5,7 @@
       
       <view class="header-inner">
         <view class="header-title-row">
-          <text class="title">{{ selectMode ? '选择警车' : '警车' }}</text>
+          <text class="title">{{ selectMode ? '选择警车' : '警车管理' }}</text>
           <text class="sub">共 {{ totalCount }} 辆</text>
         </view>
 
@@ -14,7 +14,7 @@
           <input
             class="search-input"
             v-model="searchKey"
-            placeholder="输入车牌过滤0"
+            placeholder="输入车牌过滤"
             placeholder-class="search-placeholder"
           />
           <text v-if="searchKey" class="icon-clear" @click="searchKey = ''">✕</text>

@@ -45,7 +45,8 @@
                     "<uses-feature android:name=\"android.hardware.nfc\" android:required=\"false\"/>",
                     "<uses-feature android:name=\"android.hardware.nfc.hce\" android:required=\"false\"/>",
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
-                ]
+                ],
+                "abiFilters" : [ "arm64-v8a", "x86" ]
             },
             /* ios打包配置 */
             "ios" : {
