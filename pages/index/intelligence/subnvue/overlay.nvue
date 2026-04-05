@@ -241,7 +241,24 @@ export default {
       }
     }
     // #endif
-    emitOverlayUiEvent('overlay-mounted', {});
+    console.info('[intelligence][overlay-runtime]', {
+      path: 'overlay-mounted',
+      safeTop: this.safeTop,
+      safeBottom: this.safeBottom,
+    });
+    emitOverlayUiEvent('overlay-mounted', {
+      safeTop: this.safeTop,
+      safeBottom: this.safeBottom,
+    });
+    this.$nextTick(() => {
+      console.info('[intelligence][overlay-runtime]', {
+        path: 'overlay-ready',
+        sheetState: this.sheetState,
+      });
+      emitOverlayUiEvent('overlay-ready', {
+        sheetState: this.sheetState,
+      });
+    });
   },
   beforeUnmount() {
     this.teardownListeners();
@@ -280,6 +297,15 @@ export default {
       if (!normalized || typeof normalized !== 'object') return;
       const type = String(normalized.type || '').trim();
       if (!type) return;
+      if (type === 'sync-state' || type === 'init') {
+        const payload = normalized.payload && typeof normalized.payload === 'object' ? normalized.payload : {};
+        const itemsLength = Array.isArray(payload.items) ? payload.items.length : 0;
+        console.info('[intelligence][overlay-runtime]', {
+          path: 'overlay-sync-state',
+          type,
+          items: itemsLength,
+        });
+      }
       if (type === 'sync-state' || type === 'init') {
         this.applyState(normalized.payload || {});
         return;
@@ -385,7 +411,7 @@ export default {
 
 <style scoped>
 .overlay-root {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -424,7 +450,7 @@ export default {
 }
 
 .bottom-sheet {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
@@ -473,7 +499,6 @@ export default {
 }
 
 .panel-content {
-  min-height: 100vh;
   border-top-left-radius: 36rpx;
   border-top-right-radius: 36rpx;
   padding-left: 20rpx;

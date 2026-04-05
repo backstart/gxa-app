@@ -114,18 +114,20 @@ const {
 } = useIntelligencePage();
 
 const overlayBridge = createIntelligenceOverlayBridge();
-const nativeOverlayReady = ref(false);
-const nativeOverlayEnabled = computed(() => nativeOverlayReady.value);
-const showDomOverlay = computed(() => !nativeOverlayEnabled.value);
+const overlayChannelReady = ref(false);
+const overlayUiReady = ref(false);
+const showDomOverlay = computed(() => !overlayUiReady.value);
 const OVERLAY_INIT_RETRY_MAX = 30;
 const OVERLAY_INIT_RETRY_INTERVAL = 120;
 const OVERLAY_EVENT_CACHE_LIMIT = 240;
+const OVERLAY_READY_TIMEOUT_MS = 1500;
 
 let stopOverlayListener = null;
 let overlaySyncTimer = null;
 let overlaySessionSeq = 0;
 let overlayInitRetryTimer = null;
 let overlayInitAttempts = 0;
+let overlayReadyTimeoutTimer = null;
 const handledOverlayEventIds = [];
 const handledOverlayEventSet = new Set();
 
@@ -151,12 +153,18 @@ function buildOverlayStatePayload() {
 }
 
 function syncOverlayStateNow(type = 'sync-state') {
-  if (!nativeOverlayEnabled.value) return;
+  if (!overlayChannelReady.value) return;
+  console.info('[intelligence][overlay-runtime]', {
+    path: 'overlay-sync-state',
+    type,
+    overlayChannelReady: overlayChannelReady.value,
+    overlayUiReady: overlayUiReady.value,
+  });
   overlayBridge.send(type, buildOverlayStatePayload());
 }
 
 function scheduleOverlayStateSync(type = 'sync-state') {
-  if (!nativeOverlayEnabled.value) return;
+  if (!overlayChannelReady.value) return;
   if (overlaySyncTimer) {
     clearTimeout(overlaySyncTimer);
     overlaySyncTimer = null;
@@ -178,7 +186,15 @@ function handleOverlayEvent(event) {
   const type = String(event?.type || '').trim();
   const payload = event?.payload && typeof event.payload === 'object' ? event.payload : {};
   if (!type) return;
-  if (type === 'overlay-mounted') {
+  if (type === 'overlay-mounted' || type === 'overlay-ready') {
+    overlayUiReady.value = true;
+    clearOverlayReadyTimeout();
+    console.info('[intelligence][overlay-runtime]', {
+      path: 'overlay-ready',
+      eventType: type,
+      overlayChannelReady: overlayChannelReady.value,
+      overlayUiReady: overlayUiReady.value,
+    });
     syncOverlayStateNow('init');
     return;
   }
@@ -224,10 +240,31 @@ function clearOverlaySyncTimer() {
   overlaySyncTimer = null;
 }
 
+function clearOverlayReadyTimeout() {
+  if (!overlayReadyTimeoutTimer) return;
+  clearTimeout(overlayReadyTimeoutTimer);
+  overlayReadyTimeoutTimer = null;
+}
+
 function clearOverlayInitRetryTimer() {
   if (!overlayInitRetryTimer) return;
   clearTimeout(overlayInitRetryTimer);
   overlayInitRetryTimer = null;
+}
+
+function startOverlayReadyTimeout() {
+  clearOverlayReadyTimeout();
+  overlayReadyTimeoutTimer = setTimeout(() => {
+    overlayReadyTimeoutTimer = null;
+    if (overlayUiReady.value) return;
+    console.warn('[intelligence][overlay-runtime]', {
+      path: 'overlay-fallback-dom',
+      reason: 'overlay-ready-timeout',
+      timeout: OVERLAY_READY_TIMEOUT_MS,
+      overlayChannelReady: overlayChannelReady.value,
+      overlayUiReady: overlayUiReady.value,
+    });
+  }, OVERLAY_READY_TIMEOUT_MS);
 }
 
 function rememberOverlayEventId(eventId) {
@@ -249,20 +286,31 @@ function startOverlayListener() {
 }
 
 function activateNativeOverlay() {
-  nativeOverlayReady.value = true;
-  startOverlayListener();
+  overlayChannelReady.value = true;
+  console.info('[intelligence][overlay-runtime]', {
+    path: 'overlay-subnvue-found',
+    overlayChannelReady: overlayChannelReady.value,
+    overlayUiReady: overlayUiReady.value,
+  });
   overlayBridge.show();
   syncOverlayStateNow('init');
+  startOverlayReadyTimeout();
 }
 
 function tryInitNativeOverlay() {
   // #ifndef APP-PLUS
   return;
   // #endif
-  if (nativeOverlayEnabled.value) {
+  if (overlayChannelReady.value) {
     scheduleOverlayStateSync('sync-state');
     return;
   }
+  console.info('[intelligence][overlay-runtime]', {
+    path: 'overlay-init-start',
+    attempt: overlayInitAttempts + 1,
+    overlayChannelReady: overlayChannelReady.value,
+    overlayUiReady: overlayUiReady.value,
+  });
   clearOverlayInitRetryTimer();
   overlayInitAttempts += 1;
   const ok = overlayBridge.init();
@@ -271,7 +319,13 @@ function tryInitNativeOverlay() {
     return;
   }
   if (overlayInitAttempts >= OVERLAY_INIT_RETRY_MAX) {
-    console.warn('[overlay-bridge] init fallback to DOM overlay after max retries');
+    console.warn('[intelligence][overlay-runtime]', {
+      path: 'overlay-fallback-dom',
+      reason: 'overlay-subnvue-not-found',
+      attempts: overlayInitAttempts,
+      overlayChannelReady: overlayChannelReady.value,
+      overlayUiReady: overlayUiReady.value,
+    });
     return;
   }
   overlayInitRetryTimer = setTimeout(() => {
@@ -307,6 +361,7 @@ onMounted(() => {
   // #ifdef APP-PLUS
   attachOverlayGlobalBridge();
   overlaySessionSeq += 1;
+  startOverlayListener();
   overlayInitAttempts = 0;
   tryInitNativeOverlay();
   // #endif
@@ -314,27 +369,32 @@ onMounted(() => {
 
 onUnmounted(() => {
   clearOverlayInitRetryTimer();
+  clearOverlayReadyTimeout();
   clearOverlaySyncTimer();
   if (typeof stopOverlayListener === 'function') {
     stopOverlayListener();
     stopOverlayListener = null;
   }
   overlayBridge.destroy();
-  nativeOverlayReady.value = false;
+  overlayChannelReady.value = false;
+  overlayUiReady.value = false;
   detachOverlayGlobalBridge();
 });
 
 onShow(() => {
-  if (!nativeOverlayEnabled.value) {
+  if (!overlayChannelReady.value) {
     tryInitNativeOverlay();
     return;
   }
   overlayBridge.show();
   scheduleOverlayStateSync('sync-state');
+  if (!overlayUiReady.value) {
+    startOverlayReadyTimeout();
+  }
 });
 
 onHide(() => {
-  if (!nativeOverlayEnabled.value) return;
+  if (!overlayChannelReady.value) return;
   overlayBridge.hide();
 });
 

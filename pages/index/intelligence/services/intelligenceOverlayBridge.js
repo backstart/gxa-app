@@ -95,21 +95,33 @@ export function createIntelligenceOverlayBridge() {
     if (target && typeof target.postMessage === 'function') {
       safeCall(() => target.postMessage(event));
     }
-    console.info('[overlay-bridge]', {
-      direction: 'main-to-overlay',
+    console.info('[intelligence][overlay-bridge]', {
+      path: event.type === 'sync-state' || event.type === 'init' ? 'overlay-sync-state' : 'overlay-main-send',
       type: event.type,
+      hasSubNVue: !!target,
     });
   }
 
   return {
     init() {
       // #ifdef APP-PLUS
+      console.info('[intelligence][overlay-bridge]', {
+        path: 'overlay-init-start',
+      });
       const target = ensureSubNVue();
       if (!target) {
         enabled = false;
+        console.warn('[intelligence][overlay-bridge]', {
+          path: 'overlay-subnvue-missing',
+          subNVueId: SUBNVUE_ID,
+        });
         return false;
       }
       enabled = true;
+      console.info('[intelligence][overlay-bridge]', {
+        path: 'overlay-subnvue-found',
+        subNVueId: SUBNVUE_ID,
+      });
       return true;
       // #endif
       // #ifndef APP-PLUS
@@ -145,6 +157,10 @@ export function createIntelligenceOverlayBridge() {
       const wrapped = (rawEvent) => {
         const event = normalizeOverlayEventPayload(rawEvent);
         if (!event || typeof event !== 'object') return;
+        console.info('[intelligence][overlay-bridge]', {
+          path: 'overlay-event',
+          type: String(event.type || ''),
+        });
         handler(event);
       };
       boundMainHandler = wrapped;
