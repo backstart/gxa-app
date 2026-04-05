@@ -136,7 +136,7 @@
 import {
   INTELLIGENCE_OVERLAY_EVENTS,
   emitOverlayUiEvent,
-} from '../services/intelligenceOverlayBridge.js';
+} from './intelligence/services/intelligenceOverlayBridge.js';
 
 const STATE_OPTIONS = ['collapsed', 'half', 'full'];
 const STATE_TEXT_MAP = {

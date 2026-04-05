@@ -47,6 +47,16 @@ function normalizeOverlayEventPayload(raw) {
   return raw;
 }
 
+function resolveSubNVueByUniApi() {
+  // #ifdef APP-PLUS
+  if (typeof uni.getSubNVueById !== 'function') return null;
+  return safeCall(() => uni.getSubNVueById(SUBNVUE_ID), null);
+  // #endif
+  // #ifndef APP-PLUS
+  return null;
+  // #endif
+}
+
 export function emitOverlayUiEvent(type, payload = {}) {
   const message = {
     id: ++overlayEventSeq,
@@ -72,6 +82,10 @@ export function createIntelligenceOverlayBridge() {
   let enabled = false;
 
   function resolveSubNVue() {
+    const byUniApi = resolveSubNVueByUniApi();
+    if (byUniApi) {
+      return byUniApi;
+    }
     const webview = getCurrentPageWebview();
     if (!webview || typeof webview.getSubNVueById !== 'function') return null;
     return safeCall(() => webview.getSubNVueById(SUBNVUE_ID), null);
@@ -120,6 +134,10 @@ export function createIntelligenceOverlayBridge() {
       enabled = true;
       console.info('[intelligence][overlay-bridge]', {
         path: 'overlay-subnvue-found',
+        subNVueId: SUBNVUE_ID,
+      });
+      console.info('[intelligence][overlay-bridge]', {
+        path: 'overlay-init-success',
         subNVueId: SUBNVUE_ID,
       });
       return true;

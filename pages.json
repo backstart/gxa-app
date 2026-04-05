@@ -1,6 +1,6 @@
 {
   "pages": [
-    {"path":"pages/index/index","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"titleNView":false,"bounce":"none","subNVues":[{"id":"intelligence-overlay","path":"pages/index/intelligence/subnvue/overlay.nvue","style":{"position":"absolute","top":"0px","left":"0px","width":"100%","height":"100%","background":"transparent","zindex":9999}}]}}},
+    {"path":"pages/index/index","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"titleNView":false,"bounce":"none","subNVues":[{"id":"intelligence-overlay","path":"pages/index/overlay.nvue","style":{"position":"absolute","top":"0px","left":"0px","width":"100%","height":"100%","background":"transparent","zindex":9999}}]}}},
     {"path":"pages/user/user","style":{"navigationBarTitleText":"","navigationStyle":"custom","app-plus":{"bounce":"none"}}},
     {"path":"pages/car/list","style":{"navigationBarTitleText":"警车列表","navigationStyle":"custom"}},
     {"path":"pages/car/detail","style":{"navigationBarTitleText":"警车详情","navigationStyle":"custom"}},
