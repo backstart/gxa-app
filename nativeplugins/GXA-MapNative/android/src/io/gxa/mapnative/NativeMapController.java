@@ -2,6 +2,7 @@ package io.gxa.mapnative;
 
 import android.app.Activity;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
@@ -43,6 +44,7 @@ import static org.maplibre.android.style.layers.PropertyFactory.lineWidth;
 import static org.maplibre.android.style.layers.PropertyFactory.visibility;
 
 final class NativeMapController {
+    private static final String TAG = "GxaMapNativeController";
     private static final String GEOJSON_SOURCE_ID = "gxa-native-geojson-source";
     private static final String GEOJSON_FILL_LAYER_ID = "gxa-native-geojson-fill";
     private static final String GEOJSON_LINE_LAYER_ID = "gxa-native-geojson-line";
@@ -268,8 +270,50 @@ final class NativeMapController {
         String styleUrl = basemap == null ? "" : basemap.optString("styleUrl", "");
         String tilesUrl = basemap == null ? "" : basemap.optString("tilesUrl", "");
         String nativeTileUrlTemplate = basemap == null ? "" : basemap.optString("nativeTileUrlTemplate", "");
+        String sourceType = basemap == null ? "" : basemap.optString("sourceType", "");
+        String source = basemap == null ? "" : basemap.optString("source", "");
+        String resolvedStyleUrl = "";
+        String resolvedTilesUrl = "";
+        String resolvedTileUrlTemplate = "";
+        if (!styleUrl.isEmpty()) {
+            resolvedStyleUrl = NativeMapStyleResolver.toAbsoluteUrl(styleUrl, styleUrl);
+        }
+        if (!tilesUrl.isEmpty()) {
+            resolvedTilesUrl = NativeMapStyleResolver.toAbsoluteUrl(tilesUrl, resolvedStyleUrl.isEmpty() ? tilesUrl : resolvedStyleUrl);
+        }
+        if (!resolvedStyleUrl.isEmpty() && !resolvedTilesUrl.isEmpty()) {
+            resolvedTileUrlTemplate = NativeMapStyleResolver.resolveNativeTileTemplate(
+                resolvedStyleUrl,
+                resolvedTilesUrl,
+                nativeTileUrlTemplate
+            );
+        }
+
+        JSONObject basemapPayload = new JSONObject();
+        try {
+            basemapPayload.put("sourceType", sourceType);
+            basemapPayload.put("source", source);
+            basemapPayload.put("styleUrl", styleUrl);
+            basemapPayload.put("tilesUrl", tilesUrl);
+            basemapPayload.put("nativeTileUrlTemplate", nativeTileUrlTemplate);
+            basemapPayload.put("resolvedStyleUrl", resolvedStyleUrl);
+            basemapPayload.put("resolvedTilesUrl", resolvedTilesUrl);
+            basemapPayload.put("resolvedTileUrlTemplate", resolvedTileUrlTemplate);
+        } catch (Throwable ignore) {
+            // noop
+        }
+        emitter.emit("basemap", basemapPayload, "native basemap loading");
+        Log.i(TAG, "basemap sourceType=" + sourceType
+            + " source=" + source
+            + " styleUrl=" + styleUrl
+            + " tilesUrl=" + tilesUrl
+            + " nativeTileUrlTemplate=" + nativeTileUrlTemplate
+            + " resolvedStyleUrl=" + resolvedStyleUrl
+            + " resolvedTilesUrl=" + resolvedTilesUrl
+            + " resolvedTileUrlTemplate=" + resolvedTileUrlTemplate);
+
         if (styleUrl.isEmpty() || tilesUrl.isEmpty()) {
-            emitter.emit("error", null, "styleUrl/tilesUrl missing");
+            emitter.emit("error", basemapPayload, "styleUrl/tilesUrl missing, sourceType=" + sourceType);
             return;
         }
 
@@ -290,11 +334,12 @@ final class NativeMapController {
                     map.setStyle(new Style.Builder().fromJson(styleJson), style -> {
                         ensureGeoJsonLayers(style);
                         applyActiveLayers();
+                        emitter.emit("basemap", basemapPayload, "native basemap ready");
                         emitter.emit("ready", buildCameraPayload(), "native map ready");
                     });
                 });
             } catch (Throwable error) {
-                emitter.emit("error", null, "load style failed: " + error.getMessage());
+                emitter.emit("error", basemapPayload, "load style failed: " + error.getMessage());
             }
         }).start();
     }

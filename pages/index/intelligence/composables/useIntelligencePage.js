@@ -270,6 +270,15 @@ export function useIntelligencePage() {
     }
 
     mapInitialView.value = bootstrap;
+    console.info('[map-basemap]', {
+      stage: 'bootstrap-ready',
+      sourceType: bootstrap?.basemap?.sourceType || '',
+      source: bootstrap?.basemap?.source || '',
+      styleUrl: bootstrap?.basemap?.styleUrl || '',
+      tilesUrl: bootstrap?.basemap?.tilesUrl || '',
+      nativeTileUrlTemplate: bootstrap?.basemap?.nativeTileUrlTemplate || '',
+      diagnostics: bootstrap?.basemap?.diagnostics || {},
+    });
     if (mapController.value) {
       mapController.value.init(bootstrap);
       syncMapLayers();
@@ -473,16 +482,31 @@ export function useIntelligencePage() {
       return;
     }
 
+    const basemapSourceType = String(mapInitialView.value?.basemap?.sourceType || '').trim();
+    const forceRealBasemapFallback = basemapSourceType === 'platform-real'
+      || basemapSourceType === 'platform-default-fallback'
+      || !basemapSourceType;
+
     if (!allowWebViewFallback.value) {
-      nativeFailureFallbackApplied.value = true;
-      nativeStartupState.value = 'failed';
-      stopNativeStartupTimer();
-      console.error('[intelligence][map-runtime]', {
-        path: 'degraded-preview',
-        reason: message || 'native-failed',
-        fallback: 'webview-disabled',
-      });
-      return;
+      if (forceRealBasemapFallback) {
+        console.warn('[intelligence][map-runtime]', {
+          path: 'degraded-webview',
+          reason: message || 'native-failed',
+          fallback: 'forced-by-platform-real-basemap',
+          basemapSourceType,
+        });
+      } else {
+        nativeFailureFallbackApplied.value = true;
+        nativeStartupState.value = 'failed';
+        stopNativeStartupTimer();
+        console.error('[intelligence][map-runtime]', {
+          path: 'degraded-preview',
+          reason: message || 'native-failed',
+          fallback: 'webview-disabled',
+          basemapSourceType,
+        });
+        return;
+      }
     }
 
     nativeFailureFallbackApplied.value = true;
@@ -501,6 +525,7 @@ export function useIntelligencePage() {
       console.warn('[intelligence][map-runtime]', {
         path: 'degraded-webview',
         reason: message,
+        basemapSourceType,
       });
     }
   }
@@ -513,6 +538,19 @@ export function useIntelligencePage() {
 
     const event = payload?.event || payload;
     if (!event) return;
+
+    if (event.type === 'basemap') {
+      console.info('[map-basemap]', {
+        stage: 'plugin-event',
+        sourceType: event.payload?.sourceType || '',
+        styleUrl: event.payload?.styleUrl || '',
+        tilesUrl: event.payload?.tilesUrl || '',
+        nativeTileUrlTemplate: event.payload?.nativeTileUrlTemplate || '',
+        resolvedTileUrlTemplate: event.payload?.resolvedTileUrlTemplate || '',
+        message: event.message || '',
+      });
+      return;
+    }
 
     if (event.type === 'native-status') {
       const phase = String(event.payload?.phase || '').trim();

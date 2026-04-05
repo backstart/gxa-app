@@ -11,6 +11,9 @@ const MAP_REQUEST_TIMEOUT = 30000;
 const DEFAULT_BASEMAP_STYLE_PATH = '/map-resources/styles/amap-like.json';
 const DEFAULT_BASEMAP_TILES_PATH = '/tiles/city.pmtiles';
 const DEFAULT_NATIVE_TILE_TEMPLATE = '/api/embed/native/tiles/{z}/{x}/{y}.pbf?pmtilesUrl={pmtilesUrl}';
+const BASEMAP_SOURCE_PLATFORM_REAL = 'platform-real';
+const BASEMAP_SOURCE_PLATFORM_DEFAULT_FALLBACK = 'platform-default-fallback';
+const BASEMAP_SOURCE_LOCAL_PREVIEW = 'local-preview';
 let cachedLayerConfig = [];
 let layerConfigRequestTask = null;
 
@@ -25,10 +28,17 @@ export const DEFAULT_NATIVE_MAP_BOOTSTRAP = {
   basemap: {
     provider: 'platform-config',
     source: 'local-default',
+    sourceType: BASEMAP_SOURCE_LOCAL_PREVIEW,
     tilesUrl: '',
     styleUrl: '',
     nativeTileUrlTemplate: '',
     kind: 'config-only',
+    diagnostics: {
+      reason: 'local-default',
+      hasRealStyleUrl: false,
+      hasRealTilesUrl: false,
+      styleUrlProbe: 'skipped',
+    },
   },
 };
 
@@ -140,23 +150,209 @@ function resolveAbsoluteUrl(url, baseUrl) {
 }
 
 function normalizeBasemap(result, baseUrl, fallback) {
-  const tilesUrl = resolveAbsoluteUrl(result?.tilesUrl || result?.TilesUrl, baseUrl)
-    || resolveAbsoluteUrl(DEFAULT_BASEMAP_TILES_PATH, baseUrl);
-  const styleUrl = resolveAbsoluteUrl(result?.styleUrl || result?.StyleUrl, baseUrl)
-    || resolveAbsoluteUrl(DEFAULT_BASEMAP_STYLE_PATH, baseUrl);
-  const nativeTileUrlTemplate = resolveAbsoluteUrl(
-    result?.nativeTileUrlTemplate || result?.NativeTileUrlTemplate || DEFAULT_NATIVE_TILE_TEMPLATE,
-    baseUrl
-  );
-  const fromService = !!(result?.tilesUrl || result?.TilesUrl || result?.styleUrl || result?.StyleUrl);
+  const fallbackStyleUrl = resolveAbsoluteUrl(DEFAULT_BASEMAP_STYLE_PATH, baseUrl);
+  const fallbackTilesUrl = resolveAbsoluteUrl(DEFAULT_BASEMAP_TILES_PATH, baseUrl);
+  const fallbackNativeTileTemplate = resolveAbsoluteUrl(DEFAULT_NATIVE_TILE_TEMPLATE, baseUrl);
+
+  const rawStyleUrl = result?.styleUrlAbsolute || result?.StyleUrlAbsolute || result?.styleUrl || result?.StyleUrl || '';
+  const rawTilesUrl = result?.tilesUrlAbsolute || result?.TilesUrlAbsolute || result?.tilesUrl || result?.TilesUrl || '';
+  const rawNativeTileTemplate = result?.nativeTileUrlTemplateAbsolute || result?.NativeTileUrlTemplateAbsolute
+    || result?.nativeTileUrlTemplate || result?.NativeTileUrlTemplate || '';
+
+  const resolvedRealStyleUrl = resolveAbsoluteUrl(rawStyleUrl, baseUrl);
+  const resolvedRealTilesUrl = resolveAbsoluteUrl(rawTilesUrl, baseUrl);
+  const resolvedRealNativeTemplate = resolveAbsoluteUrl(rawNativeTileTemplate, baseUrl);
+
+  const explicitSourceType = normalizeBasemapSourceType(result?.basemapSourceType || result?.BasemapSourceType);
+  const inferredSourceType = inferBasemapSourceType({
+    explicitSourceType,
+    styleUrl: resolvedRealStyleUrl,
+    tilesUrl: resolvedRealTilesUrl,
+  });
+
+  const hasRealStyleUrl = !!resolvedRealStyleUrl;
+  const hasRealTilesUrl = !!resolvedRealTilesUrl;
+  const canUsePlatformReal = inferredSourceType === BASEMAP_SOURCE_PLATFORM_REAL && hasRealStyleUrl && hasRealTilesUrl;
+
+  if (canUsePlatformReal) {
+    return {
+      provider: result?.provider || result?.mapProvider || fallback.provider,
+      source: 'embed-config',
+      sourceType: BASEMAP_SOURCE_PLATFORM_REAL,
+      tilesUrl: resolvedRealTilesUrl,
+      styleUrl: resolvedRealStyleUrl,
+      nativeTileUrlTemplate: resolvedRealNativeTemplate || fallbackNativeTileTemplate,
+      kind: 'platform-config',
+      diagnostics: {
+        reason: 'platform-real',
+        hasRealStyleUrl,
+        hasRealTilesUrl,
+        styleUrlProbe: 'pending',
+      },
+    };
+  }
+
+  const fallbackReason = !hasRealStyleUrl || !hasRealTilesUrl
+    ? 'missing-style-or-tiles'
+    : `explicit-${inferredSourceType}`;
   return {
     provider: result?.provider || result?.mapProvider || fallback.provider,
-    source: tilesUrl || styleUrl ? (fromService ? 'embed-config' : 'embed-default') : fallback.source,
-    tilesUrl,
-    styleUrl,
-    nativeTileUrlTemplate,
-    kind: tilesUrl || styleUrl ? 'platform-config' : fallback.kind,
+    source: 'embed-default',
+    sourceType: BASEMAP_SOURCE_PLATFORM_DEFAULT_FALLBACK,
+    tilesUrl: resolvedRealTilesUrl || fallbackTilesUrl,
+    styleUrl: resolvedRealStyleUrl || fallbackStyleUrl,
+    nativeTileUrlTemplate: resolvedRealNativeTemplate || fallbackNativeTileTemplate,
+    kind: 'platform-config',
+    diagnostics: {
+      reason: fallbackReason,
+      hasRealStyleUrl,
+      hasRealTilesUrl,
+      styleUrlProbe: 'skipped',
+    },
   };
+}
+
+function normalizeBasemapSourceType(value) {
+  const text = String(value || '').trim().toLowerCase();
+  if (text === BASEMAP_SOURCE_PLATFORM_REAL) return BASEMAP_SOURCE_PLATFORM_REAL;
+  if (text === BASEMAP_SOURCE_PLATFORM_DEFAULT_FALLBACK) return BASEMAP_SOURCE_PLATFORM_DEFAULT_FALLBACK;
+  if (text === BASEMAP_SOURCE_LOCAL_PREVIEW) return BASEMAP_SOURCE_LOCAL_PREVIEW;
+  return '';
+}
+
+function inferBasemapSourceType(options = {}) {
+  if (options.explicitSourceType) {
+    return options.explicitSourceType;
+  }
+  if (!options.styleUrl || !options.tilesUrl) {
+    return BASEMAP_SOURCE_PLATFORM_DEFAULT_FALLBACK;
+  }
+  const styleLower = String(options.styleUrl).toLowerCase();
+  const tilesLower = String(options.tilesUrl).toLowerCase();
+  const styleIsDefault = styleLower.includes('/map-resources/styles/amap-like.json');
+  const tilesIsDefault = tilesLower.includes('/tiles/city.pmtiles');
+  return styleIsDefault || tilesIsDefault
+    ? BASEMAP_SOURCE_PLATFORM_DEFAULT_FALLBACK
+    : BASEMAP_SOURCE_PLATFORM_REAL;
+}
+
+async function probeBasemapStyleUrl(styleUrl) {
+  const url = String(styleUrl || '').trim();
+  if (!url) {
+    return {
+      ok: false,
+      reason: 'empty-style-url',
+    };
+  }
+
+  const startedAt = Date.now();
+  try {
+    const response = await uni.request({
+      url,
+      method: 'GET',
+      timeout: 8000,
+      header: {
+        Accept: 'application/json',
+      },
+    });
+    const { error, result } = normalizeUniRequestResponse(response);
+    if (error) throw error;
+    const statusCode = Number(result?.statusCode || 0);
+    if (statusCode < 200 || statusCode >= 300) {
+      return {
+        ok: false,
+        reason: `style-http-${statusCode}`,
+      };
+    }
+    const data = result?.data;
+    const style = typeof data === 'string' ? safeParseGeoJson(data) : data;
+    if (!style || typeof style !== 'object') {
+      return {
+        ok: false,
+        reason: 'style-json-invalid',
+      };
+    }
+    if (!style.sources || typeof style.sources !== 'object') {
+      return {
+        ok: false,
+        reason: 'style-sources-missing',
+      };
+    }
+    return {
+      ok: true,
+      reason: 'style-ok',
+      elapsed: Date.now() - startedAt,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: normalizeRequestError(error)?.message || 'style-request-failed',
+      elapsed: Date.now() - startedAt,
+    };
+  }
+}
+
+async function ensureBasemapSourceOrder(basemap, baseUrl) {
+  if (!basemap || typeof basemap !== 'object') {
+    return {
+      ...DEFAULT_NATIVE_MAP_BOOTSTRAP.basemap,
+    };
+  }
+
+  if (basemap.sourceType !== BASEMAP_SOURCE_PLATFORM_REAL) {
+    return basemap;
+  }
+
+  const probe = await probeBasemapStyleUrl(basemap.styleUrl);
+  if (probe.ok) {
+    return {
+      ...basemap,
+      diagnostics: {
+        ...(basemap.diagnostics || {}),
+        styleUrlProbe: 'ok',
+        styleProbeReason: probe.reason,
+        styleProbeElapsed: probe.elapsed || 0,
+      },
+    };
+  }
+
+  const fallbackStyleUrl = resolveAbsoluteUrl(DEFAULT_BASEMAP_STYLE_PATH, baseUrl);
+  const fallbackTilesUrl = resolveAbsoluteUrl(DEFAULT_BASEMAP_TILES_PATH, baseUrl);
+  const fallbackNativeTileTemplate = resolveAbsoluteUrl(DEFAULT_NATIVE_TILE_TEMPLATE, baseUrl);
+
+  return {
+    ...basemap,
+    source: 'embed-default',
+    sourceType: BASEMAP_SOURCE_PLATFORM_DEFAULT_FALLBACK,
+    styleUrl: fallbackStyleUrl,
+    tilesUrl: fallbackTilesUrl,
+    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || fallbackNativeTileTemplate,
+    diagnostics: {
+      ...(basemap.diagnostics || {}),
+      reason: 'platform-style-unreachable',
+      styleUrlProbe: 'failed',
+      styleProbeReason: probe.reason || 'style-request-failed',
+      styleProbeElapsed: probe.elapsed || 0,
+    },
+  };
+}
+
+function logBasemapStatus(stage, basemap) {
+  if (!basemap || typeof basemap !== 'object') return;
+  const payload = {
+    stage,
+    sourceType: basemap.sourceType || 'unknown',
+    source: basemap.source || '',
+    styleUrl: basemap.styleUrl || '',
+    tilesUrl: basemap.tilesUrl || '',
+    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
+    diagnostics: basemap.diagnostics || {},
+  };
+  if (payload.sourceType === BASEMAP_SOURCE_PLATFORM_REAL) {
+    console.info('[map-basemap]', payload);
+    return;
+  }
+  console.warn('[map-basemap]', payload);
 }
 
 function normalizeLayerConfig(value) {
@@ -219,6 +415,10 @@ export async function getNativeMapBootstrapConfig(options = {}) {
     fallback: () => fallback,
   });
   const layerConfig = await getLayerConfigForBootstrap();
+  let basemap = normalizeBasemap(result, baseUrl, fallback.basemap);
+  logBasemapStatus('config-normalized', basemap);
+  basemap = await ensureBasemapSourceOrder(basemap, baseUrl);
+  logBasemapStatus('config-final', basemap);
 
   return {
     center: normalizeCenter(result?.defaultCenter || result?.center),
@@ -230,7 +430,7 @@ export async function getNativeMapBootstrapConfig(options = {}) {
     source: result?.generatedAtUtc ? 'embed-config' : fallback.source,
     featureToggles: result?.featureToggles || fallback.featureToggles,
     layerConfig: layerConfig.length ? layerConfig : fallback.layerConfig.slice(),
-    basemap: normalizeBasemap(result, baseUrl, fallback.basemap),
+    basemap,
   };
 }
 

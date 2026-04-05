@@ -51,6 +51,21 @@ public class GxaMapNativeModule extends UniModule {
     public void mount(JSONObject options) {
         String stage = "mount-received";
         JSONObject payload = options == null ? new JSONObject() : options;
+        JSONObject basemap = payload.optJSONObject("basemap");
+        String sourceType = basemap == null ? "" : basemap.optString("sourceType", "");
+        String styleUrl = basemap == null ? "" : basemap.optString("styleUrl", "");
+        String tilesUrl = basemap == null ? "" : basemap.optString("tilesUrl", "");
+        String nativeTileUrlTemplate = basemap == null ? "" : basemap.optString("nativeTileUrlTemplate", "");
+        Map<String, Object> basemapInfo = new HashMap<>();
+        basemapInfo.put("sourceType", sourceType);
+        basemapInfo.put("styleUrl", styleUrl);
+        basemapInfo.put("tilesUrl", tilesUrl);
+        basemapInfo.put("nativeTileUrlTemplate", nativeTileUrlTemplate);
+        emitter.emit("basemap", basemapInfo, "module mount basemap");
+        Log.i(TAG, "mount basemap sourceType=" + sourceType
+            + " styleUrl=" + styleUrl
+            + " tilesUrl=" + tilesUrl
+            + " nativeTileUrlTemplate=" + nativeTileUrlTemplate);
         GxaMapNativeStore.setMountOptions(payload);
         GxaMapNativeStore.setCameraState(extractCameraFromMount(payload));
         GxaMapNativeStore.setMounted(true);

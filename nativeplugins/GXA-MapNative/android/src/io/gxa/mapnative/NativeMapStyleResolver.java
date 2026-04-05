@@ -110,16 +110,26 @@ final class NativeMapStyleResolver {
         if (value.startsWith("http://") || value.startsWith("https://")) {
             return value;
         }
-
-        URI base = URI.create(baseUrl);
-        if (value.startsWith("/")) {
-            return base.getScheme() + "://" + base.getAuthority() + value;
+        if (baseUrl == null || baseUrl.trim().isEmpty()) {
+            return value;
         }
 
-        String path = base.getPath();
-        int slashIndex = path.lastIndexOf('/');
-        String directory = slashIndex >= 0 ? path.substring(0, slashIndex + 1) : "/";
-        return base.getScheme() + "://" + base.getAuthority() + directory + value;
+        try {
+            URI base = URI.create(baseUrl);
+            if (base.getScheme() == null || base.getAuthority() == null) {
+                return value;
+            }
+            if (value.startsWith("/")) {
+                return base.getScheme() + "://" + base.getAuthority() + value;
+            }
+
+            String path = base.getPath();
+            int slashIndex = path.lastIndexOf('/');
+            String directory = slashIndex >= 0 ? path.substring(0, slashIndex + 1) : "/";
+            return base.getScheme() + "://" + base.getAuthority() + directory + value;
+        } catch (Throwable error) {
+            return value;
+        }
     }
 
     private static String fetchText(String url) throws IOException {

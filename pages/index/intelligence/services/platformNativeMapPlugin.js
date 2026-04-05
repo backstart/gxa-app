@@ -180,12 +180,21 @@ export function mountPlatformNativeMap(options = {}) {
   const plugin = getPlatformNativeMapPlugin();
   if (!plugin) return false;
   try {
+    const basemap = options.basemap && typeof options.basemap === 'object' ? options.basemap : {};
+    console.info('[map-basemap]', {
+      stage: 'plugin-mount-request',
+      sourceType: basemap.sourceType || '',
+      source: basemap.source || '',
+      styleUrl: basemap.styleUrl || '',
+      tilesUrl: basemap.tilesUrl || '',
+      nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
+    });
     ensureEventBridge(plugin);
     plugin.mount({
       containerId: options.containerId || '',
       center: options.center || [],
       zoom: Number(options.zoom || 13),
-      basemap: options.basemap || null,
+      basemap: basemap || null,
       layers: Array.isArray(options.layers) ? options.layers : [],
       layerConfig: Array.isArray(options.layerConfig) ? options.layerConfig : [],
     });

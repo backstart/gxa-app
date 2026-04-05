@@ -109,6 +109,7 @@ const capabilityResolved = ref(false);
 const nativeStartupPhase = ref('idle');
 const nativeFailureReason = ref('');
 const debugPreviewEnabled = ref(false);
+const lastBasemapSignature = ref('');
 let removeNativeMapListener = null;
 let nativeReadyTimer = null;
 
@@ -120,6 +121,7 @@ const showDegradedPreview = computed(() =>
   props.enabled
   && (nativeStartupPhase.value === 'degraded' || nativeStartupPhase.value === 'failed')
   && !usePlatformNativePlugin.value
+  && String(renderState.basemap?.sourceType || '') !== 'platform-real'
 );
 const showLoadingMask = computed(() =>
   props.enabled && (
@@ -317,7 +319,10 @@ onMounted(async () => {
       if (typeof nextState.ready === 'boolean') renderState.ready = nextState.ready;
       if (nextState.mode) renderState.mode = nextState.mode;
       if (nextState.source) renderState.source = nextState.source;
-      if (nextState.basemap) renderState.basemap = { ...renderState.basemap, ...nextState.basemap };
+      if (nextState.basemap) {
+        renderState.basemap = { ...renderState.basemap, ...nextState.basemap };
+        logBasemapStatus('container-sync', renderState.basemap);
+      }
     },
   });
 
@@ -468,6 +473,16 @@ function handlePlatformNativeEvent(event) {
     return;
   }
 
+  if (type === 'basemap') {
+    logBasemapStatus('plugin-event', payload);
+    emit('map-event', {
+      type: 'basemap',
+      payload,
+      raw: event,
+    });
+    return;
+  }
+
   if (type === 'moveEnd') {
     if (Array.isArray(payload.center) && payload.center.length >= 2) {
       adapter.setCenter(payload.center);
@@ -576,6 +591,30 @@ function logMapSurfaceStatus(path, reason = '') {
     nativeEnabled: usePlatformNativePlugin.value,
     ready: renderState.ready,
   });
+}
+
+function logBasemapStatus(stage, basemap) {
+  if (!basemap || typeof basemap !== 'object') return;
+  const sourceType = String(basemap.sourceType || '');
+  const styleUrl = String(basemap.styleUrl || '');
+  const tilesUrl = String(basemap.tilesUrl || '');
+  const nativeTileUrlTemplate = String(basemap.nativeTileUrlTemplate || '');
+  const signature = `${stage}|${sourceType}|${styleUrl}|${tilesUrl}|${nativeTileUrlTemplate}`;
+  if (lastBasemapSignature.value === signature) return;
+  lastBasemapSignature.value = signature;
+  const payload = {
+    stage,
+    sourceType,
+    source: String(basemap.source || ''),
+    styleUrl,
+    tilesUrl,
+    nativeTileUrlTemplate,
+  };
+  if (sourceType === 'platform-real') {
+    console.info('[map-basemap]', payload);
+    return;
+  }
+  console.warn('[map-basemap]', payload);
 }
 
 function scheduleNativeReadyTimeout() {
