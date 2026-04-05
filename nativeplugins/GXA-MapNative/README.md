@@ -8,6 +8,10 @@
 - 关键变化：MapLibre 依赖（maplibre sdk/gestures/geojson/turf + timber）已并入插件 AAR，避免运行时缺类。
 - 注意：**kotlin/okhttp/okio 不再并入插件 AAR**，避免云打包与宿主依赖发生 `DuplicateClasses`。
 
+pw构建命令：cd D:\Code\gxa\gxa-app\nativeplugins\GXA-MapNative\android
+.\gradlew.bat --no-daemon assembleRelease
+
+
 ## 为什么这样改
 
 此前使用 AAR 预编译模式时，MapLibre 运行时在部分自定义基座版本上会丢失，真机运行时报：
