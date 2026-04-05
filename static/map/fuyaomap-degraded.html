@@ -1,11 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
   <title>Fuyao Degraded Basemap</title>
   <style>
-    html, body {
+    html,
+    body,
+    #map {
       margin: 0;
       width: 100%;
       height: 100%;
@@ -14,13 +16,9 @@
       font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
 
-    #map-frame {
+    #map {
       position: absolute;
       inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      background: #e8edf3;
     }
 
     #loading {
@@ -28,10 +26,11 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
+      z-index: 8;
       display: flex;
       align-items: center;
       gap: 10px;
-      color: #60768d;
+      color: #61778d;
       font-size: 13px;
       pointer-events: none;
     }
@@ -39,7 +38,7 @@
     #dot {
       width: 10px;
       height: 10px;
-      border-radius: 50%;
+      border-radius: 999px;
       background: #2f7cff;
       box-shadow: 0 0 0 8px rgba(47, 124, 255, 0.18);
     }
@@ -49,6 +48,7 @@
       left: 16px;
       right: 16px;
       bottom: 16px;
+      z-index: 8;
       display: none;
       padding: 12px 14px;
       border-radius: 12px;
@@ -60,156 +60,376 @@
   </style>
 </head>
 <body>
-  <iframe id="map-frame" title="degraded-basemap"></iframe>
+  <div id="map"></div>
   <div id="loading"><span id="dot"></span><span>降级底图加载中</span></div>
   <div id="error"></div>
 
   <script>
     (function () {
-      var READY_TIMEOUT_MS = 12000;
+      if (typeof globalThis === 'undefined') {
+        Object.defineProperty(Object.prototype, '__global_this__', {
+          get: function () {
+            return this;
+          },
+          configurable: true,
+        });
+        __global_this__.globalThis = __global_this__;
+        delete Object.prototype.__global_this__;
+      }
+
+      var READY_TIMEOUT_MS = 15000;
       var params = new URLSearchParams(window.location.search || '');
-      var frame = document.getElementById('map-frame');
-      var loading = document.getElementById('loading');
-      var errorBox = document.getElementById('error');
+      var loadingEl = document.getElementById('loading');
+      var errorEl = document.getElementById('error');
+      var mapEl = document.getElementById('map');
+
+      var sourceType = String(params.get('sourceType') || '').trim();
+      var mapHost = resolveOrigin(params.get('mapHost'));
+      var rawStyleUrl = String(params.get('styleUrl') || '').trim();
+      var rawTilesUrl = String(params.get('tilesUrl') || '').trim();
+      var rawTileTemplate = String(params.get('nativeTileUrlTemplate') || '').trim();
+      var center = parseCenter(params.get('center'));
+      var zoom = parseNumber(params.get('zoom'), 12);
+      var layers = parseLayers(params.get('layers'));
+      var readonly = String(params.get('readonly') || '1') === '1';
+      var resolvedStyleUrl = '';
+      var resolvedTilesUrl = '';
+      var resolvedTileTemplate = '';
       var readyTimer = null;
-      var settled = false;
+      var mapReady = false;
+
+      function parseNumber(value, fallback) {
+        var parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      }
 
       function parseCenter(raw) {
-        var text = String(raw || '');
-        if (!text) return '113.4445,22.4915';
+        var text = String(raw || '').trim();
+        if (!text) return [113.4445, 22.4915];
         var parts = text.split(',');
-        if (parts.length < 2) return '113.4445,22.4915';
-        var lng = Number(parts[0]);
-        var lat = Number(parts[1]);
-        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return '113.4445,22.4915';
-        return lng + ',' + lat;
+        if (parts.length < 2) return [113.4445, 22.4915];
+        var lng = parseNumber(parts[0], NaN);
+        var lat = parseNumber(parts[1], NaN);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return [113.4445, 22.4915];
+        return [lng, lat];
+      }
+
+      function parseLayers(raw) {
+        return String(raw || '')
+          .split(',')
+          .map(function (item) { return item.trim(); })
+          .filter(Boolean);
+      }
+
+      function resolveOrigin(url) {
+        var text = String(url || '').trim();
+        var match = text.match(/^https?:\/\/[^/]+/i);
+        return match ? match[0] : '';
+      }
+
+      function hasAnyScheme(url) {
+        return /^[a-z][a-z0-9+.-]*:\/\//i.test(String(url || '').trim());
+      }
+
+      function resolveAbsoluteUrl(url, origin, baseHref) {
+        var text = String(url || '').trim();
+        if (!text) return '';
+        if (/^https?:\/\//i.test(text)) return text;
+        if (text.indexOf('//') === 0) {
+          var protocolMatch = String(origin || '').match(/^(https?):\/\//i);
+          var protocol = protocolMatch ? protocolMatch[1] : 'http';
+          return protocol + ':' + text;
+        }
+        if (hasAnyScheme(text)) return '';
+        if (text.charAt(0) === '/') {
+          var cleanOrigin = String(origin || '').replace(/\/+$/, '');
+          return cleanOrigin ? cleanOrigin + '/' + text.replace(/^\/+/, '') : text;
+        }
+        if (baseHref) {
+          try {
+            return new URL(text, baseHref).href;
+          } catch (error) {}
+        }
+        var cleanBase = String(origin || '').replace(/\/+$/, '');
+        return cleanBase ? cleanBase + '/' + text.replace(/^\/+/, '') : text;
       }
 
       function emit(type, payload) {
         var message = {
           source: 'degraded-basemap',
           type: type,
-          payload: payload || {}
+          payload: payload || {},
         };
         try {
           if (window.uni && typeof window.uni.postMessage === 'function') {
             window.uni.postMessage({ data: message });
           }
-        } catch (e) {}
+        } catch (error) {}
         try {
           if (window.parent && window.parent !== window) {
             window.parent.postMessage(message, '*');
           }
-        } catch (e) {}
+        } catch (error) {}
       }
 
-      function doneReady(extra) {
-        if (settled) return;
-        settled = true;
+      function log(stage, extra) {
+        var payload = Object.assign({
+          stage: stage,
+          sourceType: sourceType,
+          styleUrl: resolvedStyleUrl || rawStyleUrl,
+          tilesUrl: resolvedTilesUrl || rawTilesUrl,
+          nativeTileUrlTemplate: resolvedTileTemplate || rawTileTemplate,
+          src: window.location.href,
+        }, extra || {});
+        emit('status', payload);
+        try {
+          console.info('[map-surface]', payload);
+        } catch (error) {}
+      }
+
+      function showError(message, code, extra) {
+        if (mapReady) return;
         if (readyTimer) {
           clearTimeout(readyTimer);
           readyTimer = null;
         }
-        loading.style.display = 'none';
-        emit('ready', extra || {});
-      }
-
-      function doneError(message, extra) {
-        if (settled) return;
-        settled = true;
-        if (readyTimer) {
-          clearTimeout(readyTimer);
-          readyTimer = null;
-        }
-        loading.style.display = 'none';
-        errorBox.style.display = 'block';
-        errorBox.textContent = message || '降级底图加载失败';
-        var payload = extra || {};
-        payload.message = message || payload.message || 'degraded-load-failed';
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = message || '降级底图加载失败';
+        var payload = Object.assign({
+          message: message || 'degraded-load-failed',
+          code: code || 'degraded-load-failed',
+          sourceType: sourceType,
+          styleUrl: resolvedStyleUrl || rawStyleUrl,
+          tilesUrl: resolvedTilesUrl || rawTilesUrl,
+          nativeTileUrlTemplate: resolvedTileTemplate || rawTileTemplate,
+          src: window.location.href,
+        }, extra || {});
         emit('error', payload);
+        log('degraded-failed', payload);
       }
 
-      function buildEmbedSrc() {
-        var embedBase = String(params.get('embedUrl') || '').trim();
-        if (!embedBase) {
-          return '';
+      function markReady(map) {
+        if (mapReady) return;
+        mapReady = true;
+        if (readyTimer) {
+          clearTimeout(readyTimer);
+          readyTimer = null;
         }
-        var query = new URLSearchParams();
-        query.set('mode', 'view');
-        query.set('readonly', params.get('readonly') || '1');
-        query.set('theme', params.get('theme') || 'light');
-        query.set('center', parseCenter(params.get('center')));
-        query.set('zoom', String(params.get('zoom') || '12'));
-        var layers = String(params.get('layers') || '').trim();
-        if (layers) query.set('activeLayers', layers);
-        var sourceType = String(params.get('sourceType') || '').trim();
-        if (sourceType) query.set('sourceType', sourceType);
-        var styleUrl = String(params.get('styleUrl') || '').trim();
-        var tilesUrl = String(params.get('tilesUrl') || '').trim();
-        var nativeTileUrlTemplate = String(params.get('nativeTileUrlTemplate') || '').trim();
-        if (styleUrl) query.set('styleUrl', styleUrl);
-        if (tilesUrl) query.set('tilesUrl', tilesUrl);
-        if (nativeTileUrlTemplate) query.set('nativeTileUrlTemplate', nativeTileUrlTemplate);
-        return embedBase + (embedBase.indexOf('?') >= 0 ? '&' : '?') + query.toString();
+        loadingEl.style.display = 'none';
+        var centerValue = map && map.getCenter ? map.getCenter() : null;
+        var zoomValue = map && map.getZoom ? map.getZoom() : zoom;
+        var payload = {
+          sourceType: sourceType,
+          center: centerValue ? [centerValue.lng, centerValue.lat] : center,
+          zoom: Number(zoomValue),
+          styleUrl: resolvedStyleUrl || rawStyleUrl,
+          tilesUrl: resolvedTilesUrl || rawTilesUrl,
+          nativeTileUrlTemplate: resolvedTileTemplate || rawTileTemplate,
+          readonly: readonly,
+          src: window.location.href,
+        };
+        emit('ready', payload);
+        log('degraded-ready', payload);
       }
 
-      var src = buildEmbedSrc();
-      emit('status', {
-        stage: 'degraded-src-built',
-        sourceType: String(params.get('sourceType') || ''),
-        styleUrl: String(params.get('styleUrl') || ''),
-        tilesUrl: String(params.get('tilesUrl') || ''),
-        nativeTileUrlTemplate: String(params.get('nativeTileUrlTemplate') || ''),
-        src: src
-      });
-      if (!src) {
-        doneError('degraded embedUrl missing', {
-          code: 'degraded-src-missing'
+      function loadCss(url) {
+        return new Promise(function (resolve, reject) {
+          var link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = url;
+          link.onload = function () { resolve(); };
+          link.onerror = function () { reject(new Error('css-load-failed')); };
+          document.head.appendChild(link);
         });
-        return;
       }
 
-      readyTimer = setTimeout(function () {
-        doneError('degraded ready timeout', {
-          code: 'degraded-ready-timeout',
-          src: src
+      function loadScript(url) {
+        return new Promise(function (resolve, reject) {
+          var script = document.createElement('script');
+          script.src = url;
+          script.async = false;
+          script.onload = function () { resolve(); };
+          script.onerror = function () { reject(new Error('script-load-failed')); };
+          document.head.appendChild(script);
         });
-      }, READY_TIMEOUT_MS);
+      }
 
-      frame.addEventListener('load', function () {
-        doneReady({
-          stage: 'iframe-load',
-          src: src
+      function requestJson(url) {
+        return new Promise(function (resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url, true);
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState !== 4) return;
+            if (xhr.status < 200 || xhr.status >= 300) {
+              reject(new Error('style-http-' + xhr.status));
+              return;
+            }
+            try {
+              resolve(JSON.parse(xhr.responseText || '{}'));
+            } catch (error) {
+              reject(new Error('style-json-invalid'));
+            }
+          };
+          xhr.onerror = function () {
+            reject(new Error('style-request-failed'));
+          };
+          xhr.send();
         });
-      });
-      frame.addEventListener('error', function () {
-        doneError('degraded iframe load failed', {
-          code: 'degraded-iframe-error',
-          src: src
-        });
-      });
+      }
 
-      window.addEventListener('message', function (event) {
-        var data = event && event.data;
-        if (!data || typeof data !== 'object') return;
-        var source = String(data.source || '').toLowerCase();
-        var type = String(data.type || '').toLowerCase();
-        if (source === 'fuyaomap-embedded' && type === 'map-ready') {
-          doneReady({
-            stage: 'embedded-map-ready',
-            src: src
-          });
+      function normalizeStyle(styleJson, styleHref, tilesHref) {
+        var normalized = styleJson && typeof styleJson === 'object' ? styleJson : {};
+        var styleUrlForRelative = styleHref;
+        if (typeof normalized.glyphs === 'string') {
+          normalized.glyphs = resolveAbsoluteUrl(normalized.glyphs, mapHost, styleUrlForRelative);
+        }
+        if (typeof normalized.sprite === 'string') {
+          normalized.sprite = resolveAbsoluteUrl(normalized.sprite, mapHost, styleUrlForRelative);
+        }
+        var sources = normalized.sources && typeof normalized.sources === 'object' ? normalized.sources : {};
+        var sourceKeys = Object.keys(sources);
+        for (var i = 0; i < sourceKeys.length; i += 1) {
+          var sourceKey = sourceKeys[i];
+          var source = sources[sourceKey];
+          if (!source || typeof source !== 'object') continue;
+          if (typeof source.url === 'string') {
+            if (source.url.indexOf('pmtiles://') === 0) {
+              source.url = 'pmtiles://' + tilesHref;
+            } else {
+              source.url = resolveAbsoluteUrl(source.url, mapHost, styleUrlForRelative);
+            }
+          }
+          if (Array.isArray(source.tiles)) {
+            source.tiles = source.tiles.map(function (tileUrl) {
+              if (typeof tileUrl !== 'string') return tileUrl;
+              if (tileUrl.indexOf('pmtiles://') === 0) {
+                return 'pmtiles://' + tilesHref;
+              }
+              return resolveAbsoluteUrl(tileUrl, mapHost, styleUrlForRelative);
+            });
+          }
+        }
+        return normalized;
+      }
+
+      function applyActiveLayers(mapInstance, selectedLayers) {
+        if (!mapInstance || !Array.isArray(selectedLayers) || !selectedLayers.length) {
           return;
         }
-        if (source === 'fuyaomap-embedded' && (type === 'map-error' || type === 'error')) {
-          doneError(String(data.message || data.payload?.message || 'embedded-map-error'), {
-            code: 'embedded-map-error',
-            src: src
-          });
-        }
-      });
+        var style = mapInstance.getStyle && mapInstance.getStyle();
+        var layersInStyle = style && Array.isArray(style.layers) ? style.layers : [];
+        if (!layersInStyle.length) return;
+        var tokens = selectedLayers.map(function (item) {
+          return String(item || '').toLowerCase();
+        });
+        var businessTokens = ['alerts', 'places', 'shops', 'pois', 'people', 'handling', 'patrol', 'boundaries', 'cases'];
 
-      frame.src = src;
+        for (var i = 0; i < layersInStyle.length; i += 1) {
+          var layer = layersInStyle[i];
+          var id = String(layer.id || '').toLowerCase();
+          var source = String(layer.source || '').toLowerCase();
+          var domainMatched = false;
+          for (var j = 0; j < businessTokens.length; j += 1) {
+            if (id.indexOf(businessTokens[j]) >= 0 || source.indexOf(businessTokens[j]) >= 0) {
+              domainMatched = true;
+              break;
+            }
+          }
+          if (!domainMatched) continue;
+          var visible = false;
+          for (var k = 0; k < tokens.length; k += 1) {
+            if (!tokens[k]) continue;
+            if (id.indexOf(tokens[k]) >= 0 || source.indexOf(tokens[k]) >= 0) {
+              visible = true;
+              break;
+            }
+          }
+          try {
+            mapInstance.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none');
+          } catch (error) {}
+        }
+      }
+
+      function boot() {
+        var inferredHost = resolveOrigin(rawStyleUrl)
+          || resolveOrigin(rawTilesUrl)
+          || mapHost
+          || 'http://159.75.54.99:8002';
+        mapHost = inferredHost;
+
+        resolvedStyleUrl = resolveAbsoluteUrl(rawStyleUrl, mapHost, '');
+        resolvedTilesUrl = resolveAbsoluteUrl(rawTilesUrl, mapHost, '');
+        resolvedTileTemplate = resolveAbsoluteUrl(rawTileTemplate, mapHost, '');
+
+        log('degraded-src-built', {
+          phase: 'loading',
+          sourceType: sourceType,
+          styleUrl: resolvedStyleUrl,
+          tilesUrl: resolvedTilesUrl,
+          nativeTileUrlTemplate: resolvedTileTemplate,
+          mapHost: mapHost,
+        });
+
+        if (!resolvedStyleUrl || !resolvedTilesUrl) {
+          showError('degraded styleUrl/tilesUrl missing', 'degraded-style-or-tiles-missing');
+          return;
+        }
+
+        readyTimer = setTimeout(function () {
+          if (mapReady) return;
+          showError('degraded-ready-timeout', 'degraded-ready-timeout');
+        }, READY_TIMEOUT_MS);
+
+        var cssUrl = resolveAbsoluteUrl('/map-resources/vendor/maplibre-gl.css', mapHost, '');
+        var maplibreJsUrl = resolveAbsoluteUrl('/map-resources/vendor/maplibre-gl.js', mapHost, '');
+        var pmtilesJsUrl = resolveAbsoluteUrl('/map-resources/vendor/pmtiles.js', mapHost, '');
+
+        Promise.resolve()
+          .then(function () { return loadCss(cssUrl); })
+          .then(function () { return loadScript(maplibreJsUrl); })
+          .then(function () { return loadScript(pmtilesJsUrl); })
+          .then(function () {
+            if (!window.maplibregl) {
+              throw new Error('maplibre-runtime-missing');
+            }
+            if (!window.pmtiles) {
+              throw new Error('pmtiles-runtime-missing');
+            }
+            var protocol = new window.pmtiles.Protocol({ metadata: true });
+            window.maplibregl.addProtocol('pmtiles', protocol.tile);
+            return requestJson(resolvedStyleUrl);
+          })
+          .then(function (styleJson) {
+            var normalized = normalizeStyle(styleJson, resolvedStyleUrl, resolvedTilesUrl);
+            var map = new window.maplibregl.Map({
+              container: mapEl,
+              style: normalized,
+              center: center,
+              zoom: zoom,
+              attributionControl: false,
+            });
+
+            map.on('load', function () {
+              applyActiveLayers(map, layers);
+              markReady(map);
+            });
+
+            map.on('error', function (event) {
+              if (mapReady) return;
+              var message = event && event.error && event.error.message
+                ? String(event.error.message)
+                : 'map-runtime-error';
+              showError(message, 'map-runtime-error');
+            });
+          })
+          .catch(function (error) {
+            var message = error && error.message ? String(error.message) : 'degraded-init-failed';
+            showError(message, 'degraded-init-failed');
+          });
+      }
+
+      boot();
     })();
   </script>
 </body>

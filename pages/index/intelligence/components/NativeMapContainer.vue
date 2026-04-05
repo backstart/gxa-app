@@ -632,6 +632,8 @@ function handleDegradedSurfaceStatus(status) {
     degradedPhase: degradedSurfacePhase.value,
     sourceType: basemapSourceType.value,
     nativeReady: showNativeReadySurface.value,
+    src: String(status?.src || ''),
+    reason: String(status?.reason || ''),
     styleUrl: String(status?.styleUrl || ''),
     tilesUrl: String(status?.tilesUrl || ''),
     nativeTileUrlTemplate: String(status?.nativeTileUrlTemplate || ''),

@@ -129,6 +129,7 @@ function handleMessage(event) {
       console.info('[map-surface]', {
         path: 'degraded-status',
         phase: phase.value,
+        src: activeSrc.value,
         sourceType: String(props.basemap?.sourceType || ''),
         styleUrl: String(props.basemap?.styleUrl || ''),
         tilesUrl: String(props.basemap?.tilesUrl || ''),
@@ -143,6 +144,7 @@ function handleMessage(event) {
       console.info('[map-surface]', {
         path: 'degraded-ready',
         phase: phase.value,
+        src: activeSrc.value,
         sourceType: String(props.basemap?.sourceType || ''),
         styleUrl: String(props.basemap?.styleUrl || ''),
         tilesUrl: String(props.basemap?.tilesUrl || ''),
@@ -158,6 +160,7 @@ function handleMessage(event) {
       console.error('[map-surface]', {
         path: 'degraded-failed',
         phase: phase.value,
+        src: activeSrc.value,
         sourceType: String(props.basemap?.sourceType || ''),
         styleUrl: String(props.basemap?.styleUrl || ''),
         tilesUrl: String(props.basemap?.tilesUrl || ''),
@@ -203,6 +206,7 @@ function startReadyTimer() {
     console.error('[map-surface]', {
       path: 'degraded-failed',
       phase: phase.value,
+      src: activeSrc.value,
       sourceType: String(props.basemap?.sourceType || ''),
       styleUrl: String(props.basemap?.styleUrl || ''),
       tilesUrl: String(props.basemap?.tilesUrl || ''),

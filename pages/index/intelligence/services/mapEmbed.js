@@ -5,6 +5,27 @@ function formatCenter(center) {
   return `${center[0]},${center[1]}`;
 }
 
+function resolveOrigin(url) {
+  const text = String(url || '').trim();
+  const match = text.match(/^https?:\/\/[^/]+/i);
+  return match ? match[0] : '';
+}
+
+function resolveAbsoluteUrl(url, origin) {
+  const text = String(url || '').trim();
+  if (!text) return '';
+  if (/^https?:\/\//i.test(text)) return text;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(text)) return '';
+  if (text.startsWith('//')) {
+    const protocolMatch = String(origin || '').match(/^(https?):\/\//i);
+    const protocol = protocolMatch ? protocolMatch[1] : 'http';
+    return `${protocol}:${text}`;
+  }
+  const base = String(origin || '').replace(/\/+$/, '');
+  if (!base) return text;
+  return `${base}/${text.replace(/^\/+/, '')}`;
+}
+
 function buildQuery(query) {
   return Object.entries(query)
     .filter(([, value]) => value !== undefined && value !== null && value !== '')
@@ -165,15 +186,22 @@ export function buildDegradedBasemapSrc(options = {}) {
   };
   const basemap = view.basemap && typeof view.basemap === 'object' ? view.basemap : {};
   const embedBaseUrl = String(getConfiguredMapEmbedUrl() || '').replace(/\/+$/, '');
+  const mapHost = resolveOrigin(embedBaseUrl)
+    || resolveOrigin(getConfiguredMapPageUrl())
+    || resolveOrigin(basemap.styleUrl)
+    || resolveOrigin(basemap.tilesUrl);
+  const styleUrl = resolveAbsoluteUrl(basemap.styleUrl, mapHost);
+  const tilesUrl = resolveAbsoluteUrl(basemap.tilesUrl, mapHost);
+  const nativeTileUrlTemplate = resolveAbsoluteUrl(basemap.nativeTileUrlTemplate, mapHost);
   const query = buildQuery({
-    embedUrl: embedBaseUrl,
     center: formatCenter(view.center),
     zoom: view.zoom,
     layers: Array.isArray(view.layers) ? view.layers.join(',') : '',
     sourceType: basemap.sourceType || '',
-    styleUrl: basemap.styleUrl || '',
-    tilesUrl: basemap.tilesUrl || '',
-    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
+    styleUrl,
+    tilesUrl,
+    nativeTileUrlTemplate,
+    mapHost,
     theme: view.theme || 'light',
     readonly: '1',
   });
@@ -181,9 +209,9 @@ export function buildDegradedBasemapSrc(options = {}) {
   console.info('[map-surface]', {
     path: 'degraded-src-built',
     sourceType: basemap.sourceType || '',
-    styleUrl: basemap.styleUrl || '',
-    tilesUrl: basemap.tilesUrl || '',
-    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
+    styleUrl,
+    tilesUrl,
+    nativeTileUrlTemplate,
     src,
   });
   return src;
