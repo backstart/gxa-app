@@ -5,6 +5,8 @@
       class="degraded-surface__webview"
       :src="activeSrc"
       @message="handleMessage"
+      @load="handleLoad"
+      @error="handleError"
     />
     <view v-if="showLoading" class="degraded-surface__loading">
       <view class="degraded-surface__loading-dot"></view>
@@ -20,7 +22,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { buildDegradedBasemapSrc, DEFAULT_MAP_VIEW } from '../services/mapEmbed.js';
 
-const READY_TIMEOUT_MS = 12000;
+const VISIBLE_CONFIRM_TIMEOUT_MS = 4500;
+const READY_TIMEOUT_MS = 30000;
 
 const props = defineProps({
   enabled: { type: Boolean, default: true },
@@ -35,7 +38,10 @@ const emit = defineEmits(['status']);
 const activeSrc = ref('');
 const phase = ref('idle');
 const basemapSignature = ref('');
+const activeAttemptId = ref(0);
+const currentAttemptActivity = ref(false);
 let readyTimer = null;
+let visibleConfirmTimer = null;
 
 const showLoading = computed(() => phase.value === 'loading');
 const showFailed = computed(() => phase.value === 'failed');
@@ -47,6 +53,8 @@ watch(
       clearReadyTimer();
       activeSrc.value = '';
       phase.value = 'idle';
+      basemapSignature.value = '';
+      currentAttemptActivity.value = false;
       emitStatus();
       return;
     }
@@ -82,8 +90,17 @@ function ensureSurface() {
   const tilesUrl = String(props.basemap?.tilesUrl || '').trim();
   const sourceType = String(props.basemap?.sourceType || '').trim();
   if (!styleUrl || !tilesUrl) {
+    clearReadyTimer();
     phase.value = 'failed';
     activeSrc.value = '';
+    currentAttemptActivity.value = false;
+    logFailed({
+      reason: 'missing-style-or-tiles',
+      sourceType,
+      styleUrl,
+      tilesUrl,
+      nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || '').trim(),
+    });
     emitStatus();
     return;
   }
@@ -93,6 +110,8 @@ function ensureSurface() {
     return;
   }
   basemapSignature.value = nextSignature;
+  activeAttemptId.value += 1;
+  currentAttemptActivity.value = false;
   const src = buildDegradedBasemapSrc({
     center: Array.isArray(props.center) && props.center.length >= 2 ? props.center.slice() : DEFAULT_MAP_VIEW.center.slice(),
     zoom: Number.isFinite(Number(props.zoom)) ? Number(props.zoom) : DEFAULT_MAP_VIEW.zoom,
@@ -106,6 +125,14 @@ function ensureSurface() {
   });
   activeSrc.value = src;
   phase.value = 'loading';
+  logLoading({
+    sourceType,
+    styleUrl,
+    tilesUrl,
+    nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || '').trim(),
+    src,
+    attemptId: activeAttemptId.value,
+  });
   console.info('[map-surface]', {
     path: 'degraded-src-built',
     phase: phase.value,
@@ -116,7 +143,7 @@ function ensureSurface() {
     src,
   });
   emitStatus();
-  startReadyTimer();
+  startLifecycleTimers(activeAttemptId.value);
 }
 
 function handleMessage(event) {
@@ -125,7 +152,9 @@ function handleMessage(event) {
     const message = normalizeMessage(list[i]?.data ?? list[i]);
     if (!message) continue;
     if (String(message?.source || '') !== 'degraded-basemap') continue;
+    markAttemptActivity();
     if (String(message?.type || '').toLowerCase() === 'status') {
+      promoteToVisibleUnconfirmed('status-message');
       console.info('[map-surface]', {
         path: 'degraded-status',
         phase: phase.value,
@@ -157,20 +186,38 @@ function handleMessage(event) {
     if (isErrorMessage(message)) {
       clearReadyTimer();
       phase.value = 'failed';
-      console.error('[map-surface]', {
-        path: 'degraded-failed',
-        phase: phase.value,
-        src: activeSrc.value,
+      logFailed({
         sourceType: String(props.basemap?.sourceType || ''),
         styleUrl: String(props.basemap?.styleUrl || ''),
         tilesUrl: String(props.basemap?.tilesUrl || ''),
         nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
         payload: message?.payload || {},
+        src: activeSrc.value,
       });
       emitStatus(message?.message || message?.type || 'degraded-map-error');
       return;
     }
   }
+}
+
+function handleLoad() {
+  markAttemptActivity();
+  promoteToVisibleUnconfirmed('webview-load');
+}
+
+function handleError(errorEvent) {
+  clearReadyTimer();
+  phase.value = 'failed';
+  logFailed({
+    sourceType: String(props.basemap?.sourceType || ''),
+    styleUrl: String(props.basemap?.styleUrl || ''),
+    tilesUrl: String(props.basemap?.tilesUrl || ''),
+    nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
+    reason: 'webview-error',
+    payload: errorEvent?.detail || errorEvent || {},
+    src: activeSrc.value,
+  });
+  emitStatus('degraded-webview-error');
 }
 
 function normalizeMessage(message) {
@@ -198,29 +245,82 @@ function isErrorMessage(message) {
   return source === 'degraded-basemap' && type === 'error';
 }
 
-function startReadyTimer() {
+function startLifecycleTimers(attemptId) {
   clearReadyTimer();
-  readyTimer = setTimeout(() => {
+  visibleConfirmTimer = setTimeout(() => {
+    if (attemptId !== activeAttemptId.value) return;
     if (phase.value !== 'loading') return;
+    promoteToVisibleUnconfirmed('visible-confirm-timeout');
+  }, VISIBLE_CONFIRM_TIMEOUT_MS);
+
+  readyTimer = setTimeout(() => {
+    if (attemptId !== activeAttemptId.value) return;
+    if (phase.value !== 'loading') return;
+    if (currentAttemptActivity.value) {
+      promoteToVisibleUnconfirmed('ready-timeout-with-activity');
+      return;
+    }
     phase.value = 'failed';
-    console.error('[map-surface]', {
-      path: 'degraded-failed',
-      phase: phase.value,
-      src: activeSrc.value,
+    logFailed({
       sourceType: String(props.basemap?.sourceType || ''),
       styleUrl: String(props.basemap?.styleUrl || ''),
       tilesUrl: String(props.basemap?.tilesUrl || ''),
       nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
-      reason: 'degraded-ready-timeout',
+      reason: 'degraded-no-response-timeout',
+      src: activeSrc.value,
     });
-    emitStatus('degraded-ready-timeout');
+    emitStatus('degraded-no-response-timeout');
   }, READY_TIMEOUT_MS);
 }
 
 function clearReadyTimer() {
+  if (visibleConfirmTimer) {
+    clearTimeout(visibleConfirmTimer);
+    visibleConfirmTimer = null;
+  }
   if (!readyTimer) return;
   clearTimeout(readyTimer);
   readyTimer = null;
+}
+
+function markAttemptActivity() {
+  currentAttemptActivity.value = true;
+}
+
+function promoteToVisibleUnconfirmed(reason = '') {
+  if (phase.value !== 'loading') return;
+  phase.value = 'visible-unconfirmed';
+  logVisibleUnconfirmed(reason);
+  emitStatus(reason || 'visible-unconfirmed');
+}
+
+function logLoading(payload = {}) {
+  console.info('[map-surface]', {
+    path: 'degraded-loading',
+    phase: phase.value,
+    ...payload,
+  });
+}
+
+function logVisibleUnconfirmed(reason = '') {
+  console.info('[map-surface]', {
+    path: 'degraded-visible-unconfirmed',
+    phase: phase.value,
+    src: activeSrc.value,
+    reason: String(reason || ''),
+    sourceType: String(props.basemap?.sourceType || ''),
+    styleUrl: String(props.basemap?.styleUrl || ''),
+    tilesUrl: String(props.basemap?.tilesUrl || ''),
+    nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
+  });
+}
+
+function logFailed(payload = {}) {
+  console.error('[map-surface]', {
+    path: 'degraded-failed',
+    phase: phase.value,
+    ...payload,
+  });
 }
 
 function emitStatus(reason = '') {
@@ -232,6 +332,7 @@ function emitStatus(reason = '') {
     styleUrl: String(props.basemap?.styleUrl || ''),
     tilesUrl: String(props.basemap?.tilesUrl || ''),
     nativeTileUrlTemplate: String(props.basemap?.nativeTileUrlTemplate || ''),
+    attemptId: activeAttemptId.value,
   });
 }
 </script>

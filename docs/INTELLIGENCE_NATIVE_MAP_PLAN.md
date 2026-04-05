@@ -77,6 +77,9 @@
 - 新增 `DegradedBasemapSurface`，当 `sourceType` 为 `platform-real` 或 `platform-default-fallback` 且 native 未 ready 时，优先显示可渲染的 degraded 底图层。
 - degraded 底图不再走 `web-view -> degraded.html -> iframe -> /embed/map` 嵌套链路，改为独立最小页 `static/map/fuyaomap-degraded.html` 单页直渲染。
 - `fuyaomap-degraded.html` 直接读取 `styleUrl/tilesUrl/nativeTileUrlTemplate` 初始化 MapLibre，成功后只回传 `source=degraded-basemap,type=ready`。
+- `DegradedBasemapSurface` 生命周期改为：`idle -> loading -> visible-unconfirmed -> ready/failed`。
+- 外层不再用“12 秒未收到 ready”直接判失败；超时改为长超时兜底（30 秒），且只在“完全无响应”时才失败。
+- 一旦进入 `visible-unconfirmed`，不再自动卸载 degraded surface，避免 `degraded -> preview-only -> degraded` 循环抖动。
 - `preview-only` 只在两种场景出现：
   - `styleUrl/tilesUrl` 不可用；
   - degraded 底图层初始化失败。

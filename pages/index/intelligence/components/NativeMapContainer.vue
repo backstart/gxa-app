@@ -122,6 +122,7 @@ const nativeStartupPhase = ref('idle');
 const nativeFailureReason = ref('');
 const debugPreviewEnabled = ref(false);
 const lastBasemapSignature = ref('');
+const lastDegradedFailedSignature = ref('');
 const nativeMountRequested = ref(false);
 const degradedSurfacePhase = ref('idle');
 const degradedSurfaceError = ref('');
@@ -388,9 +389,22 @@ watch(
     nativeTileUrlTemplate: renderState.basemap?.nativeTileUrlTemplate || '',
   }),
   () => {
-    if (hasRenderableBasemap.value && degradedSurfacePhase.value === 'failed') {
+    const currentBasemapSignature = getRenderableBasemapSignature(renderState.basemap);
+    if (
+      hasRenderableBasemap.value
+      && degradedSurfacePhase.value === 'failed'
+      && currentBasemapSignature
+      && currentBasemapSignature !== lastDegradedFailedSignature.value
+    ) {
       degradedSurfacePhase.value = 'idle';
       degradedSurfaceError.value = '';
+      console.info('[map-surface]', {
+        path: 'degraded-retry-by-basemap-change',
+        phase: nativeStartupPhase.value,
+        degradedPhase: degradedSurfacePhase.value,
+        sourceType: basemapSourceType.value,
+        signature: currentBasemapSignature,
+      });
     }
     tryMountPluginSurface('basemap-sync');
   },
@@ -622,9 +636,12 @@ function handlePlatformNativeEvent(event) {
 function handleDegradedSurfaceStatus(status) {
   const phase = String(status?.phase || '').trim() || 'idle';
   degradedSurfacePhase.value = phase;
-  degradedSurfaceError.value = phase === 'failed'
-    ? String(status?.reason || 'degraded-surface-failed')
-    : '';
+  if (phase === 'failed') {
+    degradedSurfaceError.value = String(status?.reason || 'degraded-surface-failed');
+    lastDegradedFailedSignature.value = getRenderableBasemapSignature(renderState.basemap);
+  } else {
+    degradedSurfaceError.value = '';
+  }
 
   console.info('[map-surface]', {
     path: mapSurfacePath.value,
@@ -681,6 +698,9 @@ function enterDegradedMode(reason, raw = {}) {
   nativeFailureReason.value = reason || 'native-unavailable';
   if (degradedSurfacePhase.value === 'idle') {
     degradedSurfacePhase.value = hasRenderableBasemap.value ? 'loading' : 'failed';
+  }
+  if (degradedSurfacePhase.value === 'failed') {
+    lastDegradedFailedSignature.value = getRenderableBasemapSignature(renderState.basemap);
   }
   emitNativeError(nativeFailureReason.value, raw);
   emitDegradedStatus(nativeFailureReason.value, raw);
@@ -765,6 +785,15 @@ function hasUsableBasemap() {
   const styleUrl = String(renderState.basemap?.styleUrl || '').trim();
   const tilesUrl = String(renderState.basemap?.tilesUrl || '').trim();
   return !!styleUrl && !!tilesUrl;
+}
+
+function getRenderableBasemapSignature(basemap) {
+  const sourceType = String(basemap?.sourceType || '').trim();
+  const styleUrl = String(basemap?.styleUrl || '').trim();
+  const tilesUrl = String(basemap?.tilesUrl || '').trim();
+  const nativeTileUrlTemplate = String(basemap?.nativeTileUrlTemplate || '').trim();
+  if (!sourceType && !styleUrl && !tilesUrl && !nativeTileUrlTemplate) return '';
+  return `${sourceType}|${styleUrl}|${tilesUrl}|${nativeTileUrlTemplate}`;
 }
 
 function tryMountPluginSurface(reason = '') {
