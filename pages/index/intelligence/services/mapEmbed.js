@@ -114,6 +114,7 @@ export function buildWebViewMapSrc(options = {}) {
     ...DEFAULT_MAP_VIEW,
     ...options,
   };
+  const basemap = view.basemap && typeof view.basemap === 'object' ? view.basemap : {};
 
   const pageUrl = getConfiguredMapPageUrl();
   const embeddedUrl = `${String(getConfiguredMapEmbedUrl() || '').replace(/\/+$/, '')}?${buildQuery({
@@ -124,6 +125,10 @@ export function buildWebViewMapSrc(options = {}) {
     keyword: view.keyword || '',
     readonly: '1',
     theme: view.theme || 'light',
+    sourceType: basemap.sourceType || '',
+    styleUrl: basemap.styleUrl || '',
+    tilesUrl: basemap.tilesUrl || '',
+    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
     debug: isDebugMapHudEnabled() ? '1' : '',
     lite: shouldUseLiteEmbedMode() ? '1' : '',
     kernel: shouldUseLiteEmbedMode() ? '' : '1',
@@ -136,6 +141,10 @@ export function buildWebViewMapSrc(options = {}) {
     center: formatCenter(view.center),
     zoom: view.zoom,
     layers: Array.isArray(view.layers) ? view.layers.join(',') : '',
+    sourceType: basemap.sourceType || '',
+    styleUrl: basemap.styleUrl || '',
+    tilesUrl: basemap.tilesUrl || '',
+    nativeTileUrlTemplate: basemap.nativeTileUrlTemplate || '',
     debugFallback: isDebugMapFallbackEnabled() ? '1' : '',
     showHud: isDebugMapHudEnabled() ? '1' : '',
   });
@@ -145,4 +154,14 @@ export function buildWebViewMapSrc(options = {}) {
 
 export function buildMapBridgeSrc(options = {}) {
   return buildWebViewMapSrc(options);
+}
+
+export function buildDegradedBasemapSrc(options = {}) {
+  const view = {
+    ...DEFAULT_MAP_VIEW,
+    ...options,
+    mode: 'view',
+    keyword: '',
+  };
+  return buildWebViewMapSrc(view);
 }

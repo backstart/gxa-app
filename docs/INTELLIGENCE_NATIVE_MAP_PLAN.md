@@ -72,6 +72,14 @@
 
 说明：底图“来源类型”与“是否已有可见地图表面”已拆分。即便 `sourceType=platform-real`，只要 native 尚未出图，也会先进入 degraded 可见路径，避免灰底/空白。
 
+## 2026-04-05 补充：degraded 可见层与 preview-only 解耦
+
+- 新增 `DegradedBasemapSurface`，当 `sourceType` 为 `platform-real` 或 `platform-default-fallback` 且 native 未 ready 时，优先显示可渲染的 degraded 底图层。
+- `preview-only` 只在两种场景出现：
+  - `styleUrl/tilesUrl` 不可用；
+  - degraded 底图层初始化失败。
+- 日志新增 `map-surface` 明细字段（`styleUrl/tilesUrl/nativeTileUrlTemplate`），用于核对“底图来源”与“实际显示路径”是否一致。
+
 ## 超时与失败策略
 
 - `/api/embed/*` 请求 timeout 统一 `30000ms`。

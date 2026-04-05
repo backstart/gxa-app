@@ -560,6 +560,9 @@ export function useIntelligencePage() {
         phase: String(event.payload?.phase || ''),
         sourceType: String(event.payload?.sourceType || ''),
         nativeReady: !!event.payload?.nativeReady,
+        styleUrl: String(event.payload?.styleUrl || ''),
+        tilesUrl: String(event.payload?.tilesUrl || ''),
+        nativeTileUrlTemplate: String(event.payload?.nativeTileUrlTemplate || ''),
       });
       return;
     }

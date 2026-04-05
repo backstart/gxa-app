@@ -12,6 +12,17 @@
       />
       <!-- #endif -->
 
+      <DegradedBasemapSurface
+        v-if="showDegradedBasemapSurface"
+        class="native-map__degraded"
+        :enabled="enabled"
+        :center="renderState.center"
+        :zoom="renderState.zoom"
+        :layers="renderState.layers"
+        :basemap="renderState.basemap"
+        @status="handleDegradedSurfaceStatus"
+      />
+
       <view v-if="showDegradedPreview" class="native-map__preview">
         <view class="native-map__preview-grid"></view>
         <view class="native-map__preview-road native-map__preview-road--a"></view>
@@ -63,6 +74,7 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from
 import { createMapAdapter } from '../adapters/map/createMapAdapter.js';
 import { MAP_ADAPTER_TYPES } from '../adapters/map/types.js';
 import { isDebugMapFallbackEnabled } from '../services/mapEmbed.js';
+import DegradedBasemapSurface from './DegradedBasemapSurface.vue';
 import {
   detectPlatformNativeMapCapability,
   mountPlatformNativeMap,
@@ -111,6 +123,8 @@ const nativeFailureReason = ref('');
 const debugPreviewEnabled = ref(false);
 const lastBasemapSignature = ref('');
 const nativeMountRequested = ref(false);
+const degradedSurfacePhase = ref('idle');
+const degradedSurfaceError = ref('');
 let removeNativeMapListener = null;
 let nativeReadyTimer = null;
 
@@ -138,7 +152,7 @@ const mapSurfacePath = computed(() => {
       : 'native-platform-default-fallback';
   }
 
-  if (hasRenderableBasemap.value) {
+  if (showDegradedBasemapSurface.value) {
     return basemapSourceType.value === 'platform-real'
       ? 'degraded-platform-real'
       : 'degraded-platform-default-fallback';
@@ -146,13 +160,22 @@ const mapSurfacePath = computed(() => {
 
   return 'preview-only';
 });
+const showDegradedBasemapSurface = computed(() =>
+  props.enabled
+  && !showNativeReadySurface.value
+  && hasRenderableBasemap.value
+  && degradedSurfacePhase.value !== 'failed'
+);
 const showDegradedPreview = computed(() =>
-  props.enabled && !showNativeReadySurface.value
+  props.enabled
+  && !showNativeReadySurface.value
+  && (!hasRenderableBasemap.value || degradedSurfacePhase.value === 'failed')
 );
 const showLoadingMask = computed(() =>
   props.enabled
   && !showNativeReadySurface.value
   && mapSurfacePath.value === 'preview-only'
+  && degradedSurfacePhase.value !== 'failed'
   && (
     !capabilityResolved.value
     || nativeStartupPhase.value === 'checking'
@@ -165,6 +188,7 @@ const showFailureMask = computed(() =>
   && !showLoadingMask.value
   && !showNativeReadySurface.value
   && mapSurfacePath.value === 'preview-only'
+  && degradedSurfacePhase.value === 'failed'
   && (nativeStartupPhase.value === 'failed' || nativeStartupPhase.value === 'degraded')
 );
 const previewMarkers = computed(() => {
@@ -211,6 +235,9 @@ const mapVisualStateClass = computed(() => {
   return 'native-map__surface--loading';
 });
 const failureText = computed(() => {
+  if (degradedSurfaceError.value) {
+    return degradedSurfaceError.value;
+  }
   if (debugPreviewEnabled.value && nativeFailureReason.value) {
     return nativeFailureReason.value;
   }
@@ -287,6 +314,8 @@ watch(
       renderState.ready = false;
       nativeFailureReason.value = '';
       nativeMountRequested.value = false;
+      degradedSurfacePhase.value = 'idle';
+      degradedSurfaceError.value = '';
       destroyPlatformNativeMap(mapId);
       return;
     }
@@ -342,6 +371,9 @@ watch(
         phase: nativeStartupPhase.value,
         sourceType: basemapSourceType.value,
         nativeReady: showNativeReadySurface.value,
+        styleUrl: String(renderState.basemap?.styleUrl || ''),
+        tilesUrl: String(renderState.basemap?.tilesUrl || ''),
+        nativeTileUrlTemplate: String(renderState.basemap?.nativeTileUrlTemplate || ''),
       },
     });
   },
@@ -356,6 +388,10 @@ watch(
     nativeTileUrlTemplate: renderState.basemap?.nativeTileUrlTemplate || '',
   }),
   () => {
+    if (hasRenderableBasemap.value && degradedSurfacePhase.value === 'failed') {
+      degradedSurfacePhase.value = 'idle';
+      degradedSurfaceError.value = '';
+    }
     tryMountPluginSurface('basemap-sync');
   },
   { deep: true }
@@ -396,6 +432,8 @@ onMounted(async () => {
   renderState.ready = false;
   nativeStartupPhase.value = 'checking';
   nativeFailureReason.value = '';
+  degradedSurfacePhase.value = 'idle';
+  degradedSurfaceError.value = '';
 
   await resolvePlatformNativeMode();
   tryMountPluginSurface('mounted');
@@ -486,6 +524,8 @@ function handlePlatformNativeEvent(event) {
     renderState.ready = true;
     nativeStartupPhase.value = 'ready';
     nativeFailureReason.value = '';
+    degradedSurfacePhase.value = 'idle';
+    degradedSurfaceError.value = '';
     logMapSurfaceStatus('native-ready');
     emit('map-event', {
       type: 'native-status',
@@ -579,6 +619,25 @@ function handlePlatformNativeEvent(event) {
   }
 }
 
+function handleDegradedSurfaceStatus(status) {
+  const phase = String(status?.phase || '').trim() || 'idle';
+  degradedSurfacePhase.value = phase;
+  degradedSurfaceError.value = phase === 'failed'
+    ? String(status?.reason || 'degraded-surface-failed')
+    : '';
+
+  console.info('[map-surface]', {
+    path: mapSurfacePath.value,
+    phase: nativeStartupPhase.value,
+    degradedPhase: degradedSurfacePhase.value,
+    sourceType: basemapSourceType.value,
+    nativeReady: showNativeReadySurface.value,
+    styleUrl: String(status?.styleUrl || ''),
+    tilesUrl: String(status?.tilesUrl || ''),
+    nativeTileUrlTemplate: String(status?.nativeTileUrlTemplate || ''),
+  });
+}
+
 function emitNativeError(message, raw = {}) {
   logMapSurfaceStatus('native-failed', message);
   emit('map-event', {
@@ -618,6 +677,9 @@ function enterDegradedMode(reason, raw = {}) {
   renderState.ready = false;
   nativeStartupPhase.value = 'degraded';
   nativeFailureReason.value = reason || 'native-unavailable';
+  if (degradedSurfacePhase.value === 'idle') {
+    degradedSurfacePhase.value = hasRenderableBasemap.value ? 'loading' : 'failed';
+  }
   emitNativeError(nativeFailureReason.value, raw);
   emitDegradedStatus(nativeFailureReason.value, raw);
 }
@@ -749,6 +811,12 @@ function clearNativeReadyTimer() {
   height: 100%;
 }
 
+.native-map__degraded {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
 .native-map__surface--loading,
 .native-map__surface--failed {
   background: #e9edf2;
@@ -767,7 +835,7 @@ function clearNativeReadyTimer() {
 .native-map__preview {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   overflow: hidden;
 }
 
